@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Gymceska</string>
+    <string name="rozvrh">Rozvrh</string>
+    <string name="suplovani">Suplování</string>
+    <string name="domaci_ukoly">Domácí úkoly</string>
+    <string name="ukoly">Úkoly</string>
+    <string name="spravovat_ukoly">Spravovat úkoly</string>
+    <string name="pridat">Přidat</string>
+    <string name="nacitani">Načítání…</string>
+    <string name="odstranit">Odstranit</string>
+    <string name="ukol"><b>%1$s</b> – %2$s – %3$s</string>
+    <string name="za_p_padn_nesrovnalosti_neru_me">Za případné nesrovnalosti neručíme</string>
+    <string name="upravit">Upravit</string>
+    <string name="upravit_ukol">Upravit úkol</string>
+    <string name="zrusit">Zrušit</string>
+    <string name="neni_stazen">Tento rozvrh není stažen</string>
+    <string name="neni_stazeno">Data nejsou stažena</string>
+    <string name="datum">Upozornění! Prohlížíte si starší data! (z %s)</string>
+    <string name="stahovani_vseho">Stahování všech rozvrhů</string>
+    <string name="stahnout_vse">Stáhnout všechny rozvrhy</string>
+    <string name="nastaveni_oznameni">Nastavení oznámení</string>
+    <string name="nastaveni">Nastavení</string>
+    <string name="chcete_dostavat_oznameni">Chcete dostávat oznámení na nesplněné úkoly?</string>
+    <string name="kdy_oznameni">V jaký čas chcete dostávat oznámení?</string>
+    <string name="nesplnene_ukoly">Nespněné úkoly</string>
+    <plurals name="mate_ukoly">
+        <item quantity="one">Máte %d nesplněný úkol</item>
+        <item quantity="few">Máte %d nesplněné úkoly</item>
+        <item quantity="other">Máte %d nesplněných úkolů</item>
+    </plurals>
+    <string name="widget_pridat">Add widget</string>
+    <string name="widget_ted_hodina_popis">This is an app widget description</string>
+    <string name="najit_tridu">Najít volnou učebnu</string>
+    <string name="hledani">Hledání</string>
+    <string name="by_ro_studios">by RO studios</string>
+    <string name="tmavy_rezim">Tmavý režim</string>
+    <string name="zvolte_svou_tridu">Zvolte svou třídu:</string>
+    <string name="zvolte_sve_skupiny">Zvolte své skupiny:</string>
+    <string name="vice_moznosti">Více možností</string>
+    <string name="title_activity_main2">MainActivity2</string>
+</resources>

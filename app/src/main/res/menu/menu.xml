@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/optionRozvrh"
+        android:icon="@drawable/ic_baseline_table_chart_24"
+        android:title="@string/rozvrh" />
+    <item
+        android:id="@+id/optionSuplovani"
+        android:icon="@drawable/ic_baseline_school_24"
+        android:title="@string/suplovani" />
+    <item
+        android:id="@+id/optionUkoly"
+        android:title="@string/domaci_ukoly"
+        android:icon="@drawable/ic_baseline_format_list_bulleted_24" />
+</menu>

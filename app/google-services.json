@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "513344353318",
+    "project_id": "gymceska-b9b4c",
+    "storage_bucket": "gymceska-b9b4c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:513344353318:android:f0639b874a134051eca2e7",
+        "android_client_info": {
+          "package_name": "cz.jaro.rozvrh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "513344353318-192iclsq1mofhpvqnk50saf81ksuq6t6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "cz.jaro.rozvrh",
+            "certificate_hash": "225cb6259d5ed1e80c346cdc62b13cd20622e6bf"
+          }
+        },
+        {
+          "client_id": "513344353318-d57jq580rbpcm3hqdop0lfffe6slat3a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1Ik08-bf5TGSLiFeJNVGP19TwgxFMYGU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "513344353318-d57jq580rbpcm3hqdop0lfffe6slat3a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
