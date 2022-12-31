@@ -1,4 +1,4 @@
-package cz.jaro.rozvrh.rozvrh
+package cz.jaro.rozvrh.rozvrh.oznameni
 
 import android.Manifest
 import android.app.AlarmManager
@@ -22,6 +22,8 @@ import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.RepositoryImpl
+import cz.jaro.rozvrh.rozvrh.Bunka
+import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -100,6 +102,11 @@ class OznameniReceiver : BroadcastReceiver() {
                     .toList()
                     .let {
                         println(it)
+                        if (it.isEmpty()) {
+                            repo.oznameni = repo.oznameni.copy(hodinovyOznameni = false)
+                            println(repo.oznameni)
+                            return@let
+                        }
                         val cas = when (repo.oznameni.hodinovyOznameniPodle) {
                             OznameniState.TypHodinovyhoOznameni.PoMinulyHodine -> tabulka
                                 .first()

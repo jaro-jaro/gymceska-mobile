@@ -1,4 +1,4 @@
-package cz.jaro.rozvrh.rozvrh
+package cz.jaro.rozvrh.rozvrh.oznameni
 
 import kotlinx.serialization.Serializable
 

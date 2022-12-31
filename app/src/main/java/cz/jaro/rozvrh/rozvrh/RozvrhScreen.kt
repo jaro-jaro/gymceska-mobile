@@ -1,9 +1,11 @@
 package cz.jaro.rozvrh.rozvrh
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +62,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RozvrhScreen(
@@ -322,10 +325,9 @@ private fun Tabulka(
                                         .border(1.dp, colorResource(id = R.color.gymceska_modra))
                                 ) {
                                     hodina.forEach { bunka ->
-                                        Bunka.ComposovatBunku(
-                                            bunka = bunka,
-                                            kolikJichJe = hodina.size,
-                                            celkem = maxy[i + 1],
+                                        bunka.Compose(
+                                            bunekVHodine = hodina.size,
+                                            maxBunekDne = maxy[i + 1],
                                             kliklNaNeco = kliklNaNeco
                                         )
                                     }

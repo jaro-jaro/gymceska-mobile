@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,9 @@ import com.google.accompanist.permissions.rememberPermissionState
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.RepositoryImpl
+import cz.jaro.rozvrh.rozvrh.oznameni.DenniReciever
+import cz.jaro.rozvrh.rozvrh.oznameni.OznameniReceiver
+import cz.jaro.rozvrh.rozvrh.oznameni.OznameniState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

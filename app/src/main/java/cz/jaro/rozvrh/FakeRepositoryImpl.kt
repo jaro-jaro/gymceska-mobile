@@ -1,6 +1,6 @@
 package cz.jaro.rozvrh
 
-import cz.jaro.rozvrh.rozvrh.OznameniState
+import cz.jaro.rozvrh.rozvrh.oznameni.OznameniState
 import org.jsoup.nodes.Document
 
 class FakeRepositoryImpl : Repository {
@@ -31,4 +31,8 @@ class FakeRepositoryImpl : Repository {
     override fun isOnline(): Boolean {
         TODO("Not yet implemented")
     }
+
+    override var poprve: Boolean
+        get() = TODO("Not yet implemented")
+        set(value) {}
 }

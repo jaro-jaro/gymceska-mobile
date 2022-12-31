@@ -17,7 +17,7 @@ import java.util.Calendar.*
 class TedHodinaWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-
+/*
         var predmet   = ""
         var skupina   = ""
         var ucebna    = ""
@@ -77,7 +77,7 @@ class TedHodinaWidget : AppWidgetProvider() {
                     .map { it[0].vyucujici.split(" - ").map { it.split(":").map { it.toInt() } } }
 
                 val c = getInstance()
-                var d = dny.indexOf(c.get(DAY_OF_WEEK)) /* 1-5 (6-7) */
+                var d = dny.indexOf(c.get(DAY_OF_WEEK)) *//* 1-5 (6-7) *//*
                 
                 var hodina = hodiny.indices.indexOfFirst { i ->
 
@@ -124,7 +124,7 @@ class TedHodinaWidget : AppWidgetProvider() {
 
             for (appWidgetId in appWidgetIds) {
 
-                val views = RemoteViews(context.packageName, R.layout.bunka).apply {
+                val views = RemoteViews(context.packageName, R.layout.widget_preview).apply {
                     setTextViewText(R.id.tvPredmet, predmet)
                     setTextViewText(R.id.tvSkupina, skupina)
                     setTextViewText(R.id.tvUcebna, ucebna)
@@ -136,7 +136,7 @@ class TedHodinaWidget : AppWidgetProvider() {
                 appWidgetManager.updateAppWidget(appWidgetId, views)
 
             }
-        }.start()
+        }.start()*/
     }
 
 

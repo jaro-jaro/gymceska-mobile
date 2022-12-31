@@ -14,7 +14,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Rozvrh">
 
-        <receiver
+        <!--<receiver
             android:name=".rozvrh.widgety.TedHodinaWidget"
             android:exported="true">
             <intent-filter>
@@ -24,9 +24,9 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ted_hodina_widget_info" />
-        </receiver>
+        </receiver>-->
         <receiver
-            android:name=".rozvrh.widgety.DnesWidget"
+            android:name=".rozvrh.widgety.DnesWidget$Companion$Reciever"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -40,10 +40,10 @@
             android:name=".ukoly.UkolyReceiver"
             android:enabled="true" />
         <receiver
-            android:name=".rozvrh.OznameniReceiver"
+            android:name=".rozvrh.oznameni.OznameniReceiver"
             android:enabled="true" />
         <receiver
-            android:name=".rozvrh.DenniReciever"
+            android:name=".rozvrh.oznameni.DenniReciever"
             android:enabled="true" />
 
         <activity

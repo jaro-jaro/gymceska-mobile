@@ -1,4 +1,4 @@
-package cz.jaro.rozvrh.rozvrh
+package cz.jaro.rozvrh.rozvrh.oznameni
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -16,6 +16,8 @@ import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.RepositoryImpl
+import cz.jaro.rozvrh.rozvrh.Bunka
+import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat

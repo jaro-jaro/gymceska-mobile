@@ -1,10 +1,17 @@
 package cz.jaro.rozvrh.ui.theme
 
+import android.content.Context
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.ui.platform.LocalContext
+import androidx.glance.color.dynamicThemeColorProviders
 
 
 private val LightColors = lightColorScheme(
@@ -68,9 +75,19 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun AppTheme(
-    useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit
+    useDarkTheme: Boolean = isSystemInDarkTheme(),
+    useThemed: Boolean = false,
+    localContext: ProvidableCompositionLocal<Context> = LocalContext,
+    content: @Composable () -> Unit
 ) {
-    val colors = if (!useDarkTheme) LightColors else DarkColors
+    val colors =
+        when ((useThemed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) to useDarkTheme) {
+            true to true -> dynamicDarkColorScheme(localContext.current)
+            true to false -> dynamicLightColorScheme(localContext.current)
+            false to true -> DarkColors
+            false to false -> LightColors
+            else -> throw IllegalStateException("WTF?!")
+        }
 
     MaterialTheme(
         colorScheme = colors, content = content

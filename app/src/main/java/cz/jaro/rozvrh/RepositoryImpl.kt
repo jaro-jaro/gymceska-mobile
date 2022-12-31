@@ -1,11 +1,14 @@
 package cz.jaro.rozvrh
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
-import cz.jaro.rozvrh.rozvrh.OznameniState
+import cz.jaro.rozvrh.Repository.Companion.isOnline
+import cz.jaro.rozvrh.rozvrh.oznameni.OznameniState
 import cz.jaro.rozvrh.rozvrh.Seznamy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +22,7 @@ import java.util.Date
 import java.util.Locale
 
 class RepositoryImpl(val ctx: Context) : Repository {
-    val sharedPref = ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)
+    val sharedPref: SharedPreferences = ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)
 
     override var mojeTrida: String
         get() = sharedPref.getString("sva_trida", "5.E")!!
@@ -39,10 +42,20 @@ class RepositoryImpl(val ctx: Context) : Repository {
             sharedPref.edit { putStringSet("sve_skupiny", value.toSet()) }
         }
 
+    override var poprve: Boolean
+        get() = sharedPref.getBoolean("poprve", true)
+        set(value) {
+            sharedPref.edit { putBoolean("poprve", value) }
+        }
+
     override var darkMode: Boolean
         get() = sharedPref.getBoolean("DM", false)
         set(value) {
             sharedPref.edit { putBoolean("DM", value) }
+            if (value)
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            else
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         }
 
     override var oznameni: OznameniState
@@ -102,16 +115,5 @@ class RepositoryImpl(val ctx: Context) : Repository {
         }
     }
 
-    override fun isOnline(): Boolean {
-        val connectivityManager = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork) ?: return false
-
-        return capabilities.hasTransport(
-            NetworkCapabilities.TRANSPORT_CELLULAR
-        ) || capabilities.hasTransport(
-            NetworkCapabilities.TRANSPORT_WIFI
-        ) || capabilities.hasTransport(
-            NetworkCapabilities.TRANSPORT_ETHERNET
-        )
-    }
+    override fun isOnline(): Boolean = ctx.isOnline()
 }

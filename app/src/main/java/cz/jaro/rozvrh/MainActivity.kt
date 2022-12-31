@@ -1,7 +1,6 @@
 package cz.jaro.rozvrh
 
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -21,15 +20,17 @@ class MainActivity : AppCompatActivity() {
         setTheme(R.style.Theme_Rozvrh)
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+//        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
         val sp = getSharedPreferences("hm", Context.MODE_PRIVATE)
 
-        if (sp.getBoolean("DM", false))
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        else
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        if (!sp.getBoolean("poprve", true)) {
 
+            if (sp.getBoolean("DM", false))
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            else
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -75,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         }
         Log.d("funguj", sp.getStringSet("skrtle_ukoly", setOf()).toString())
         Log.d("funguj", intent.getStringArrayExtra("splnit")?.toSet().toString())
-        if (intent.getStringArrayExtra("splnit")?.toSet().let { it != null && it.isNotEmpty() }) {
+        if (intent.getStringArrayExtra("splnit")?.toSet().isNullOrEmpty().not()) {
             Log.d("funguj", sp.getStringSet("skrtle_ukoly", setOf()).toString())
 
             sp.edit {

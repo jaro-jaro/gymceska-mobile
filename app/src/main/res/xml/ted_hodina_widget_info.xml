@@ -6,7 +6,7 @@
     android:targetCellWidth="1"
     android:updatePeriodMillis="300000"
     android:description="@string/widget_ted_hodina_popis"
-    android:initialLayout="@layout/bunka"
+    android:initialLayout="@layout/widget_preview"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

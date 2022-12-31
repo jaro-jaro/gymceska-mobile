@@ -1,18 +1,50 @@
 package cz.jaro.rozvrh.rozvrh.widgety
 
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.net.ConnectivityManager
+import android.hardware.ConsumerIrManager.CarrierFrequencyRange
 import android.widget.RemoteViews
-import androidx.core.content.edit
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.GlanceModifier
+import androidx.glance.LocalContext
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.background
+import androidx.glance.currentState
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
+import androidx.glance.layout.wrapContentWidth
+import androidx.glance.text.Text
+import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
+import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.RepositoryImpl
 import cz.jaro.rozvrh.rozvrh.Bunka
-import cz.jaro.rozvrh.rozvrh.Seznamy
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritTabulku
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
-import java.text.SimpleDateFormat
+import cz.jaro.rozvrh.ui.theme.AppTheme
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.util.Calendar
 import java.util.Calendar.DAY_OF_WEEK
 import java.util.Calendar.FRIDAY
 import java.util.Calendar.MONDAY
@@ -21,100 +53,158 @@ import java.util.Calendar.SUNDAY
 import java.util.Calendar.THURSDAY
 import java.util.Calendar.TUESDAY
 import java.util.Calendar.WEDNESDAY
-import java.util.Calendar.getInstance
-import java.util.Date
-import java.util.Locale
 
 
-class DnesWidget : AppWidgetProvider() {
+class DnesWidget(
+//    private val bunky: List<Bunka>
+) : GlanceAppWidget() {
 
-    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+    @Composable
+    override fun Content() {
 
-        val zobrazit = mutableListOf<Bunka>()
+        val prefs = currentState<Preferences>()
+        val bunky = Json.decodeFromString<List<Bunka>>(prefs[stringPreferencesKey("hodiny")] ?: "[]")
+        val dm = prefs[booleanPreferencesKey("dm")] ?: false
+        AppTheme(useDarkTheme = dm, useThemed = true, localContext = LocalContext) {
+            Column(
+                GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
+                verticalAlignment = Alignment.Vertical.CenterVertically,
+                horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+            ) {
+                Cara()
+                bunky
+                    .ifEmpty { listOf(Bunka("", "Žádné hodiny!", "")) }
+                    .forEach {
+                        with(it) {
+                            Box(
+                                modifier = GlanceModifier
+                                    .clickable(actionStartActivity<MainActivity>())
+                                    .defaultWeight()
+                                    .wrapContentWidth()
+//                                    .border(1.dp, ColorProvider(R.color.gymceska_modra))
+                                    .background(if (zbarvit) ColorProvider(R.color.pink) else ColorProvider(MaterialTheme.colorScheme.background)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.TopStart,
+                                    modifier = GlanceModifier
+                                        .clickable(actionStartActivity<MainActivity>())
+                                        .fillMaxSize()
+                                ) {
+                                    Text(
+                                        text = ucebna,
+                                        modifier = GlanceModifier
+                                            .clickable(actionStartActivity<MainActivity>())
+                                            .padding(all = 8.dp),
+                                        style = TextStyle(
+                                            color = ColorProvider(if (dm) Color.White else Color.Black)
+                                        ),
+                                    )
+                                }
+                                Box(
+                                    contentAlignment = Alignment.TopEnd,
+                                    modifier = GlanceModifier
+                                        .clickable(actionStartActivity<MainActivity>())
+                                        .fillMaxSize()
+                                ) {
+                                    Text(
+                                        text = trida_skupina,
+                                        modifier = GlanceModifier
+                                            .clickable(actionStartActivity<MainActivity>())
+                                            .padding(all = 8.dp),
+                                        style = TextStyle(
+                                            color = ColorProvider(if (dm) Color.White else Color.Black)
+                                        ),
+                                    )
+                                }
 
-        Thread {
-
-            val doc: Document?
-
-            val sp = context.getSharedPreferences("hm", Context.MODE_PRIVATE)
-
-            val trida = sp.getString("sva_trida", "4.E")!!
-            val tridaIndex = sp.getInt("sva_trida_index", 11)
-
-            if (isOnline(context)) {
-                doc = Jsoup.connect(Seznamy.tridyOdkazy[tridaIndex-1].replace("###", "Actual")).get()
-
-                sp.edit {
-                    val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-
-                    putString("rozvrh_${trida}_Actual", doc.toString())
-                    putString("rozvrh_${trida}_Actual_datum", formatter.format(Date()))
-                }
-            } else {
-
-                val html = sp.getString("rozvrh_${trida}_Actual", "")
-
-                doc = if (html == "") {
-                    zobrazit += Bunka("", "Žádná data", "")
-                    null
-                } else Jsoup.parse(html!!)
-            }
-
-            val dny = listOf(-1, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY)
-
-            if (doc != null) {
-                val tabulka = vytvoritTabulku(doc)
-
-                val c = getInstance()
-
-                when (val d = dny.indexOf(c[DAY_OF_WEEK])) { /* 1-5 (6-7) */
-
-                    in 1..5 -> zobrazit += tabulka[d].drop(1)
-                        .mapIndexed { i, hodina -> hodina.map { bunka -> bunka.copy(predmet = "$i. ${bunka.predmet}") } }
-                        .filter { hodina -> hodina.first().predmet.isNotBlank() }
-                        .map { hodina -> hodina.find { bunka ->
-                            bunka.trida_skupina.isEmpty() || bunka.trida_skupina in sp.getStringSet("sve_skupiny", setOf())!!
-                        } ?: hodina.first() }
-                    in 6..7 -> zobrazit += Bunka("", "Víkend", "")
-                }
-
-                if (zobrazit.isEmpty()) zobrazit += Bunka("", "Žádné hodiny!", "")
-            }
-
-            for (appWidgetId in appWidgetIds) {
-
-                val rv = RemoteViews(context.packageName, R.layout.dnes_widget).apply {
-
-                    removeAllViews(R.id.ll)
-
-                    //setInt(R.id.ll, "setBackgroundResource", R.color.black)
-
-                    zobrazit.forEach { bunka ->
-                        val rvUvnitr = RemoteViews(context.packageName, R.layout.bunka).apply {
-
-                            setTextViewText(R.id.tvPredmet, bunka.predmet)
-                            setTextViewText(R.id.tvSkupina, bunka.trida_skupina)
-                            setTextViewText(R.id.tvUcebna, bunka.ucebna)
-                            setTextViewText(R.id.tvNikdo, bunka.vyucujici)
-
-                            if (bunka.zbarvit) setInt(R.id.rlBunka, "setBackgroundResource", R.color.pink)
-                            else setInt(R.id.rlBunka, "setBackgroundResource", R.color.white)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = GlanceModifier
+                                        .clickable(actionStartActivity<MainActivity>())
+                                        .fillMaxSize()
+                                ) {
+                                    Text(text = "")
+                                    Spacer(GlanceModifier.defaultWeight())
+                                    Text(
+                                        text = predmet,
+                                        modifier = GlanceModifier
+                                            .clickable(actionStartActivity<MainActivity>()),
+                                        style = TextStyle(
+                                            color = ColorProvider(if (dm) Color.White else Color.Black)
+                                        ),
+                                    )
+                                    Spacer(GlanceModifier.defaultWeight())
+                                    Text(
+                                        text = vyucujici,
+                                        modifier = GlanceModifier
+                                            .clickable(actionStartActivity<MainActivity>())
+                                            .padding(bottom = 8.dp),
+                                        style = TextStyle(
+                                            color = ColorProvider(if (dm) Color.White else Color.Black)
+                                        ),
+                                    )
+                                }
+                            }
                         }
-
-                        addView(R.id.ll, rvUvnitr)
+                        Cara()
                     }
-                }
-
-                appWidgetManager.updateAppWidget(appWidgetId, rv)
             }
-        }.start()
+        }
     }
 
+    @Composable
+    fun Cara() = Box(modifier = GlanceModifier.height(2.dp).background(R.color.gymceska_modra)) {}
 
-    private fun isOnline(ctx: Context): Boolean {
-        val connManager = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkInfo = connManager.activeNetworkInfo
+    companion object {
 
-        return networkInfo != null && networkInfo.isConnectedOrConnecting
+        private val dny = listOf(-1, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY)
+
+        class Reciever : GlanceAppWidgetReceiver() {
+            override val glanceAppWidget: GlanceAppWidget = DnesWidget()
+
+            override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+                super.onUpdate(context, appWidgetManager, appWidgetIds)
+
+                val repo = RepositoryImpl(context)
+
+                MainScope().launch {
+                    val hodiny = repo.ziskatDocument("Next")?.let { doc ->
+                        val tabulka = vytvoritTabulku(doc)
+
+                        val cisloDne = dny.indexOf(Calendar.getInstance()[DAY_OF_WEEK]) /* 1-5 (6-7) */
+
+                        tabulka
+                            .getOrNull(cisloDne)
+                            ?.asSequence()
+                            ?.drop(1)
+                            ?.mapIndexed { i, hodina -> i to hodina }
+                            ?.filter { (i, hodina) -> hodina.first().predmet.isNotBlank() }
+                            ?.map { (i, hodina) -> hodina.map { bunka -> bunka.copy(predmet = "$i. ${bunka.predmet}") } }
+                            ?.mapNotNull { hodina ->
+                                hodina.find { bunka ->
+                                    bunka.trida_skupina.isEmpty() || bunka.trida_skupina in repo.mojeSkupiny
+                                }
+                            }
+                            ?.toList()
+                            ?.ifEmpty { listOf(Bunka("", "Žádné hodiny!", "")) }
+                            ?: listOf(Bunka("", "Víkend", ""))
+                    } ?: listOf(Bunka("", "Žádná data!", ""))
+
+                    println(GlanceAppWidgetManager(context).getGlanceIds(DnesWidget::class.java) to GlanceAppWidgetManager(context))
+                    appWidgetIds.forEach {
+                        val id = GlanceAppWidgetManager(context).getGlanceIdBy(it)
+                        println(it)
+
+                        updateAppWidgetState(context, id) { prefs ->
+                            prefs[stringPreferencesKey("hodiny")] = Json.encodeToString(hodiny)
+                            prefs[booleanPreferencesKey("dm")] = repo.darkMode
+                        }
+                        glanceAppWidget.update(context, id)
+                    }
+                }
+            }
+        }
     }
 }
