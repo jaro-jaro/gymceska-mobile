@@ -170,7 +170,7 @@ class DnesWidget(
                 val repo = RepositoryImpl(context)
 
                 MainScope().launch {
-                    val hodiny = repo.ziskatDocument("Next")?.let { doc ->
+                    val hodiny = repo.ziskatDocument("Actual")?.let { doc ->
                         val tabulka = vytvoritTabulku(doc)
 
                         val cisloDne = dny.indexOf(Calendar.getInstance()[DAY_OF_WEEK]) /* 1-5 (6-7) */
