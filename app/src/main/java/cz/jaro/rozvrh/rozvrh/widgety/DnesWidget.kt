@@ -2,8 +2,7 @@ package cz.jaro.rozvrh.rozvrh.widgety
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
-import android.hardware.ConsumerIrManager.CarrierFrequencyRange
-import android.widget.RemoteViews
+import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -25,11 +24,10 @@ import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.wrapContentWidth
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
@@ -55,9 +53,7 @@ import java.util.Calendar.TUESDAY
 import java.util.Calendar.WEDNESDAY
 
 
-class DnesWidget(
-//    private val bunky: List<Bunka>
-) : GlanceAppWidget() {
+class DnesWidget : GlanceAppWidget() {
 
     @Composable
     override fun Content() {
@@ -71,91 +67,104 @@ class DnesWidget(
                 verticalAlignment = Alignment.Vertical.CenterVertically,
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                Cara()
                 bunky
-                    .ifEmpty { listOf(Bunka("", "Žádné hodiny!", "")) }
-                    .forEach {
-                        with(it) {
-                            Box(
-                                modifier = GlanceModifier
-                                    .clickable(actionStartActivity<MainActivity>())
-                                    .defaultWeight()
-                                    .wrapContentWidth()
-//                                    .border(1.dp, ColorProvider(R.color.gymceska_modra))
-                                    .background(if (zbarvit) ColorProvider(R.color.pink) else ColorProvider(MaterialTheme.colorScheme.background)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.TopStart,
-                                    modifier = GlanceModifier
-                                        .clickable(actionStartActivity<MainActivity>())
-                                        .fillMaxSize()
-                                ) {
-                                    Text(
-                                        text = ucebna,
-                                        modifier = GlanceModifier
+                    .ifEmpty {
+                        listOf(Bunka("", "Žádné hodiny!", ""))
+                    }
+                    .let {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) it else it.take(10)
+                    }.let { hodiny ->
+                        hodiny
+                            .forEachIndexed { i, it ->
+                                with(it) {
+                                    Column(
+                                        GlanceModifier
                                             .clickable(actionStartActivity<MainActivity>())
-                                            .padding(all = 8.dp),
-                                        style = TextStyle(
-                                            color = ColorProvider(if (dm) Color.White else Color.Black)
-                                        ),
-                                    )
-                                }
-                                Box(
-                                    contentAlignment = Alignment.TopEnd,
-                                    modifier = GlanceModifier
-                                        .clickable(actionStartActivity<MainActivity>())
-                                        .fillMaxSize()
-                                ) {
-                                    Text(
-                                        text = trida_skupina,
-                                        modifier = GlanceModifier
-                                            .clickable(actionStartActivity<MainActivity>())
-                                            .padding(all = 8.dp),
-                                        style = TextStyle(
-                                            color = ColorProvider(if (dm) Color.White else Color.Black)
-                                        ),
-                                    )
-                                }
+                                            .defaultWeight()
+                                            .fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = GlanceModifier
+                                                .clickable(actionStartActivity<MainActivity>())
+                                                .fillMaxWidth()
+                                                .defaultWeight()
+                                                .background(if (zbarvit) ColorProvider(R.color.pink) else ColorProvider(MaterialTheme.colorScheme.background)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Box(
+                                                contentAlignment = Alignment.TopStart,
+                                                modifier = GlanceModifier
+                                                    .clickable(actionStartActivity<MainActivity>())
+                                                    .fillMaxSize()
+                                            ) {
+                                                Text(
+                                                    text = ucebna,
+                                                    modifier = GlanceModifier
+                                                        .clickable(actionStartActivity<MainActivity>())
+                                                        .padding(all = 8.dp),
+                                                    style = TextStyle(
+                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
+                                                    ),
+                                                )
+                                            }
+                                            Box(
+                                                contentAlignment = Alignment.TopEnd,
+                                                modifier = GlanceModifier
+                                                    .clickable(actionStartActivity<MainActivity>())
+                                                    .fillMaxSize()
+                                            ) {
+                                                Text(
+                                                    text = trida_skupina,
+                                                    modifier = GlanceModifier
+                                                        .clickable(actionStartActivity<MainActivity>())
+                                                        .padding(all = 8.dp),
+                                                    style = TextStyle(
+                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
+                                                    ),
+                                                )
+                                            }
 
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = GlanceModifier
-                                        .clickable(actionStartActivity<MainActivity>())
-                                        .fillMaxSize()
-                                ) {
-                                    Text(text = "")
-                                    Spacer(GlanceModifier.defaultWeight())
-                                    Text(
-                                        text = predmet,
-                                        modifier = GlanceModifier
-                                            .clickable(actionStartActivity<MainActivity>()),
-                                        style = TextStyle(
-                                            color = ColorProvider(if (dm) Color.White else Color.Black)
-                                        ),
-                                    )
-                                    Spacer(GlanceModifier.defaultWeight())
-                                    Text(
-                                        text = vyucujici,
-                                        modifier = GlanceModifier
-                                            .clickable(actionStartActivity<MainActivity>())
-                                            .padding(bottom = 8.dp),
-                                        style = TextStyle(
-                                            color = ColorProvider(if (dm) Color.White else Color.Black)
-                                        ),
-                                    )
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = GlanceModifier
+                                                    .clickable(actionStartActivity<MainActivity>())
+                                                    .fillMaxSize()
+                                            ) {
+                                                Text(text = "")
+                                                Spacer(GlanceModifier.defaultWeight())
+                                                Text(
+                                                    text = predmet,
+                                                    modifier = GlanceModifier
+                                                        .clickable(actionStartActivity<MainActivity>()),
+                                                    style = TextStyle(
+                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
+                                                    ),
+                                                )
+                                                Spacer(GlanceModifier.defaultWeight())
+                                                Text(
+                                                    text = vyucujici,
+                                                    modifier = GlanceModifier
+                                                        .clickable(actionStartActivity<MainActivity>())
+                                                        .padding(bottom = 8.dp),
+                                                    style = TextStyle(
+                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
+                                                    ),
+                                                )
+                                            }
+                                        }
+                                        if (i < hodiny.lastIndex)
+                                            Cara()
+                                    }
                                 }
                             }
-                        }
-                        Cara()
                     }
             }
         }
     }
 
     @Composable
-    fun Cara() = Box(modifier = GlanceModifier.height(2.dp).background(R.color.gymceska_modra)) {}
+    fun Cara() = Box(modifier = GlanceModifier.height(2.dp).fillMaxWidth().background(Color.Transparent)) {}
 
     companion object {
 
@@ -188,7 +197,15 @@ class DnesWidget(
                                 }
                             }
                             ?.toList()
-                            ?.ifEmpty { listOf(Bunka("", "Žádné hodiny!", "")) }
+                            ?.ifEmpty {
+                                listOf(
+                                    Bunka("", "Žádné hodiny!", ""),
+                                    Bunka("", "Žádné hodiny!", ""),
+                                    Bunka("", "Žádné hodiny!", ""),
+                                    Bunka("", "Žádné hodiny!", ""),
+                                    Bunka("", "Žádné hodiny!", ""),
+                                )
+                            }
                             ?: listOf(Bunka("", "Víkend", ""))
                     } ?: listOf(Bunka("", "Žádná data!", ""))
 
