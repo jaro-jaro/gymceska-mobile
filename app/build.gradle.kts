@@ -74,3 +74,8 @@ dependencies {
     implementation(libs.bundles.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }
+
+repositories {
+    google()
+    mavenCentral()
+}
