@@ -1,11 +1,7 @@
 package cz.jaro.rozvrh.rozvrh
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,192 +22,150 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.edit
-import cz.jaro.rozvrh.FakeRepositoryImpl
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.annotation.RootNavGraph
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.Repository
-import cz.jaro.rozvrh.RepositoryImpl
-import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritRozvrhPodleJinych
-import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritTabulku
-import cz.jaro.rozvrh.ui.theme.AppTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
-@SuppressLint("UnrememberedMutableState")
-@OptIn(ExperimentalMaterial3Api::class)
+@Destination
+@RootNavGraph(start = true)
 @Composable
 fun RozvrhScreen(
-    repo: Repository
+    vjec: Vjec? = null,
+    stalost: Stalost? = null,
+    navigator: DestinationsNavigator,
 ) {
-    val sp = LocalContext.current.getSharedPreferences("hm", Context.MODE_PRIVATE)
-
-    var index by remember { mutableStateOf(repo.indexMojiTridy) }
-    var typRozvrhu by remember { mutableStateOf<TypRozvrhu>(TypRozvrhu.Trida) }
-
-    var stalostIndex by remember { mutableStateOf(0) }
-    val stalost by derivedStateOf { Seznamy.stalostOdkazy[stalostIndex] }
-
-    var nacitame by remember { mutableStateOf(false) }
-
-    val tabulka: List<List<List<Bunka>>> by produceState(initialValue = emptyList(), typRozvrhu, index, stalost) {
-        nacitame = true
-        when (typRozvrhu) {
-            is TypRozvrhu.Trida -> withContext(Dispatchers.IO) Nacitani@{
-                val seznam = typRozvrhu.seznamOdkazu
-
-                val doc = if (repo.isOnline()) {
-                    val odkaz = seznam[index - 1]
-                    Jsoup.connect(odkaz.replace("###", stalost)).get().also { doc ->
-                        (repo as RepositoryImpl).sharedPref.edit {
-                            val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-
-                            putString("rozvrh_${seznam[index - 1]}_$stalost", doc.toString())
-                            putString("rozvrh_${seznam[index - 1]}_${stalost}_datum", formatter.format(Date()))
-                        }
-                    }
-                } else {
-
-                    val html = (repo as RepositoryImpl).sharedPref.getString("rozvrh_${seznam[index - 1]}_$stalost", null)
-                        ?: run {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(repo.ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
-                            }
-                            nacitame = false
-                            return@Nacitani
-                        }
-
-                    Jsoup.parse(html)
-                }
-
-                value = vytvoritTabulku(doc)
-            }
-
-            else -> {
-                val tabulka = vytvoritRozvrhPodleJinych(typRozvrhu, typRozvrhu.seznam[index], stalost, repo).also { println(it) }
-                value = tabulka
-            }
-        }
-        nacitame = false
+    val viewModel = koinViewModel<RozvrhViewModel> {
+        parametersOf(vjec, stalost, navigator.navigate)
     }
 
-    LaunchedEffect(tabulka) {
-        println(tabulka)
-    }
+    val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
 
-    Surface {
-        if (nacitame) AlertDialog(
-            onDismissRequest = {},
-            confirmButton = {},
-            title = {
-                Text(text = "Načítání")
-            },
-            text = {
-                CircularProgressIndicator()
-            },
-            properties = DialogProperties(
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false,
-            ),
+    RozvrhScreen(
+        tabulka = tabulka,
+        vjec = viewModel.vjec,
+        stalost = viewModel.stalost,
+        vybratRozvrh = viewModel::vybratRozvrh,
+        zmenitStalost = viewModel::zmenitStalost,
+        stahnoutVse = viewModel.stahnoutVse,
+        navigate = navigator.navigate,
+        najdiMiVolnouTridu = viewModel::najdiMivolnouTridu
+    )
+}
+
+@Composable
+fun RozvrhScreen(
+    tabulka: Tyden?,
+    vjec: Vjec,
+    stalost: Stalost,
+    vybratRozvrh: (Vjec) -> Unit,
+    zmenitStalost: (Stalost) -> Unit,
+    stahnoutVse: ((String) -> Unit) -> Unit,
+    navigate: (Direction) -> Unit,
+    najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+) = Scaffold(
+    topBar = {
+        AppBar(
+            stahnoutVse = stahnoutVse,
+            navigate = navigate,
+            najdiMiVolnouTridu = najdiMiVolnouTridu,
         )
-
-        Scaffold(
-            topBar = {
-                AppBar(repo)
+    }
+) { paddingValues ->
+    if (tabulka == null) AlertDialog(
+        onDismissRequest = {},
+        confirmButton = {},
+        title = {
+            Text(text = "Načítání")
+        },
+        text = {
+            CircularProgressIndicator()
+        },
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ),
+    )
+    else Column(
+        modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Vybiratko(
+                seznam = Vjec.tridy,
+                value = if (vjec is Vjec.TridaVjec) vjec else Vjec.TridaVjec.Tridy,
+            ) { vjec ->
+                if (vjec == Vjec.TridaVjec.Tridy) return@Vybiratko
+                vybratRozvrh(vjec)
             }
-        ) { paddingValues ->
 
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Vybiratko(
-                        seznam = TypRozvrhu.Trida.seznam,
-                        aktualIndex = if (typRozvrhu is TypRozvrhu.Trida) index else 0
-                    ) { i ->
-                        if (i == 0) return@Vybiratko
-                        typRozvrhu = TypRozvrhu.Trida
-                        index = i
-                    }
-
-                    Vybiratko(
-                        seznam = Seznamy.stalost,
-                        aktualIndex = stalostIndex
-                    ) { i ->
-                        stalostIndex = i
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Vybiratko(
-                        seznam = TypRozvrhu.Mistnost.seznam,
-                        aktualIndex = if (typRozvrhu is TypRozvrhu.Mistnost) index else 0
-                    ) { i ->
-                        if (i == 0) return@Vybiratko
-                        typRozvrhu = TypRozvrhu.Mistnost
-                        index = i
-                    }
-
-                    Vybiratko(
-                        seznam = TypRozvrhu.Vyucujici.seznam,
-                        aktualIndex = if (typRozvrhu is TypRozvrhu.Vyucujici) index else 0
-                    ) { i ->
-                        if (i == 0) return@Vybiratko
-                        typRozvrhu = TypRozvrhu.Vyucujici
-                        index = i
-                    }
-                }
-
-                Tabulka(
-                    tabulka = tabulka,
-                ) { rozvrh, i ->
-                    typRozvrhu = rozvrh
-                    index = i
-                }
+            Vybiratko(
+                seznam = Stalost.values().toList(),
+                value = stalost
+            ) { novaStalost ->
+                zmenitStalost(novaStalost)
             }
         }
 
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Vybiratko(
+                seznam = Vjec.mistnosti,
+                value = if (vjec is Vjec.MistnostVjec) vjec else Vjec.MistnostVjec.Mistnosti,
+            ) { vjec ->
+                if (vjec == Vjec.MistnostVjec.Mistnosti) return@Vybiratko
+                vybratRozvrh(vjec)
+            }
+
+            Vybiratko(
+                seznam = Vjec.vyucujici,
+                value = if (vjec is Vjec.VyucujiciVjec) vjec else Vjec.VyucujiciVjec.Vyucujici,
+            ) { vjec ->
+                if (vjec == Vjec.VyucujiciVjec.Vyucujici) return@Vybiratko
+                vybratRozvrh(vjec)
+            }
+        }
+
+        Tabulka(
+            tabulka = tabulka,
+            kliklNaNeco = { vjec ->
+                vybratRozvrh(vjec)
+            },
+        )
     }
 }
 
 @Composable
 private fun Tabulka(
-    tabulka: List<List<List<Bunka>>>,
-    kliklNaNeco: (rozvrh: TypRozvrhu, i: Int) -> Unit,
+    tabulka: Tyden,
+    kliklNaNeco: (vjec: Vjec) -> Unit,
 ) {
     if (tabulka.isEmpty()) return
 
@@ -342,6 +296,32 @@ private fun Tabulka(
 }
 
 @Composable
+fun <T : Vjec> Vybiratko(
+    seznam: List<T>,
+    value: T,
+    poklik: (vjec: T) -> Unit
+) = Vybiratko(
+    seznam = seznam.map { it.jmeno },
+    aktualIndex = seznam.indexOf(value),
+    poklik = {
+        poklik(seznam[it])
+    },
+)
+
+@Composable
+fun Vybiratko(
+    seznam: List<Stalost>,
+    value: Stalost,
+    poklik: (vjec: Stalost) -> Unit
+) = Vybiratko(
+    seznam = seznam.map { it.nazev },
+    aktualIndex = seznam.indexOf(value),
+    poklik = {
+        poklik(seznam[it])
+    },
+)
+
+@Composable
 fun Vybiratko(
     seznam: List<String>,
     aktualIndex: Int,
@@ -382,13 +362,5 @@ fun Vybiratko(
                 modifier = Modifier.size(ButtonDefaults.IconSize)
             )
         }
-    }
-}
-
-@Preview
-@Composable
-fun Preview() {
-    AppTheme {
-        RozvrhScreen(FakeRepositoryImpl())
     }
 }

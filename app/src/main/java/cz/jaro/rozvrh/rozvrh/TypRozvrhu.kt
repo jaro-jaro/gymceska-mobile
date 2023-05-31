@@ -1,25 +1,20 @@
 package cz.jaro.rozvrh.rozvrh
 
-sealed class TypRozvrhu(
+enum class TypRozvrhu(
     val nazev: String,
-    val seznam: List<String>,
-    val seznamOdkazu: List<String>,
+    val vjeci: List<Vjec>,
 ) {
-    object Trida : TypRozvrhu(
+    Trida(
         nazev = "Třída",
-        seznam = Seznamy.tridy,
-        seznamOdkazu = Seznamy.tridyOdkazy,
-    )
-
-    object Mistnost : TypRozvrhu(
+        vjeci = Vjec.TridaVjec.tridy,
+    ),
+    Mistnost(
         nazev = "Místnost",
-        seznam = Seznamy.mistnosti,
-        seznamOdkazu = emptyList() /*Seznamy.mistnostiOdkazy*/,
+        vjeci = Vjec.MistnostVjec.mistnosti,
+    ),
+    Vyucujici(
+        nazev = "Vyučující",
+        vjeci = Vjec.VyucujiciVjec.mistnosti,
     )
 
-    object Vyucujici : TypRozvrhu(
-        nazev = "Vyučující",
-        seznam = Seznamy.vyucujici,
-        seznamOdkazu = emptyList() /*Seznamy.vyucujiciOdkazy*/,
-    )
 }

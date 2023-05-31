@@ -35,14 +35,14 @@ class UkolyReceiver : BroadcastReceiver() {
             putExtra("ukoly", true)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(ctx!!, 0, intent, 0)
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(ctx!!, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val intent2 = Intent(ctx, MainActivity::class.java).apply {
             putExtra("ukoly", true)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("splnit", ukoly.toTypedArray())
         }
-        val pendingIntent2: PendingIntent = PendingIntent.getActivity(ctx, 0, intent2, 0)
+        val pendingIntent2: PendingIntent = PendingIntent.getActivity(ctx, 0, intent2, PendingIntent.FLAG_IMMUTABLE)
 
         val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "nastaveniOznameni"
