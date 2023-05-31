@@ -4,11 +4,14 @@ import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -17,7 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.glance.text.Text
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -57,14 +60,18 @@ fun NastaveniScreen(
     nastaveni: Nastaveni,
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     skupiny: Sequence<String>?,
-) {
+) = Surface {
 
     Column(
-        Modifier.fillMaxWidth()
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
         Text(text = stringResource(id = R.string.nastaveni), style = MaterialTheme.typography.displaySmall)
 
-        LazyColumn {
+        LazyColumn(
+            Modifier.weight(1F)
+        ) {
             item {
                 Row(
                     modifier = Modifier
@@ -155,7 +162,8 @@ fun NastaveniScreen(
         }
 
         Row(
-            horizontalArrangement = Arrangement.SpaceBetween
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             TextButton(
                 onClick = {

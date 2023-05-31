@@ -103,7 +103,7 @@ object TvorbaRozvrhu {
     ): Tyden = withContext(Dispatchers.IO) {
         if (vjec is Vjec.TridaVjec) return@withContext emptyList()
 
-        val seznamNazvu = Vjec.TridaVjec.tridy.drop(1)
+        val seznamNazvu = Vjec.tridy.drop(1)
 
         val novaTabulka = MutableList(6) { MutableList(17) { mutableListOf<Bunka>() } }
 

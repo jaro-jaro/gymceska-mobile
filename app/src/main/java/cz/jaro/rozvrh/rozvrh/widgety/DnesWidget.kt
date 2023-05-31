@@ -10,13 +10,14 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.LocalContext
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
@@ -33,8 +34,9 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.RepositoryImpl
+import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.rozvrh.Bunka
+import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritTabulku
 import cz.jaro.rozvrh.ui.theme.AppTheme
 import kotlinx.coroutines.MainScope
@@ -42,6 +44,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import java.util.Calendar
 import java.util.Calendar.DAY_OF_WEEK
 import java.util.Calendar.FRIDAY
@@ -56,12 +60,12 @@ import java.util.Calendar.WEDNESDAY
 class DnesWidget : GlanceAppWidget() {
 
     @Composable
-    override fun Content() {
+    fun Content() {
 
         val prefs = currentState<Preferences>()
         val bunky = Json.decodeFromString<List<Bunka>>(prefs[stringPreferencesKey("hodiny")] ?: "[]")
         val dm = prefs[booleanPreferencesKey("dm")] ?: false
-        AppTheme(useDarkTheme = dm, useThemed = true, localContext = LocalContext) {
+        AppTheme(useDarkTheme = dm /*useThemed = true, localContext = LocalContext*/) {
             Column(
                 GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
                 verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -170,16 +174,16 @@ class DnesWidget : GlanceAppWidget() {
 
         private val dny = listOf(-1, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY)
 
-        class Reciever : GlanceAppWidgetReceiver() {
+        class Reciever : GlanceAppWidgetReceiver(), KoinComponent {
             override val glanceAppWidget: GlanceAppWidget = DnesWidget()
 
             override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
                 super.onUpdate(context, appWidgetManager, appWidgetIds)
 
-                val repo = RepositoryImpl(context)
+                val repo = get<Repository>()
 
                 MainScope().launch {
-                    val hodiny = repo.ziskatDocument("Actual")?.let { doc ->
+                    val hodiny = repo.ziskatDocument(Stalost.Staly)?.let { doc ->
                         val tabulka = vytvoritTabulku(doc)
 
                         val cisloDne = dny.indexOf(Calendar.getInstance()[DAY_OF_WEEK]) /* 1-5 (6-7) */
@@ -193,7 +197,7 @@ class DnesWidget : GlanceAppWidget() {
                             ?.map { (i, hodina) -> hodina.map { bunka -> bunka.copy(predmet = "$i. ${bunka.predmet}") } }
                             ?.mapNotNull { hodina ->
                                 hodina.find { bunka ->
-                                    bunka.trida_skupina.isEmpty() || bunka.trida_skupina in repo.mojeSkupiny
+                                    bunka.trida_skupina.isEmpty() || bunka.trida_skupina in repo.nastaveni.mojeSkupiny
                                 }
                             }
                             ?.toList()
@@ -216,12 +220,16 @@ class DnesWidget : GlanceAppWidget() {
 
                         updateAppWidgetState(context, id) { prefs ->
                             prefs[stringPreferencesKey("hodiny")] = Json.encodeToString(hodiny)
-                            prefs[booleanPreferencesKey("dm")] = repo.darkMode
+                            prefs[booleanPreferencesKey("dm")] = repo.nastaveni.darkMode
                         }
                         glanceAppWidget.update(context, id)
                     }
                 }
             }
         }
+    }
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent { Content() }
     }
 }

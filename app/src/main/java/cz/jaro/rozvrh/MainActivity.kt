@@ -1,13 +1,13 @@
 package cz.jaro.rozvrh
 
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import cz.jaro.rozvrh.ui.theme.AppTheme
 import org.koin.android.ext.android.inject
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
 //    private lateinit var binding: ActivityMainBinding
 
