@@ -308,8 +308,9 @@ sealed interface Vjec {
         object Tv : MistnostVjec(jmeno = "Tv", napoveda = " na dvoře (-½)")
         @Serializable
         object Vv : MistnostVjec(jmeno = "Vv", napoveda = " věžička (4)")
+
         @Serializable
-        object Mim : MistnostVjec(jmeno = "Vv", napoveda = " venku (-½)")
+        object Mim : MistnostVjec(jmeno = "mim", napoveda = " venku (-½)")
     }
 
 

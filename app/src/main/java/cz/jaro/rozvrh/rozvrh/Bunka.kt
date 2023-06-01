@@ -16,10 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import cz.jaro.rozvrh.R
 import kotlinx.serialization.Serializable
 
 typealias Tyden = List<Den>
@@ -31,7 +29,7 @@ data class Bunka(
     val ucebna: String,
     val predmet: String,
     val vyucujici: String,
-    val trida_skupina: String = "",
+    val tridaSkupina: String = "",
     val zbarvit: Boolean = false,
 ) {
     companion object {
@@ -40,7 +38,7 @@ data class Bunka(
             ucebna = "",
             predmet = "",
             vyucujici = "",
-            trida_skupina = "",
+            tridaSkupina = "",
             zbarvit = false
         )
     }
@@ -53,9 +51,9 @@ data class Bunka(
     ) = Box(
         modifier = Modifier
             .aspectRatio(1F * bunekVHodine / maxBunekDne)
-            .border(1.dp, MaterialTheme.colorScheme.primary)
+            .border(1.dp, MaterialTheme.colorScheme.secondary)
             .size(120.dp, 120.dp * maxBunekDne / bunekVHodine)
-            .background(if (zbarvit) colorResource(id = R.color.pink) else MaterialTheme.colorScheme.background),
+            .background(if (zbarvit) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -74,25 +72,29 @@ data class Bunka(
                         .padding(all = 8.dp)
                         .clickable {
                             if (ucebna.isEmpty()) return@clickable
-                            val vjec = Vjec.mistnosti.find { ucebna == it.zkratka } ?: return@clickable
+                            val vjec = Vjec.mistnosti
+                                .plus(Vjec.MistnostVjec.Mim)
+                                .find { ucebna == it.zkratka } ?: return@clickable
                             kliklNaNeco(vjec)
                         },
-                    textAlign = TextAlign.Start
+                    textAlign = TextAlign.Start,
+                    color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = trida_skupina,
+                    text = tridaSkupina,
                     modifier = Modifier
                         .padding(all = 8.dp)
                         .clickable {
-                            if (trida_skupina.isEmpty()) return@clickable
+                            if (tridaSkupina.isEmpty()) return@clickable
                             val vjec = Vjec.tridy.find {
-                                trida_skupina
+                                tridaSkupina
                                     .split(" ")
                                     .first() == it.zkratka
                             } ?: return@clickable
                             kliklNaNeco(vjec)
                         },
-                    textAlign = TextAlign.End
+                    textAlign = TextAlign.End,
+                    color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(
@@ -101,7 +103,7 @@ data class Bunka(
                     .padding(all = 8.dp)
                     .fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.tertiary,
+                color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
             )
             Text(
                 text = vyucujici,
@@ -122,7 +124,8 @@ data class Bunka(
                             .toInt()
                             .toFloat()
                     ),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground
             )
         }
     }

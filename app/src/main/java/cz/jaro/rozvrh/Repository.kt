@@ -1,15 +1,21 @@
 package cz.jaro.rozvrh
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.widget.Toast
-import androidx.core.content.edit
+import androidx.datastore.preferences.SharedPreferencesMigration
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStoreFile
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -24,40 +30,48 @@ import kotlin.system.exitProcess
 
 @Single
 class Repository(
-    private val ctx: Context
+    private val ctx: Context,
 ) {
-    private val sharedPref: SharedPreferences = ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)
+    private val preferences = PreferenceDataStoreFactory.create(migrations = listOf(SharedPreferencesMigration({
+        ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)!!
+    }))) {
+        ctx.preferencesDataStoreFile("Gymceska_JARO_datastore")
+    }
 
-    var nastaveni: Nastaveni
-        get() = Json.decodeFromString(sharedPref.getString("nastaveni", "{}") ?: "{}")
-        set(value) {
-            sharedPref.edit { putString("nastaveni", Json.encodeToString(value)) }
+    object Keys {
+        val NASTAVENI = stringPreferencesKey("nastaveni")
+        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}")
+        fun rozvrhDatum(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_datum")
+        val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
+    }
+
+    val nastaveni = preferences.data.map { it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni() }
+    suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
+        preferences.edit {
+            it[Keys.NASTAVENI] = Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni()))
         }
+    }
 
-    fun stahnoutVse(update: (String) -> Unit) {
+    suspend fun stahnoutVse(update: (String) -> Unit, finish: () -> Unit) {
         if (!isOnline()) return
+        withContext(Dispatchers.IO) {
+            Vjec.tridy.drop(1).forEach { trida ->
+                Stalost.values().forEach { stalost ->
+                    update("Stahování:\n${trida.jmeno} – ${stalost.nazev}")
 
-        for (trida in Vjec.tridy) {
-            for (stalost in Stalost.values()) {
+                    val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: run {
+                        update("Něco se nepovedlo :(")
+                        return@withContext
+                    }).get()
 
-                update("Stahování: ${trida.jmeno} – ${stalost.nazev}")
-
-                val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: return).get()
-
-                sharedPref.edit {
-                    putString(
-                        "rozvrh_${trida.jmeno}_${stalost.nazev}",
-                        doc.toString()
-                    )
-
-                    val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-
-                    putString(
-                        "rozvrh_${trida.jmeno}_${stalost.nazev}_datum",
-                        formatter.format(Date())
-                    )
+                    preferences.edit {
+                        it[Keys.rozvrh(trida, stalost)] = doc.toString()
+                        val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
+                        it[Keys.rozvrhDatum(trida, stalost)] = formatter.format(Date())
+                    }
                 }
             }
+            finish()
         }
     }
 
@@ -69,7 +83,7 @@ class Repository(
             .flatten()
             .filter { it.size > 1 }
             .flatten()
-            .map { it.trida_skupina }
+            .map { it.tridaSkupina }
             .filter { it.isNotEmpty() }
             .distinct()
             .sorted()
@@ -79,16 +93,15 @@ class Repository(
         if (trida.odkaz == null) return@withContext null
         if (isOnline()) {
             Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
-                sharedPref.edit {
+                preferences.edit {
+                    it[Keys.rozvrh(trida, stalost)] = doc.toString()
                     val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-
-                    putString("rozvrh_${trida.jmeno}_${stalost.nazev}", doc.toString())
-                    putString("rozvrh_${trida.jmeno}_${stalost.nazev}_datum", formatter.format(Date()))
+                    it[Keys.rozvrhDatum(trida, stalost)] = formatter.format(Date())
                 }
             }
         } else {
 
-            val html = sharedPref.getString("rozvrh_${trida.jmeno}_${stalost.nazev}", null)
+            val html = preferences.data.first()[Keys.rozvrh(trida, stalost)]
                 ?: run {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
@@ -100,7 +113,7 @@ class Repository(
         }
     }
 
-    suspend fun ziskatDocument(stalost: Stalost): Document? = ziskatDocument(nastaveni.mojeTrida, stalost)
+    suspend fun ziskatDocument(stalost: Stalost): Document? = ziskatDocument(nastaveni.first().mojeTrida, stalost)
 
     fun isOnline(): Boolean = ctx.isOnline()
 
@@ -119,4 +132,11 @@ class Repository(
         }
     }
 
+    val skrtleUkoly = preferences.data.map { it[Keys.SKRTLE_UKOLY] ?: emptySet() }
+
+    suspend fun upravitSkrtleUkoly(edit: (Set<String>) -> Set<String>) {
+        preferences.edit {
+            it[Keys.SKRTLE_UKOLY] = edit(it[Keys.SKRTLE_UKOLY] ?: emptySet())
+        }
+    }
 }

@@ -1,7 +1,7 @@
 [versions]
 accompanist-flowlayout = "0.27.1"
 accompanist-permissions = "0.26.5-rc"
-androidx-activity-compose = "1.7.1"
+androidx-activity-compose = "1.7.2"
 androidx-junit = "1.1.5"
 androidx-constraintlayout = "2.1.4"
 androidx-appcompat = "1.6.1"
@@ -18,7 +18,7 @@ kotlinx-coroutines = "1.6.4"
 kotlinx-serialization-json = "1.5.0"
 androidx-legacy-support-v4 = "1.0.0"
 material = "1.9.0"
-material3 = "1.2.0-alpha01"
+material3 = "1.2.0-alpha02"
 androidx-navigation = "2.5.3"
 androidx-work = "2.8.1"
 android-gradle-plugin = "8.0.2"
@@ -29,6 +29,7 @@ koin-annotations = "1.2.0"
 ksp = "1.8.21-1.0.11"
 compose-destinations = "1.9.42-beta"
 androidx-lifecycle = "2.6.1"
+datastore = "1.0.0"
 
 [libraries]
 # Androidx
@@ -96,6 +97,8 @@ koin-ksp-compiler = { group = "io.insert-koin", name = "koin-ksp-compiler", vers
 # Compose destinations
 compose-destinations-core = { group = "io.github.raamcosta.compose-destinations", name = "core", version.ref = "compose-destinations" }
 compose-destinations-ksp = { group = "io.github.raamcosta.compose-destinations", name = "ksp", version.ref = "compose-destinations" }
+# Jetpack Preferences DataStore
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [bundles]
 androidx-jetpack-compose = [

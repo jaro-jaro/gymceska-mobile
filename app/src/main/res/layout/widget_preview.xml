@@ -150,7 +150,7 @@
 
     </RelativeLayout>
     <RelativeLayout
-        android:background="@color/pink"
+        android:background="@color/error_color"
         android:layout_width="90dp"
         android:layout_height="90dp"
         android:minWidth="150dp"

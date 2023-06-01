@@ -2,6 +2,7 @@ package cz.jaro.rozvrh.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -93,6 +94,10 @@ fun AppTheme(
             else -> lightColors
         }
     }
+
+    Log.d("agg", listOf(useDarkTheme, useDynamicColor, colorScheme.primary.run {
+        "$red$green$blue"
+    }, Build.VERSION.SDK_INT >= Build.VERSION_CODES.S).toString())
 
     val view = LocalView.current
     if (!view.isInEditMode) {

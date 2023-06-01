@@ -17,12 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -35,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
@@ -58,10 +56,11 @@ fun RozvrhScreen(
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
+    val vjec by viewModel.vjec.collectAsStateWithLifecycle()
 
     RozvrhScreen(
         tabulka = tabulka,
-        vjec = viewModel.vjec,
+        vjec = vjec,
         stalost = viewModel.stalost,
         vybratRozvrh = viewModel::vybratRozvrh,
         zmenitStalost = viewModel::zmenitStalost,
@@ -74,11 +73,11 @@ fun RozvrhScreen(
 @Composable
 fun RozvrhScreen(
     tabulka: Tyden?,
-    vjec: Vjec,
+    vjec: Vjec?,
     stalost: Stalost,
     vybratRozvrh: (Vjec) -> Unit,
     zmenitStalost: (Stalost) -> Unit,
-    stahnoutVse: ((String) -> Unit) -> Unit,
+    stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
 ) = Scaffold(
@@ -90,21 +89,7 @@ fun RozvrhScreen(
         )
     }
 ) { paddingValues ->
-    if (tabulka == null) AlertDialog(
-        onDismissRequest = {},
-        confirmButton = {},
-        title = {
-            Text(text = "Načítání")
-        },
-        text = {
-            CircularProgressIndicator()
-        },
-        properties = DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false,
-        ),
-    )
-    else Column(
+    Column(
         modifier = Modifier
             .padding(paddingValues)
             .fillMaxSize()
@@ -151,8 +136,8 @@ fun RozvrhScreen(
                 vybratRozvrh(vjec)
             }
         }
-
-        Tabulka(
+        if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+        else Tabulka(
             tabulka = tabulka,
             kliklNaNeco = { vjec ->
                 vybratRozvrh(vjec)
@@ -179,12 +164,12 @@ private fun Tabulka(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .border(1.dp, MaterialTheme.colorScheme.primary)
+                .border(1.dp, MaterialTheme.colorScheme.secondary)
         ) {
             Box(
                 modifier = Modifier
                     .aspectRatio(1F)
-                    .border(1.dp, MaterialTheme.colorScheme.primary)
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
                     .size(60.dp, 60.dp)
             )
         }
@@ -192,14 +177,14 @@ private fun Tabulka(
         Row(
             modifier = Modifier
                 .horizontalScroll(horScrollState)
-                .border(1.dp, MaterialTheme.colorScheme.primary)
+                .border(1.dp, MaterialTheme.colorScheme.secondary)
         ) {
             tabulka.first().drop(1).forEach { cisloHodiny ->
 
                 Box(
                     modifier = Modifier
                         .aspectRatio(1F)
-                        .border(1.dp, MaterialTheme.colorScheme.primary)
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
                         .size(120.dp, 60.dp)
                 ) {
                     Box(
@@ -243,12 +228,12 @@ private fun Tabulka(
                     tabulka.drop(1).map { it.first() }.forEachIndexed { i, den ->
                         Column(
                             modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.primary)
+                                .border(1.dp, MaterialTheme.colorScheme.secondary)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .aspectRatio(1F)
-                                    .border(1.dp, MaterialTheme.colorScheme.primary)
+                                    .border(1.dp, MaterialTheme.colorScheme.secondary)
                                     .size(60.dp, 120.dp * maxy[i + 1])
                             ) {
                                 Box(
@@ -275,7 +260,7 @@ private fun Tabulka(
                             radek.drop(1).forEach { hodina ->
                                 Column(
                                     modifier = Modifier
-                                        .border(1.dp, MaterialTheme.colorScheme.primary)
+                                        .border(1.dp, MaterialTheme.colorScheme.secondary)
                                 ) {
                                     hodina.forEach { bunka ->
                                         bunka.Compose(
@@ -301,10 +286,11 @@ fun <T : Vjec> Vybiratko(
     poklik: (vjec: T) -> Unit
 ) = Vybiratko(
     seznam = seznam.map { it.jmeno },
-    aktualIndex = seznam.indexOf(value),
+    aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
     poklik = {
         poklik(seznam[it])
     },
+    nulaDisabled = true
 )
 
 @Composable
@@ -314,7 +300,7 @@ fun Vybiratko(
     poklik: (vjec: Stalost) -> Unit
 ) = Vybiratko(
     seznam = seznam.map { it.nazev },
-    aktualIndex = seznam.indexOf(value),
+    aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
     poklik = {
         poklik(seznam[it])
     },
@@ -324,6 +310,7 @@ fun Vybiratko(
 fun Vybiratko(
     seznam: List<String>,
     aktualIndex: Int,
+    nulaDisabled: Boolean = false,
     poklik: (i: Int) -> Unit
 ) {
     Box(
@@ -344,6 +331,7 @@ fun Vybiratko(
                         vidimMenu = false
                         poklik(i)
                     },
+                    enabled = !(nulaDisabled && i == 0)
                 )
             }
         }

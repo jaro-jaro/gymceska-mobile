@@ -8,19 +8,19 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.window.DialogProperties
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
 
@@ -28,7 +28,7 @@ import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppBar(
-    stahnoutVse: ((String) -> Unit) -> Unit,
+    stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
 ) {
@@ -46,13 +46,9 @@ fun AppBar(
         text = {
             CircularProgressIndicator()
         },
-        properties = DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false,
-        ),
     )
 
-    CenterAlignedTopAppBar(
+    TopAppBar(
         title = {
             Text(text = "Rozvrh")
         },
@@ -60,11 +56,12 @@ fun AppBar(
             IconButton(
                 onClick = {
                     nacitame = true
-                    stahnoutVse {
+                    stahnoutVse({
                         podrobnostiNacitani = it
+                    }) {
+                        nacitame = false
+                        podrobnostiNacitani = "Načítání"
                     }
-                    nacitame = false
-                    podrobnostiNacitani = "Načítání"
                 }
             ) {
                 Icon(Icons.Default.CloudDownload, "Stáhnout všechny rozvrhy")
@@ -82,8 +79,8 @@ fun AppBar(
             var volnaTridaDialog by remember { mutableStateOf(false) }
             var volneTridy by remember { mutableStateOf(emptyList<Vjec.MistnostVjec>()) }
             var stalost by remember { mutableStateOf(Stalost.TentoTyden) }
-            var denIndex by remember { mutableStateOf(0) }
-            var hodinaIndex by remember { mutableStateOf(0) }
+            var denIndex by remember { mutableIntStateOf(0) }
+            var hodinaIndex by remember { mutableIntStateOf(0) }
 
             if (volnaTridaDialog) AlertDialog(
                 onDismissRequest = {

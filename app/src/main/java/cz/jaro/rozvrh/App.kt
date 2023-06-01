@@ -6,7 +6,6 @@ import com.ramcosta.composedestinations.spec.Direction
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
-import org.koin.dsl.module
 import org.koin.ksp.generated.defaultModule
 
 class App : Application() {
@@ -17,11 +16,6 @@ class App : Application() {
             androidLogger()
             androidContext(this@App)
             defaultModule()
-            module {
-                single {
-
-                }
-            }
         }
     }
 

@@ -15,7 +15,7 @@ object TvorbaRozvrhu {
                     ucebna = "",
                     predmet = "",
                     vyucujici = "",
-                    trida_skupina = ""
+                    tridaSkupina = ""
                 )
             )
         ) + doc
@@ -32,7 +32,7 @@ object TvorbaRozvrhu {
                         ucebna = "",
                         predmet = num.text(),
                         vyucujici = hour.text(),
-                        trida_skupina = ""
+                        tridaSkupina = ""
                     )
                 )
             }
@@ -47,7 +47,7 @@ object TvorbaRozvrhu {
                         ucebna = "",
                         predmet = dny[i],
                         vyucujici = "",
-                        trida_skupina = ""
+                        tridaSkupina = ""
                     )
                 )
             ) + timeTableRow
@@ -70,7 +70,7 @@ object TvorbaRozvrhu {
                                     vyucujici = dayFlex
                                         .getElementsByClass("bottom").first()!!
                                         .text(),
-                                    trida_skupina = dayFlex
+                                    tridaSkupina = dayFlex
                                         .getElementsByClass("top").first()!!
                                         .getElementsByClass("left").first()
                                         ?.text()
@@ -87,7 +87,7 @@ object TvorbaRozvrhu {
                                         ucebna = "",
                                         predmet = it.text(),
                                         vyucujici = "",
-                                        trida_skupina = "",
+                                        tridaSkupina = "",
                                         zbarvit = true
                                     )
                                 )
@@ -131,7 +131,7 @@ object TvorbaRozvrhu {
                             else -> throw IllegalArgumentException()
                         }
                         if (zajimavaVec == vjec.zkratka) {
-                            novaTabulka[i][j] += bunka.copy(trida_skupina = "${trida.zkratka} ${bunka.trida_skupina}".trim())
+                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim())
                             return@forEach
                         }
                     }
