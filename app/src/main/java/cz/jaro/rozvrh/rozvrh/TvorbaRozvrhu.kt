@@ -131,7 +131,7 @@ object TvorbaRozvrhu {
                             else -> throw IllegalArgumentException()
                         }
                         if (zajimavaVec == vjec.zkratka) {
-                            novaTabulka[i][j] += bunka.copy(trida_skupina = "$trida ${bunka.trida_skupina}".trim())
+                            novaTabulka[i][j] += bunka.copy(trida_skupina = "${trida.zkratka} ${bunka.trida_skupina}".trim())
                             return@forEach
                         }
                     }

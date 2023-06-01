@@ -53,7 +53,7 @@ data class Bunka(
     ) = Box(
         modifier = Modifier
             .aspectRatio(1F * bunekVHodine / maxBunekDne)
-            .border(1.dp, colorResource(id = R.color.gymceska_modra))
+            .border(1.dp, MaterialTheme.colorScheme.primary)
             .size(120.dp, 120.dp * maxBunekDne / bunekVHodine)
             .background(if (zbarvit) colorResource(id = R.color.pink) else MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
@@ -100,7 +100,8 @@ data class Bunka(
                 modifier = Modifier
                     .padding(all = 8.dp)
                     .fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.tertiary,
             )
             Text(
                 text = vyucujici,

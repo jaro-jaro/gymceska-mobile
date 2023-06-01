@@ -23,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,7 +42,6 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
-import cz.jaro.rozvrh.R
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -180,12 +179,12 @@ private fun Tabulka(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                .border(1.dp, MaterialTheme.colorScheme.primary)
         ) {
             Box(
                 modifier = Modifier
                     .aspectRatio(1F)
-                    .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                    .border(1.dp, MaterialTheme.colorScheme.primary)
                     .size(60.dp, 60.dp)
             )
         }
@@ -193,14 +192,14 @@ private fun Tabulka(
         Row(
             modifier = Modifier
                 .horizontalScroll(horScrollState)
-                .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                .border(1.dp, MaterialTheme.colorScheme.primary)
         ) {
             tabulka.first().drop(1).forEach { cisloHodiny ->
 
                 Box(
                     modifier = Modifier
                         .aspectRatio(1F)
-                        .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                        .border(1.dp, MaterialTheme.colorScheme.primary)
                         .size(120.dp, 60.dp)
                 ) {
                     Box(
@@ -244,12 +243,12 @@ private fun Tabulka(
                     tabulka.drop(1).map { it.first() }.forEachIndexed { i, den ->
                         Column(
                             modifier = Modifier
-                                .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                                .border(1.dp, MaterialTheme.colorScheme.primary)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .aspectRatio(1F)
-                                    .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                                    .border(1.dp, MaterialTheme.colorScheme.primary)
                                     .size(60.dp, 120.dp * maxy[i + 1])
                             ) {
                                 Box(
@@ -276,7 +275,7 @@ private fun Tabulka(
                             radek.drop(1).forEach { hodina ->
                                 Column(
                                     modifier = Modifier
-                                        .border(1.dp, colorResource(id = R.color.gymceska_modra))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary)
                                 ) {
                                     hodina.forEach { bunka ->
                                         bunka.Compose(
