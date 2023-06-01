@@ -81,8 +81,6 @@ dependencies {
     implementation(libs.firebase.database.ktx)
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.bundles.junit)
-    androidTestImplementation(libs.androidx.test.espresso.core)
     implementation(libs.bundles.koin)
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)

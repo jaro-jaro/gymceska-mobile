@@ -2,17 +2,14 @@
 accompanist-flowlayout = "0.27.1"
 accompanist-permissions = "0.26.5-rc"
 androidx-activity-compose = "1.7.2"
-androidx-junit = "1.1.5"
 androidx-constraintlayout = "2.1.4"
 androidx-appcompat = "1.6.1"
 androidx-core = "1.10.1"
-androidx-test-espresso-core = "3.5.1"
 firebase-analytics = "21.3.0"
 androidx-glance = "1.0.0-beta01"
 androidx-compose = "1.4.3"
 firebase-database = "20.2.2"
 jsoup = "1.15.1"
-junit = "4.13.2"
 kotlin = "1.8.21"
 kotlinx-coroutines = "1.6.4"
 kotlinx-serialization-json = "1.5.0"
@@ -84,10 +81,6 @@ firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analy
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebase-database" }
 # Junit
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
-# Testing
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidx-test-espresso-core" }
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
@@ -128,10 +121,6 @@ androidx-work = [
     "androidx-work-multiprocess",
     "androidx-work-runtime-ktx",
     "androidx-work-testing",
-]
-junit = [
-    "junit",
-    "androidx-junit",
 ]
 koin = [
     "koin-core",
