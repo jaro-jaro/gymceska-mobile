@@ -7,8 +7,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import org.koin.android.annotation.KoinViewModel
 import kotlin.time.Duration.Companion.seconds
 
+@KoinViewModel
 class UkolyViewModel(
     repo: Repository
 ) : ViewModel() {
