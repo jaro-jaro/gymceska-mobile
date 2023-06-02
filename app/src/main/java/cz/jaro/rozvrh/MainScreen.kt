@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
+import cz.jaro.rozvrh.destinations.UkolyScreenDestination
 
 @Composable
 fun MainSceeen() {
@@ -40,9 +41,9 @@ fun MainSceeen() {
                         }
                     )
                     NavigationBarItem(
-                        selected = destination != RozvrhScreenDestination,
+                        selected = destination == UkolyScreenDestination,
                         onClick = {
-//                            navController.navigate(RozvrhScreenDestination())
+                            navController.navigate(UkolyScreenDestination())
                         },
                         icon = {
                             Icon(Icons.Default.FormatListBulleted, null)

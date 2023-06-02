@@ -186,7 +186,7 @@ class DnesWidget : GlanceAppWidget() {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val nastaveni = repo.nastaveni.first()
-                    val hodiny = repo.ziskatDocument(Stalost.Staly)?.let { doc ->
+                    val hodiny = repo.ziskatDocument(Stalost.TentoTyden)?.let { doc ->
                         val tabulka = vytvoritTabulku(doc)
 
                         val cisloDne = dny.indexOf(Calendar.getInstance()[DAY_OF_WEEK]) /* 1-5 (6-7) */

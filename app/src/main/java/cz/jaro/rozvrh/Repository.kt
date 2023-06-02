@@ -10,10 +10,19 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.GenericTypeIndicator
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
+import cz.jaro.rozvrh.ukoly.Ukol
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -138,5 +147,32 @@ class Repository(
         preferences.edit {
             it[Keys.SKRTLE_UKOLY] = edit(it[Keys.SKRTLE_UKOLY] ?: emptySet())
         }
+    }
+
+    private val firebase = Firebase
+    private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
+
+    private val _ukoly = MutableStateFlow(null as List<Ukol>?)
+    val ukoly = _ukoly.asStateFlow()
+
+    private val ukolyRef = database.getReference("ukoly5")
+
+    init {
+        ukolyRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
+                _ukoly.value = ukoly?.mapNotNull {
+                    Ukol(
+                        datum = it["datum"] ?: return@mapNotNull null,
+                        nazev = it["nazev"] ?: return@mapNotNull null,
+                        predmet = it["predmet"] ?: return@mapNotNull null
+                    )
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                error.toException().printStackTrace()
+            }
+        })
     }
 }
