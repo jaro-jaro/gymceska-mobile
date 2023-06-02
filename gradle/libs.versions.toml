@@ -7,6 +7,8 @@ androidx-appcompat = "1.6.1"
 androidx-core = "1.10.1"
 compose-material3-datetime-pickers = "0.7.0"
 firebase-analytics = "21.3.0"
+firebase-crashlytics = "18.3.7"
+firebase-crashlytics-gradle = "2.9.5"
 androidx-glance = "1.0.0-beta01"
 androidx-compose = "1.4.3"
 firebase-database = "20.2.2"
@@ -32,15 +34,6 @@ datastore = "1.0.0"
 [libraries]
 # Androidx
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidx-core" }
-androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "androidx-constraintlayout" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }
-# Androidx Work
-androidx-work-multiprocess = { group = "androidx.work", name = "work-multiprocess", version.ref = "androidx-work" }
-androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "androidx-work" }
-androidx-work-gcm = { group = "androidx.work", name = "work-gcm", version.ref = "androidx-work" }
-androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "androidx-work" }
-# Androidx Legacy Support
-androidx-legacy-support-v4 = { group = "androidx.legacy", name = "legacy-support-v4", version.ref = "androidx-legacy-support-v4" }
 # Kotlin
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
 # Kotlinx Coroutines
@@ -48,11 +41,8 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 # Kotlinx Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
-# Material
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 # Androidx Navigation
-androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "androidx-navigation" }
-androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "androidx-navigation" }
+#androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "androidx-navigation" }
 #   Compose
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidx-navigation" }
 # Androidx Jetpack Compose
@@ -65,20 +55,15 @@ androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lif
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 #   Activity
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity-compose" }
-#   Tests
-androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "androidx-compose" }
-androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "androidx-compose" }
 #   Material
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "androidx-compose" }
-# Accompanist
-accompanist-flowlayout = { group = "com.google.accompanist", name = "accompanist-flowlayout", version.ref = "accompanist-flowlayout" }
-accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist-permissions" }
 # Androidx Jetpack Glance
 androidx-glance = { group = "androidx.glance", name = "glance", version.ref = "androidx-glance" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "androidx-glance" }
 # Firebase
 firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx", version.ref = "firebase-analytics" }
+firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "firebase-crashlytics" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebase-database" }
 # Junit
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
@@ -103,27 +88,18 @@ androidx-jetpack-compose = [
     "androidx-compose-ui-tooling-preview",
     "androidx-compose-foundation-layout",
     "androidx-activity-compose",
-    "androidx-compose-ui-test-junit4",
-    "androidx-compose-ui-test-manifest",
     "androidx-compose-material3",
     "androidx-compose-material-icons-extended",
     "androidx-lifecycle-runtime-compose",
     "androidx-lifecycle-viewmodel-compose",
 ]
 androidx-navigation = [
-    "androidx-navigation-ui-ktx",
-    "androidx-navigation-fragment-ktx",
+    #    "androidx-navigation-ui-ktx",
     "androidx-navigation-compose",
 ]
 androidx-jetpack-glance = [
     "androidx-glance",
     "androidx-glance-appwidget",
-]
-androidx-work = [
-    "androidx-work-gcm",
-    "androidx-work-multiprocess",
-    "androidx-work-runtime-ktx",
-    "androidx-work-testing",
 ]
 koin = [
     "koin-core",
@@ -138,3 +114,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 gms-google-services = { id = "com.google.gms.google-services", version.ref = "gms-google-services" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-gradle" }

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.gms.google.services)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -63,21 +64,15 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.bundles.androidx.work)
-    implementation(libs.androidx.legacy.support.v4)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.material)
     implementation(libs.bundles.androidx.navigation)
     implementation(libs.bundles.androidx.jetpack.compose)
-    implementation(libs.accompanist.flowlayout)
-    implementation(libs.accompanist.permissions)
     implementation(libs.bundles.androidx.jetpack.glance)
     implementation(libs.firebase.analytics.ktx)
+    implementation(libs.firebase.crashlytics.ktx)
     implementation(libs.firebase.database.ktx)
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)

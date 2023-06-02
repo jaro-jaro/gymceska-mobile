@@ -1,6 +1,7 @@
 package cz.jaro.rozvrh.nastaveni
 
 import android.os.Build
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -178,6 +180,11 @@ fun NastaveniScreen(
                     )
                     Text(skupina)
                 }
+            }
+            item {
+                Text("Simulate crash...", Modifier.clickable {
+                    throw RuntimeException("Test exception")
+                }, fontSize = 10.sp)
             }
         }
     }

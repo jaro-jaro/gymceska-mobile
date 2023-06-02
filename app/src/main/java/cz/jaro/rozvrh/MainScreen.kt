@@ -15,6 +15,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
@@ -32,6 +35,16 @@ fun MainSceeen(
         LaunchedEffect(Unit) {
             if (rozvrh) navController.navigate(RozvrhScreenDestination())
             if (ukoly) navController.navigate(UkolyScreenDestination())
+        }
+
+        LaunchedEffect(Unit) {
+            val destinationFlow = navController.appCurrentDestinationFlow
+
+            destinationFlow.collect { destination ->
+                Firebase.analytics.logEvent("navigation") {
+                    param("route", destination.route)
+                }
+            }
         }
 
         Scaffold(
