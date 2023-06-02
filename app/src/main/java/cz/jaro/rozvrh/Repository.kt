@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -35,6 +36,7 @@ import org.koin.core.annotation.Single
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import kotlin.system.exitProcess
 
 @Single
@@ -124,7 +126,7 @@ class Repository(
 
     suspend fun ziskatDocument(stalost: Stalost): Document? = ziskatDocument(nastaveni.first().mojeTrida, stalost)
 
-    fun isOnline(): Boolean = ctx.isOnline()
+    private fun isOnline(): Boolean = ctx.isOnline()
 
     companion object {
         fun Context.isOnline(): Boolean {
@@ -141,11 +143,15 @@ class Repository(
         }
     }
 
-    val skrtleUkoly = preferences.data.map { it[Keys.SKRTLE_UKOLY] ?: emptySet() }
+    val skrtleUkoly = preferences.data.map {
+        it[Keys.SKRTLE_UKOLY]?.map { id -> UUID.fromString(id) }?.toSet() ?: emptySet()
+    }
 
-    suspend fun upravitSkrtleUkoly(edit: (Set<String>) -> Set<String>) {
+    suspend fun upravitSkrtleUkoly(edit: (Set<UUID>) -> Set<UUID>) {
         preferences.edit {
-            it[Keys.SKRTLE_UKOLY] = edit(it[Keys.SKRTLE_UKOLY] ?: emptySet())
+            it[Keys.SKRTLE_UKOLY] = edit(
+                it[Keys.SKRTLE_UKOLY]?.map { id -> UUID.fromString(id) }?.toSet() ?: emptySet()
+            ).map { id -> id.toString() }.toSet()
         }
     }
 
@@ -165,7 +171,8 @@ class Repository(
                     Ukol(
                         datum = it["datum"] ?: return@mapNotNull null,
                         nazev = it["nazev"] ?: return@mapNotNull null,
-                        predmet = it["predmet"] ?: return@mapNotNull null
+                        predmet = it["predmet"] ?: return@mapNotNull null,
+                        id = UUID.fromString(it["id"]) ?: UUID.randomUUID(),
                     )
                 }
             }
@@ -174,5 +181,9 @@ class Repository(
                 error.toException().printStackTrace()
             }
         })
+    }
+
+    suspend fun upravitUkoly(ukoly: List<Ukol>) {
+        ukolyRef.setValue(ukoly.map { mapOf("datum" to it.datum, "nazev" to it.nazev, "predmet" to it.predmet, "id" to it.id.toString()) }).await()
     }
 }

@@ -5,6 +5,7 @@ androidx-activity-compose = "1.7.2"
 androidx-constraintlayout = "2.1.4"
 androidx-appcompat = "1.6.1"
 androidx-core = "1.10.1"
+compose-material3-datetime-pickers = "0.7.0"
 firebase-analytics = "21.3.0"
 androidx-glance = "1.0.0-beta01"
 androidx-compose = "1.4.3"
@@ -92,6 +93,8 @@ compose-destinations-core = { group = "io.github.raamcosta.compose-destinations"
 compose-destinations-ksp = { group = "io.github.raamcosta.compose-destinations", name = "ksp", version.ref = "compose-destinations" }
 # Jetpack Preferences DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+# Datetime pickers
+compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
 
 [bundles]
 androidx-jetpack-compose = [

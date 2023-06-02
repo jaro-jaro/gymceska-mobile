@@ -85,6 +85,7 @@ dependencies {
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
+    implementation(libs.compose.material3.datetime.pickers)
 }
 
 repositories {

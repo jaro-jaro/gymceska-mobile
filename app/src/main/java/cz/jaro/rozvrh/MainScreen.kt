@@ -11,6 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
@@ -20,10 +21,18 @@ import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
 import cz.jaro.rozvrh.destinations.UkolyScreenDestination
 
 @Composable
-fun MainSceeen() {
+fun MainSceeen(
+    rozvrh: Boolean,
+    ukoly: Boolean,
+) {
     Surface {
         val navController = rememberNavController()
         val destination by navController.appCurrentDestinationAsState()
+
+        LaunchedEffect(Unit) {
+            if (rozvrh) navController.navigate(RozvrhScreenDestination())
+            if (ukoly) navController.navigate(UkolyScreenDestination())
+        }
 
         Scaffold(
             bottomBar = {

@@ -12,19 +12,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Rozvrh">
-
-        <!--<receiver
-            android:name=".rozvrh.widgety.TedHodinaWidget"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/ted_hodina_widget_info" />
-        </receiver>-->
+        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
         <receiver
             android:name=".rozvrh.widgety.DnesWidget$Companion$Reciever"
             android:exported="true">
@@ -36,20 +24,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/dnes_widget_info" />
         </receiver>
-        <receiver
-            android:name=".ukoly.UkolyReceiver"
-            android:enabled="true" />
-        <receiver
-            android:name=".rozvrh.oznameni.OznameniReceiver"
-            android:enabled="true" />
-        <receiver
-            android:name=".rozvrh.oznameni.DenniReciever"
-            android:enabled="true" />
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/splashScreenTheme">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

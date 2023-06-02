@@ -6,8 +6,7 @@
     android:targetCellWidth="1"
     android:updatePeriodMillis="300000"
     android:description="@string/widget_ted_hodina_popis"
-    android:initialLayout="@layout/widget_preview"
-    android:previewLayout="@layout/widget_preview"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:previewLayout="@layout/glance_default_loading_layout"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen">
-</appwidget-provider>
+    android:widgetCategory="home_screen"></appwidget-provider>
