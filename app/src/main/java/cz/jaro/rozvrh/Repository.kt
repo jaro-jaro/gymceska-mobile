@@ -1,8 +1,10 @@
 package cz.jaro.rozvrh
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.provider.Settings
 import android.widget.Toast
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -137,7 +139,7 @@ class Repository(
 
     suspend fun ziskatDocument(stalost: Stalost): Document? = ziskatDocument(nastaveni.first().mojeTrida, stalost)
 
-    fun isOnline(): Boolean = ctx.isOnline()
+    private fun isOnline(): Boolean = ctx.isOnline()
 
     companion object {
         fun Context.isOnline(): Boolean {
@@ -189,6 +191,8 @@ class Repository(
     }
 
     private val ukolyRef = database.getReference("ukoly")
+    private val povoleneRef = database.getReference("povolenaZarizeni")
+    private val znicitRef = database.getReference("rozbitAplikaci")
 
     init {
         ukolyRef.addValueEventListener(object : ValueEventListener {
@@ -226,4 +230,21 @@ class Repository(
     suspend fun upravitUkoly(ukoly: List<Ukol>) {
         ukolyRef.setValue(ukoly.map { mapOf("datum" to it.datum, "nazev" to it.nazev, "predmet" to it.predmet, "id" to it.id.toString()) }).await()
     }
+
+    @SuppressLint("HardwareIds")
+    suspend fun jeZarizeniPovoleno(): Boolean {
+        val dataSnapshot = povoleneRef.get().await()
+        val povolene = dataSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
+
+        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
+
+        return ja in povolene
+    }
+
+    val maSeTatoAplikceRozbit = flow {
+        val dataSnapshot = znicitRef.get().await()
+        val verzeNaRozbiti = dataSnapshot.getValue(Int::class.java) ?: -1
+
+        emit(verzeNaRozbiti >= 3/*BuildConfig.VERSION_CODE*/)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), false)
 }

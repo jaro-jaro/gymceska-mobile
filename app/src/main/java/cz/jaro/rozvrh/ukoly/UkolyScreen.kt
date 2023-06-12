@@ -50,6 +50,7 @@ fun UkolyScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()
+    val jeInteligentni by viewModel.inteligentni.collectAsStateWithLifecycle()
 
     UkolyScreen(
         state = state,
@@ -57,6 +58,7 @@ fun UkolyScreen(
         odskrtnout = viewModel::odskrtnout,
         navigate = navigator.navigate,
         jeOffline = !jeOnline,
+        jeInteligentni = jeInteligentni,
     )
 }
 
@@ -68,6 +70,7 @@ fun UkolyScreen(
     odskrtnout: (UUID) -> Unit,
     navigate: (Direction) -> Unit,
     jeOffline: Boolean,
+    jeInteligentni: Boolean,
 ) = Surface {
     Scaffold(
         topBar = {
@@ -103,7 +106,7 @@ fun UkolyScreen(
                         )
                     }
 
-                    IconButton(
+                    if (jeInteligentni) IconButton(
                         onClick = {
                             menu = true
                         }
