@@ -4,19 +4,18 @@ import cz.jaro.rozvrh.Repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.nodes.Document
-import kotlin.collections.first
 
 object TvorbaRozvrhu {
 
     private val dny = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne", "Rden", "Pi")
-    fun vytvoritTabulku(doc: Document) = listOf(
+    fun vytvoritTabulku(doc: Document): Tyden = listOf(
         listOf(
             listOf(
                 Bunka(
                     ucebna = "",
                     predmet = "",
                     vyucujici = "",
-                    trida_skupina = ""
+                    tridaSkupina = ""
                 )
             )
         ) + doc
@@ -33,7 +32,7 @@ object TvorbaRozvrhu {
                         ucebna = "",
                         predmet = num.text(),
                         vyucujici = hour.text(),
-                        trida_skupina = ""
+                        tridaSkupina = ""
                     )
                 )
             }
@@ -48,7 +47,7 @@ object TvorbaRozvrhu {
                         ucebna = "",
                         predmet = dny[i],
                         vyucujici = "",
-                        trida_skupina = ""
+                        tridaSkupina = ""
                     )
                 )
             ) + timeTableRow
@@ -71,7 +70,7 @@ object TvorbaRozvrhu {
                                     vyucujici = dayFlex
                                         .getElementsByClass("bottom").first()!!
                                         .text(),
-                                    trida_skupina = dayFlex
+                                    tridaSkupina = dayFlex
                                         .getElementsByClass("top").first()!!
                                         .getElementsByClass("left").first()
                                         ?.text()
@@ -88,7 +87,7 @@ object TvorbaRozvrhu {
                                         ucebna = "",
                                         predmet = it.text(),
                                         vyucujici = "",
-                                        trida_skupina = "",
+                                        tridaSkupina = "",
                                         zbarvit = true
                                     )
                                 )
@@ -98,21 +97,20 @@ object TvorbaRozvrhu {
         }
 
     suspend fun vytvoritRozvrhPodleJinych(
-        typRozvrhu: TypRozvrhu,
-        rozvrh: String,
-        stalost: String,
-        repo: Repository
-    ): List<List<List<Bunka>>> = withContext(Dispatchers.IO) {
-        if (typRozvrhu == TypRozvrhu.Trida) return@withContext emptyList()
+        vjec: Vjec,
+        stalost: Stalost,
+        repo: Repository,
+    ): Tyden = withContext(Dispatchers.IO) {
+        if (vjec is Vjec.TridaVjec) return@withContext emptyList()
 
-        val seznamNazvu = Seznamy.tridy.drop(1)
+        val seznamNazvu = Vjec.tridy.drop(1)
 
         val novaTabulka = MutableList(6) { MutableList(17) { mutableListOf<Bunka>() } }
 
-        seznamNazvu.forEach forE@{ nazev ->
-            println(nazev)
+        seznamNazvu.forEach forE@{ trida ->
+            println(trida)
 
-            val doc = repo.ziskatDocument(nazev, stalost) ?: return@withContext emptyList()
+            val doc = repo.ziskatDocument(trida, stalost) ?: return@withContext emptyList()
 
             val rozvrhTridy = vytvoritTabulku(doc)
 
@@ -127,13 +125,13 @@ object TvorbaRozvrhu {
                             return@forEach
                         }
                         println(bunka)
-                        val zajimavaVec = when (typRozvrhu) {
-                            TypRozvrhu.Vyucujici -> Seznamy.vyucujici[Seznamy.vyucujiciZkratky.indexOf(bunka.vyucujici.split(",").first()) + 1]
-                            TypRozvrhu.Mistnost -> bunka.ucebna
-                            TypRozvrhu.Trida -> throw IllegalArgumentException()
-                        }.also { println(it) }
-                        if (zajimavaVec == rozvrh) {
-                            novaTabulka[i][j] += bunka.copy(trida_skupina = "$nazev ${bunka.trida_skupina}".trim())
+                        val zajimavaVec = when (vjec) {
+                            is Vjec.VyucujiciVjec -> bunka.vyucujici.split(",").first()
+                            is Vjec.MistnostVjec -> bunka.ucebna
+                            else -> throw IllegalArgumentException()
+                        }
+                        if (zajimavaVec == vjec.zkratka) {
+                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim())
                             return@forEach
                         }
                     }

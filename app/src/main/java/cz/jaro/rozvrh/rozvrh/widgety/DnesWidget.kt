@@ -3,20 +3,20 @@ package cz.jaro.rozvrh.rozvrh.widgety
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.os.Build
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.LocalContext
+import androidx.glance.GlanceTheme
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
@@ -33,15 +33,19 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.RepositoryImpl
+import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.rozvrh.Bunka
+import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritTabulku
-import cz.jaro.rozvrh.ui.theme.AppTheme
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import java.util.Calendar
 import java.util.Calendar.DAY_OF_WEEK
 import java.util.Calendar.FRIDAY
@@ -56,110 +60,112 @@ import java.util.Calendar.WEDNESDAY
 class DnesWidget : GlanceAppWidget() {
 
     @Composable
-    override fun Content() {
-
+    fun Content() = GlanceTheme {
         val prefs = currentState<Preferences>()
         val bunky = Json.decodeFromString<List<Bunka>>(prefs[stringPreferencesKey("hodiny")] ?: "[]")
-        val dm = prefs[booleanPreferencesKey("dm")] ?: false
-        AppTheme(useDarkTheme = dm, useThemed = true, localContext = LocalContext) {
-            Column(
-                GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
-                horizontalAlignment = Alignment.Horizontal.CenterHorizontally
-            ) {
-                bunky
-                    .ifEmpty {
-                        listOf(Bunka("", "Žádné hodiny!", ""))
-                    }
-                    .let {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) it else it.take(10)
-                    }.let { hodiny ->
-                        hodiny
-                            .forEachIndexed { i, it ->
-                                with(it) {
-                                    Column(
-                                        GlanceModifier
+
+        val bg = ColorProvider(R.color.background_color)
+        val bg2 = ColorProvider(R.color.background_color_alt)
+        val onbg = ColorProvider(R.color.on_background_color)
+        val onbg2 = ColorProvider(R.color.on_background_color_alt)
+
+        Column(
+            GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
+            verticalAlignment = Alignment.Vertical.CenterVertically,
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+        ) {
+            bunky
+                .ifEmpty {
+                    listOf(Bunka("", "Žádné hodiny!", ""))
+                }
+                .let {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) it else it.take(10)
+                }.let { hodiny ->
+                    hodiny
+                        .forEachIndexed { i, it ->
+                            with(it) {
+                                Column(
+                                    GlanceModifier
+                                        .clickable(actionStartActivity<MainActivity>())
+                                        .defaultWeight()
+                                        .fillMaxWidth()
+                                ) {
+                                    Box(
+                                        modifier = GlanceModifier
                                             .clickable(actionStartActivity<MainActivity>())
-                                            .defaultWeight()
                                             .fillMaxWidth()
+                                            .defaultWeight()
+                                            .background(if (zbarvit) bg2 else bg),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Box(
+                                            contentAlignment = Alignment.TopStart,
                                             modifier = GlanceModifier
                                                 .clickable(actionStartActivity<MainActivity>())
-                                                .fillMaxWidth()
-                                                .defaultWeight()
-                                                .background(if (zbarvit) ColorProvider(R.color.pink) else ColorProvider(MaterialTheme.colorScheme.background)),
-                                            contentAlignment = Alignment.Center
+                                                .fillMaxSize()
                                         ) {
-                                            Box(
-                                                contentAlignment = Alignment.TopStart,
+                                            Text(
+                                                text = ucebna,
                                                 modifier = GlanceModifier
                                                     .clickable(actionStartActivity<MainActivity>())
-                                                    .fillMaxSize()
-                                            ) {
-                                                Text(
-                                                    text = ucebna,
-                                                    modifier = GlanceModifier
-                                                        .clickable(actionStartActivity<MainActivity>())
-                                                        .padding(all = 8.dp),
-                                                    style = TextStyle(
-                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
-                                                    ),
-                                                )
-                                            }
-                                            Box(
-                                                contentAlignment = Alignment.TopEnd,
-                                                modifier = GlanceModifier
-                                                    .clickable(actionStartActivity<MainActivity>())
-                                                    .fillMaxSize()
-                                            ) {
-                                                Text(
-                                                    text = trida_skupina,
-                                                    modifier = GlanceModifier
-                                                        .clickable(actionStartActivity<MainActivity>())
-                                                        .padding(all = 8.dp),
-                                                    style = TextStyle(
-                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
-                                                    ),
-                                                )
-                                            }
-
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = GlanceModifier
-                                                    .clickable(actionStartActivity<MainActivity>())
-                                                    .fillMaxSize()
-                                            ) {
-                                                Text(text = "")
-                                                Spacer(GlanceModifier.defaultWeight())
-                                                Text(
-                                                    text = predmet,
-                                                    modifier = GlanceModifier
-                                                        .clickable(actionStartActivity<MainActivity>()),
-                                                    style = TextStyle(
-                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
-                                                    ),
-                                                )
-                                                Spacer(GlanceModifier.defaultWeight())
-                                                Text(
-                                                    text = vyucujici,
-                                                    modifier = GlanceModifier
-                                                        .clickable(actionStartActivity<MainActivity>())
-                                                        .padding(bottom = 8.dp),
-                                                    style = TextStyle(
-                                                        color = ColorProvider(if (dm) Color.White else Color.Black)
-                                                    ),
-                                                )
-                                            }
+                                                    .padding(all = 8.dp),
+                                                style = TextStyle(
+                                                    color = if (zbarvit) onbg2 else onbg
+                                                ),
+                                            )
                                         }
-                                        if (i < hodiny.lastIndex)
-                                            Cara()
+                                        Box(
+                                            contentAlignment = Alignment.TopEnd,
+                                            modifier = GlanceModifier
+                                                .clickable(actionStartActivity<MainActivity>())
+                                                .fillMaxSize()
+                                        ) {
+                                            Text(
+                                                text = tridaSkupina,
+                                                modifier = GlanceModifier
+                                                    .clickable(actionStartActivity<MainActivity>())
+                                                    .padding(all = 8.dp),
+                                                style = TextStyle(
+                                                    color = if (zbarvit) onbg2 else onbg
+                                                ),
+                                            )
+                                        }
+
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = GlanceModifier
+                                                .clickable(actionStartActivity<MainActivity>())
+                                                .fillMaxSize()
+                                        ) {
+                                            Text(text = "")
+                                            Spacer(GlanceModifier.defaultWeight())
+                                            Text(
+                                                text = predmet,
+                                                modifier = GlanceModifier
+                                                    .clickable(actionStartActivity<MainActivity>()),
+                                                style = TextStyle(
+                                                    color = if (zbarvit) onbg2 else onbg
+                                                ),
+                                            )
+                                            Spacer(GlanceModifier.defaultWeight())
+                                            Text(
+                                                text = vyucujici,
+                                                modifier = GlanceModifier
+                                                    .clickable(actionStartActivity<MainActivity>())
+                                                    .padding(bottom = 8.dp),
+                                                style = TextStyle(
+                                                    color = if (zbarvit) onbg2 else onbg
+                                                ),
+                                            )
+                                        }
                                     }
+                                    if (i < hodiny.lastIndex)
+                                        Cara()
                                 }
                             }
-                    }
-            }
+                        }
+                }
         }
     }
 
@@ -170,16 +176,17 @@ class DnesWidget : GlanceAppWidget() {
 
         private val dny = listOf(-1, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY)
 
-        class Reciever : GlanceAppWidgetReceiver() {
+        class Reciever : GlanceAppWidgetReceiver(), KoinComponent {
             override val glanceAppWidget: GlanceAppWidget = DnesWidget()
 
             override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
                 super.onUpdate(context, appWidgetManager, appWidgetIds)
 
-                val repo = RepositoryImpl(context)
+                val repo = get<Repository>()
 
-                MainScope().launch {
-                    val hodiny = repo.ziskatDocument("Actual")?.let { doc ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val nastaveni = repo.nastaveni.first()
+                    val hodiny = repo.ziskatDocument(Stalost.TentoTyden)?.let { doc ->
                         val tabulka = vytvoritTabulku(doc)
 
                         val cisloDne = dny.indexOf(Calendar.getInstance()[DAY_OF_WEEK]) /* 1-5 (6-7) */
@@ -189,11 +196,11 @@ class DnesWidget : GlanceAppWidget() {
                             ?.asSequence()
                             ?.drop(1)
                             ?.mapIndexed { i, hodina -> i to hodina }
-                            ?.filter { (i, hodina) -> hodina.first().predmet.isNotBlank() }
+                            ?.filter { (_, hodina) -> hodina.first().predmet.isNotBlank() }
                             ?.map { (i, hodina) -> hodina.map { bunka -> bunka.copy(predmet = "$i. ${bunka.predmet}") } }
                             ?.mapNotNull { hodina ->
                                 hodina.find { bunka ->
-                                    bunka.trida_skupina.isEmpty() || bunka.trida_skupina in repo.mojeSkupiny
+                                    bunka.tridaSkupina.isEmpty() || bunka.tridaSkupina in nastaveni.mojeSkupiny
                                 }
                             }
                             ?.toList()
@@ -216,12 +223,15 @@ class DnesWidget : GlanceAppWidget() {
 
                         updateAppWidgetState(context, id) { prefs ->
                             prefs[stringPreferencesKey("hodiny")] = Json.encodeToString(hodiny)
-                            prefs[booleanPreferencesKey("dm")] = repo.darkMode
                         }
                         glanceAppWidget.update(context, id)
                     }
                 }
             }
         }
+    }
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent { Content() }
     }
 }

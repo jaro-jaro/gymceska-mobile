@@ -1,104 +1,82 @@
 package cz.jaro.rozvrh
 
-import android.content.Context
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.util.Log
-import android.view.View
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.edit
-import androidx.navigation.fragment.NavHostFragment
-import com.google.firebase.FirebaseApp
-import cz.jaro.rozvrh.databinding.ActivityMainBinding
+import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
+import cz.jaro.rozvrh.ui.theme.AppTheme
+import org.koin.android.ext.android.inject
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-    private lateinit var binding: ActivityMainBinding
+//    private lateinit var binding: ActivityMainBinding
 
+    private val repo by inject<Repository>()
+
+    @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(R.style.Theme_Rozvrh)
         super.onCreate(savedInstanceState)
-        FirebaseApp.initializeApp(this)
-//        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
-        val sp = getSharedPreferences("hm", Context.MODE_PRIVATE)
+        Firebase.analytics.setUserId(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
+        Firebase.crashlytics.setUserId(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
 
-        if (!sp.getBoolean("poprve", true)) {
+        val rozbitFlow = repo.maSeTatoAplikceRozbit
 
-            if (sp.getBoolean("DM", false))
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            else
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        }
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        val rozvrh = intent.getBooleanExtra("rozvrh", false) || intent.getStringExtra("rozvrh") == "true"
+        val ukoly = intent.getBooleanExtra("ukoly", false) || intent.getStringExtra("ukoly") == "true"
+        setContent {
+            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle(Nastaveni())
 
-        setSupportActionBar(binding.toolbar)
+            val rozbit by rozbitFlow.collectAsStateWithLifecycle()
 
-        title = getString(R.string.rozvrh)
+            AppTheme(
+                useDarkTheme = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
+                useDynamicColor = nastaveni.dynamicColors,
+            ) {
+                if (rozbit) AlertDialog(
+                    onDismissRequest = {},
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                startActivity(Intent().apply {
+                                    action = Intent.ACTION_VIEW
+                                    data = Uri.parse("https://github.com/jaro-jaro/gymceska-mobile/releases/latest")
+                                })
+                            }
+                        ) {
+                            Text("Přejít na GitHub")
+                        }
+                    },
+                    properties = DialogProperties(
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false,
+                    ),
+                    title = {
+                        Text("Tato aplikace je zastaralá")
+                    },
+                    text = {
+                        Text("tak buď chytrý a nainstaluj si novou verzi")
+                    },
+                )
 
-        val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainerView) as NavHostFragment
-
-        binding.bottomNavigationView.setOnNavigationItemSelectedListener {
-
-            fragment.navController.popBackStack()
-
-            when(it.itemId) {
-                R.id.optionRozvrh -> {
-                    title = getString(R.string.rozvrh)
-                    fragment.navController.navigate(R.id.rozvrhFragment)
-                }
-                R.id.optionSuplovani -> {
-                    title = getString(R.string.suplovani)
-                    fragment.navController.navigate(R.id.suplovaniFragment)
-                }
-                R.id.optionUkoly -> {
-                    title = getString(R.string.domaci_ukoly)
-                    fragment.navController.navigate(R.id.ukolyFragment)
-                }
-            }
-
-            return@setOnNavigationItemSelectedListener true
-        }
-
-        Log.d("hm", intent.extras.toString())
-
-        if (intent.getBooleanExtra("rozvrh", false) || intent.getStringExtra("rozvrh") == "true" ) {
-            title = getString(R.string.rozvrh)
-            fragment.navController.navigate(R.id.rozvrhFragment)
-            binding.bottomNavigationView.selectedItemId = R.id.optionRozvrh
-        }
-        if (intent.getBooleanExtra("suplovani", false) || intent.getStringExtra("suplovani") == "true" ) {
-            title = getString(R.string.suplovani)
-            fragment.navController.navigate(R.id.suplovaniFragment)
-            binding.bottomNavigationView.selectedItemId = R.id.optionSuplovani
-        }
-        Log.d("funguj", sp.getStringSet("skrtle_ukoly", setOf()).toString())
-        Log.d("funguj", intent.getStringArrayExtra("splnit")?.toSet().toString())
-        if (intent.getStringArrayExtra("splnit")?.toSet().isNullOrEmpty().not()) {
-            Log.d("funguj", sp.getStringSet("skrtle_ukoly", setOf()).toString())
-
-            sp.edit {
-                putStringSet("skrtle_ukoly",
-                    sp.getStringSet("skrtle_ukoly", setOf())!! +
-                    (intent.getStringArrayExtra("splnit") ?: arrayOf()).toSet()
+                MainSceeen(
+                    rozvrh = rozvrh,
+                    ukoly = ukoly,
                 )
             }
-
-            NotificationManagerCompat.from(this).cancelAll()
         }
-        if (intent.getBooleanExtra("ukoly", false) || intent.getStringExtra("ukoly") == "true" ) {
-            title = getString(R.string.domaci_ukoly)
-            fragment.navController.navigate(R.id.ukolyFragment)
-            binding.bottomNavigationView.selectedItemId = R.id.optionUkoly
-        }
-    }
-
-    fun schovatToolbar() {
-        binding.toolbar.visibility = View.GONE
-    }
-    fun ukazatToolbar() {
-        binding.toolbar.visibility = View.VISIBLE
     }
 }

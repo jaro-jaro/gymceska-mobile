@@ -16,21 +16,6 @@
         <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
     </shortcut>
     <shortcut
-        android:shortcutId="suplovani"
-        android:icon="@drawable/ic_baseline_school_24"
-        android:shortcutShortLabel="@string/suplovani" >
-        <intent
-            android:action="android.intent.action.VIEW"
-            android:targetPackage="cz.jaro.rozvrh"
-            android:targetClass="cz.jaro.rozvrh.MainActivity" >
-            <extra
-                android:name="suplovani"
-                android:value="true" />
-        </intent>
-        <categories android:name="android.shortcut.conversation" />
-        <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
-    </shortcut>
-    <shortcut
         android:shortcutId="ukoly"
         android:icon="@drawable/ic_baseline_format_list_bulleted_24"
         android:shortcutLongLabel="@string/domaci_ukoly"
