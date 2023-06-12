@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +29,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
 import cz.jaro.rozvrh.destinations.SpravceUkoluScreenDestination
 import org.koin.androidx.compose.koinViewModel
 
@@ -61,6 +63,14 @@ fun UkolyScreen(
                 },
 
                 actions = {
+                    IconButton(
+                        onClick = {
+                            navigate(NastaveniScreenDestination)
+                        }
+                    ) {
+                        Icon(Icons.Default.Settings, "Nastavení")
+                    }
+
                     var menu by rememberSaveable { mutableStateOf(false) }
                     DropdownMenu(
                         expanded = menu,
