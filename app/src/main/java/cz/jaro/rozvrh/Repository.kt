@@ -22,10 +22,17 @@ import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ukoly.Ukol
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -40,6 +47,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.seconds
 
 @Single
 class Repository(
@@ -56,6 +64,7 @@ class Repository(
         fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}")
         fun rozvrhDatum(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_datum")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
+        val UKOLY = stringPreferencesKey("ukoly")
     }
 
     val nastaveni = preferences.data.map { it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni() }
@@ -128,7 +137,7 @@ class Repository(
 
     suspend fun ziskatDocument(stalost: Stalost): Document? = ziskatDocument(nastaveni.first().mojeTrida, stalost)
 
-    private fun isOnline(): Boolean = ctx.isOnline()
+    fun isOnline(): Boolean = ctx.isOnline()
 
     companion object {
         fun Context.isOnline(): Boolean {
@@ -160,12 +169,26 @@ class Repository(
     private val firebase = Firebase
     private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
 
-    private val _ukoly = MutableStateFlow(null as List<Ukol>?)
-    val ukoly = _ukoly.asStateFlow()
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    val isOnlineFlow = flow {
+        while (currentCoroutineContext().isActive) {
+            delay(5.seconds)
+            emit(isOnline())
+        }
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), false)
+
+    private val onlineUkoly = MutableStateFlow(null as List<Ukol>?)
+
+    private val offlineUkoly = preferences.data.map {
+        it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
+    }
+
+    val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
+        if (isOnline) onlineUkoly else offlineUkoly
+    }
 
     private val ukolyRef = database.getReference("ukoly")
-
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     init {
         ukolyRef.addValueEventListener(object : ValueEventListener {
@@ -179,9 +202,13 @@ class Repository(
                         id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
                     )
                 }
-                _ukoly.value = noveUkoly
+                onlineUkoly.value = noveUkoly
 
                 scope.launch {
+                    preferences.edit {
+                        it[Keys.UKOLY] = Json.encodeToString(noveUkoly)
+                    }
+
                     upravitSkrtleUkoly { skrtle ->
                         skrtle.filter { uuid ->
                             uuid in (noveUkoly?.map { it.id } ?: emptyList())

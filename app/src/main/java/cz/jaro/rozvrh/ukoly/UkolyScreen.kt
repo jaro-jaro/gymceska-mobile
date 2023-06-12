@@ -49,12 +49,14 @@ fun UkolyScreen(
     val viewModel = koinViewModel<UkolyViewModel>()
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()
 
     UkolyScreen(
         state = state,
         skrtnout = viewModel::skrtnout,
         odskrtnout = viewModel::odskrtnout,
-        navigate = navigator.navigate
+        navigate = navigator.navigate,
+        jeOffline = !jeOnline,
     )
 }
 
@@ -65,6 +67,7 @@ fun UkolyScreen(
     skrtnout: (UUID) -> Unit,
     odskrtnout: (UUID) -> Unit,
     navigate: (Direction) -> Unit,
+    jeOffline: Boolean,
 ) = Surface {
     Scaffold(
         topBar = {
@@ -89,7 +92,7 @@ fun UkolyScreen(
                             menu = false
                         }
                     ) {
-                        DropdownMenuItem(
+                        if (!jeOffline) DropdownMenuItem(
                             text = {
                                 Text("Spravovat úkoly")
                             },

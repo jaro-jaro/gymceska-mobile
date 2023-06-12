@@ -21,6 +21,8 @@ class UkolyViewModel(
         private const val prvniMesicVSkolnimRoce = 8
     }
 
+    val jeOnline = repo.isOnlineFlow
+
     val ukoly = repo.ukoly.map { ukoly ->
         ukoly?.sortedBy { ukol ->
             val datum = ukol.datum.replace(" ", "").split(".")
