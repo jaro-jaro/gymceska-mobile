@@ -25,7 +25,7 @@ class RozvrhViewModel(
     @InjectedParam private val navigovat: (Direction) -> Unit,
     private val repo: Repository,
 ) : ViewModel() {
-    val vjec = flow<Vjec> {
+    val vjec = flow {
         emit(vjec1 ?: repo.nastaveni.first().mojeTrida)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), vjec1)
 

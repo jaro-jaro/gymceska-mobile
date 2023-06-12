@@ -2,6 +2,7 @@ package cz.jaro.rozvrh.nastaveni
 
 import android.os.Build
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -117,7 +118,7 @@ fun NastaveniScreen(
                 ) {
                     Text(text = stringResource(id = R.string.tmavy_rezim))
                     Switch(
-                        checked = nastaveni.darkMode,
+                        checked = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
                         enabled = !nastaveni.darkModePodleSystemu,
                         onCheckedChange = {
                             upravitNastaveni { nastaveni ->
