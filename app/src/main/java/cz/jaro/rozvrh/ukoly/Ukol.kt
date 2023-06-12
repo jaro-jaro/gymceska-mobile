@@ -9,6 +9,7 @@ data class Ukol(
     val id: UUID,
 ) {
     fun asString() = "$datum - $predmet - $nazev"
+    fun zjednusit(stav: StavUkolu) = JednoduchyUkol(id = id, text = asString(), stav = stav)
 
     companion object {
         fun new() = Ukol("0. 0.", "", "", UUID.randomUUID())

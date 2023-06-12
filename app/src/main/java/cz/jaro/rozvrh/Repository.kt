@@ -20,11 +20,13 @@ import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ukoly.Ukol
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
@@ -161,19 +163,30 @@ class Repository(
     private val _ukoly = MutableStateFlow(null as List<Ukol>?)
     val ukoly = _ukoly.asStateFlow()
 
-    private val ukolyRef = database.getReference("ukoly5")
+    private val ukolyRef = database.getReference("ukoly")
+
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     init {
         ukolyRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
-                _ukoly.value = ukoly?.mapNotNull {
+                val noveUkoly = ukoly?.mapNotNull {
                     Ukol(
                         datum = it["datum"] ?: return@mapNotNull null,
                         nazev = it["nazev"] ?: return@mapNotNull null,
                         predmet = it["predmet"] ?: return@mapNotNull null,
-                        id = UUID.fromString(it["id"]) ?: UUID.randomUUID(),
+                        id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
                     )
+                }
+                _ukoly.value = noveUkoly
+
+                scope.launch {
+                    upravitSkrtleUkoly { skrtle ->
+                        skrtle.filter { uuid ->
+                            uuid in (noveUkoly?.map { it.id } ?: emptyList())
+                        }.toSet()
+                    }
                 }
             }
 

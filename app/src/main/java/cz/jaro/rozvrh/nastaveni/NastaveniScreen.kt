@@ -45,7 +45,7 @@ fun NastaveniScreen(
     navigator: DestinationsNavigator
 ) {
 
-    val viewModel = koinViewModel<NastaveniViewMoel> {
+    val viewModel = koinViewModel<NastaveniViewModel> {
         parametersOf()
     }
 

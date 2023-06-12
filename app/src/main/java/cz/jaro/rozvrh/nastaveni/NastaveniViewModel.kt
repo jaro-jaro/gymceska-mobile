@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 
 @KoinViewModel
-class NastaveniViewMoel(
+class NastaveniViewModel(
     private val repo: Repository,
 ) : ViewModel() {
 

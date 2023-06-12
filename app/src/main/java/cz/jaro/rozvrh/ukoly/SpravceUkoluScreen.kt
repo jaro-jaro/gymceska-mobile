@@ -30,8 +30,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -39,10 +41,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import org.koin.androidx.compose.koinViewModel
+import java.time.DateTimeException
 import java.time.LocalDate
 import java.util.UUID
 
@@ -53,7 +58,7 @@ fun SpravceUkoluScreen(
 ) {
     val viewModel = koinViewModel<UkolyViewModel>()
 
-    val ukoly by viewModel.rawUkoly.collectAsStateWithLifecycle()
+    val ukoly by viewModel.ukoly.collectAsStateWithLifecycle()
 
     SpravceUkoluScreen(
         ukoly = ukoly,
@@ -127,6 +132,35 @@ fun SpravceUkoluScreen(
         text = {
             val focusManager = LocalFocusManager.current
             Column {
+                val predvybranyDatum by remember(datum) {
+                    derivedStateOf {
+                        if (datum == "0. 0.") return@derivedStateOf LocalDate.now()
+
+                        val jenDatum = datum.replace(" ", "").split(".")
+                        val den = jenDatum.getOrNull(0)?.toIntOrNull() ?: return@derivedStateOf LocalDate.now()
+                        val mesic = jenDatum.getOrNull(1)?.toIntOrNull() ?: return@derivedStateOf LocalDate.now()
+
+                        try {
+                            val aktualni = LocalDate.now().monthValue
+                            val tentoRok = LocalDate.now().year
+
+                            val rok = when {
+                                aktualni >= 8 && mesic >= 8 -> tentoRok
+                                aktualni >= 8 && mesic < 8 -> tentoRok + 1
+                                aktualni < 8 && mesic >= 8 -> tentoRok - 1
+                                aktualni < 8 && mesic < 8 -> tentoRok
+                                else -> throw IllegalArgumentException("WTF")
+                            }
+
+                            LocalDate.of(rok, mesic, den)
+                        } catch (e: DateTimeException) {
+                            e.printStackTrace()
+                            Firebase.crashlytics.recordException(e)
+                            return@derivedStateOf LocalDate.now()
+                        }
+                    }
+                }
+
                 if (datumDialog) DatePickerDialog(
                     onDismissRequest = {
                         datumDialog = false
@@ -139,7 +173,7 @@ fun SpravceUkoluScreen(
                     title = {
                         Text("Vyberte datum")
                     },
-                    initialDate = LocalDate.now(),
+                    initialDate = predvybranyDatum,
                 )
 
                 TextField(

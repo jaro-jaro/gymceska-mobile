@@ -1,5 +1,7 @@
 package cz.jaro.rozvrh.ukoly
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,12 +9,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,7 +26,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -32,6 +38,7 @@ import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
 import cz.jaro.rozvrh.destinations.SpravceUkoluScreenDestination
 import org.koin.androidx.compose.koinViewModel
+import java.util.UUID
 
 @Destination
 @Composable
@@ -41,18 +48,22 @@ fun UkolyScreen(
 
     val viewModel = koinViewModel<UkolyViewModel>()
 
-    val ukoly by viewModel.ukoly.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     UkolyScreen(
-        ukoly = ukoly,
+        state = state,
+        skrtnout = viewModel::skrtnout,
+        odskrtnout = viewModel::odskrtnout,
         navigate = navigator.navigate
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun UkolyScreen(
-    ukoly: List<String>?,
+    state: UkolyState,
+    skrtnout: (UUID) -> Unit,
+    odskrtnout: (UUID) -> Unit,
     navigate: (Direction) -> Unit,
 ) = Surface {
     Scaffold(
@@ -106,9 +117,33 @@ fun UkolyScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (ukoly == null) item { LinearProgressIndicator() }
-            else items(ukoly) {
-                Text(it)
+            when (state) {
+                UkolyState.Nacitani -> item { LinearProgressIndicator() }
+                is UkolyState.Nacteno -> {
+                    items(state.ukoly, key = { it.id }) { ukol ->
+                        if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred)
+                            Text("Splněné úkoly", Modifier.animateItemPlacement())
+                        else Row(
+                            Modifier.animateItemPlacement(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = ukol.stav == StavUkolu.Skrtly,
+                                onCheckedChange = {
+                                    (if (ukol.stav == StavUkolu.Skrtly) odskrtnout else skrtnout)(ukol.id)
+                                }
+                            )
+                            if (ukol.stav == StavUkolu.Skrtly) Text(
+                                text = ukol.text,
+                                textDecoration = TextDecoration.LineThrough,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = .38F)
+                            )
+                            else Text(
+                                text = ukol.text,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

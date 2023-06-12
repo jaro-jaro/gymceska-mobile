@@ -11,45 +11,80 @@ import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.flow.combine as kombajn
 
 @KoinViewModel
 class UkolyViewModel(
     private val repo: Repository
 ) : ViewModel() {
-    val rawUkoly = repo.ukoly.map { ukoly ->
-        println(ukoly)
+    companion object {
+        private const val prvniMesicVSkolnimRoce = 8
+    }
+
+    val ukoly = repo.ukoly.map { ukoly ->
         ukoly?.sortedBy { ukol ->
             val datum = ukol.datum.replace(" ", "").split(".")
             val den = datum.getOrNull(0)?.toIntOrNull() ?: return@sortedBy 0
             val mesic = datum.getOrNull(1)?.toIntOrNull() ?: return@sortedBy 0
 
-            ((den + mesic * 31) + (5 * 31)) % (12 * 31)
+            ((den - 1) + 31 * ((mesic - 1) + (12 - (prvniMesicVSkolnimRoce - 1)))) % (12 * 31)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
-    val ukoly = rawUkoly.map { ukoly ->
-        ukoly?.map {
-            it.asString()
+    val state = ukoly.kombajn(repo.skrtleUkoly) { ukoly, skrtle ->
+        if (ukoly == null) UkolyState.Nacitani
+        else UkolyState.Nacteno(
+            ukoly = ukoly.map {
+                it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
+            }
+                .run {
+                    if (any { it.stav == StavUkolu.Skrtly })
+                        plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
+                    else this
+                }
+                .sortedBy {
+                    when (it.stav) {
+                        StavUkolu.Neskrtly -> -1
+                        StavUkolu.TakovaTaBlboVecUprostred -> 0
+                        StavUkolu.Skrtly -> 1
+                    }
+                },
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), UkolyState.Nacitani)
+
+    fun skrtnout(id: UUID) {
+        viewModelScope.launch {
+            repo.upravitSkrtleUkoly {
+                it + id
+            }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+    }
+
+    fun odskrtnout(id: UUID) {
+        viewModelScope.launch {
+            repo.upravitSkrtleUkoly {
+                it - id
+            }
+        }
+    }
 
     fun pridatUkol(callback: (UUID) -> Unit) {
         viewModelScope.launch {
             val novyUkol = Ukol.new()
-            repo.upravitUkoly(rawUkoly.value!! + novyUkol)
+            repo.upravitUkoly(ukoly.value!! + novyUkol)
             callback(novyUkol.id)
         }
     }
 
     fun odebratUkol(id: UUID) {
         viewModelScope.launch {
-            repo.upravitUkoly(rawUkoly.value!!.filter { it.id != id })
+            repo.upravitUkoly(ukoly.value!!.filter { it.id != id })
         }
     }
 
     fun upravitUkol(ukol: Ukol) {
         viewModelScope.launch {
-            val ukoly = rawUkoly.value!!.toMutableList()
+            val ukoly = ukoly.value!!.toMutableList()
             val index = ukoly.indexOfFirst { it.id == ukol.id }
             if (index == -1) return@launch
             ukoly[index] = ukol
