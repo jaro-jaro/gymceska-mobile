@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         Firebase.analytics.setUserId(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
         Firebase.crashlytics.setUserId(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
 
-        val rozbitFlow = repo.maSeTatoAplikceRozbit
+        val rozbitFlow = repo.verzeNaRozbiti
 
         val rozvrh = intent.getBooleanExtra("rozvrh", false) || intent.getStringExtra("rozvrh") == "true"
         val ukoly = intent.getBooleanExtra("ukoly", false) || intent.getStringExtra("ukoly") == "true"
@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
                 useDarkTheme = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
                 useDynamicColor = nastaveni.dynamicColors,
             ) {
-                if (rozbit) AlertDialog(
+                if (rozbit >= BuildConfig.VERSION_CODE) AlertDialog(
                     onDismissRequest = {},
                     confirmButton = {
                         TextButton(
