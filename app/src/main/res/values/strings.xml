@@ -1,15 +1,12 @@
 <resources>
     <string name="app_name">Gymceska</string>
     <string name="rozvrh">Rozvrh</string>
-    <string name="suplovani">Suplování</string>
     <string name="domaci_ukoly">Domácí úkoly</string>
     <string name="ukoly">Úkoly</string>
     <string name="spravovat_ukoly">Spravovat úkoly</string>
-    <string name="pridat">Přidat</string>
     <string name="nacitani">Načítání…</string>
     <string name="odstranit">Odstranit</string>
-    <string name="ukol"><b>%1$s</b> – %2$s – %3$s</string>
-    <string name="za_p_padn_nesrovnalosti_neru_me">Za případné nesrovnalosti neručíme</string>
+    <string name="za_pripadne_nesrovnalosti_nerucime">Za případné nesrovnalosti neručíme</string>
     <string name="upravit">Upravit</string>
     <string name="upravit_ukol">Upravit úkol</string>
     <string name="zrusit">Zrušit</string>
@@ -17,7 +14,7 @@
     <string name="neni_stazeno">Data nejsou stažena</string>
     <string name="datum">Upozornění! Prohlížíte si starší data! (z %s)</string>
     <string name="stahovani_vseho">Stahování všech rozvrhů</string>
-    <string name="stahnout_vse">Stáhnout všechny rozvrhy</string>
+    <string name="stahnout_vsechny_rozvrhy">Stáhnout všechny rozvrhy</string>
     <string name="nastaveni_oznameni">Nastavení oznámení</string>
     <string name="nastaveni">Nastavení</string>
     <string name="chcete_dostavat_oznameni">Chcete dostávat oznámení na nesplněné úkoly?</string>
@@ -38,4 +35,9 @@
     <string name="zvolte_sve_skupiny">Zvolte své skupiny:</string>
     <string name="vice_moznosti">Více možností</string>
     <string name="title_activity_main2">MainActivity2</string>
+    <string name="pouzivat_dynamicke_barvy">Používat dynamické barvy</string>
+    <string name="verze_aplikace">Verze aplikace: %1$s (%2$s)</string>
+    <string name="urcit_tmavy_rezim_podle_systemu">Určit tmavý režim podle systému</string>
+    <string name="zpet">Zpět</string>
+    <string name="splnene_ukoly">Splněné úkoly</string>
 </resources>

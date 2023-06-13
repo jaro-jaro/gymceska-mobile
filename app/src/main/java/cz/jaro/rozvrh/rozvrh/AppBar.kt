@@ -21,7 +21,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
 
 
@@ -32,8 +34,9 @@ fun AppBar(
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
 ) {
+    val nacitani = stringResource(R.string.nacitani)
     var nacitame by remember { mutableStateOf(false) }
-    var podrobnostiNacitani by remember { mutableStateOf("Načítání") }
+    var podrobnostiNacitani by remember { mutableStateOf(nacitani) }
 
     if (nacitame) AlertDialog(
         onDismissRequest = {
@@ -50,7 +53,7 @@ fun AppBar(
 
     TopAppBar(
         title = {
-            Text(text = "Rozvrh")
+            Text(text = stringResource(R.string.rozvrh))
         },
         actions = {
             IconButton(
@@ -60,11 +63,11 @@ fun AppBar(
                         podrobnostiNacitani = it
                     }) {
                         nacitame = false
-                        podrobnostiNacitani = "Načítání"
+                        podrobnostiNacitani = nacitani
                     }
                 }
             ) {
-                Icon(Icons.Default.CloudDownload, "Stáhnout všechny rozvrhy")
+                Icon(Icons.Default.CloudDownload, stringResource(R.string.stahnout_vsechny_rozvrhy))
             }
 
             IconButton(
@@ -72,7 +75,7 @@ fun AppBar(
                     navigate(NastaveniScreenDestination)
                 }
             ) {
-                Icon(Icons.Default.Settings, "Nastavení")
+                Icon(Icons.Default.Settings, stringResource(R.string.nastaveni))
             }
 
             var volnaTridaNastaveniDialog by remember { mutableStateOf(false) }
@@ -92,7 +95,7 @@ fun AppBar(
                             volnaTridaDialog = false
                         }
                     ) {
-                        Text(text = "OK")
+                        Text(text = stringResource(android.R.string.ok))
                     }
                 },
                 dismissButton = {},
