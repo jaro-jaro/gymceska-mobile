@@ -241,10 +241,10 @@ class Repository(
         return ja in povolene
     }
 
-    val maSeTatoAplikceRozbit = flow {
+    val verzeNaRozbiti = flow {
         val dataSnapshot = znicitRef.get().await()
         val verzeNaRozbiti = dataSnapshot.getValue(Int::class.java) ?: -1
 
-        emit(verzeNaRozbiti >= BuildConfig.VERSION_CODE)
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), false)
+        emit(verzeNaRozbiti)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), -1)
 }
