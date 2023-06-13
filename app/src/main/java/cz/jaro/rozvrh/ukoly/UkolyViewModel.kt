@@ -21,6 +21,7 @@ class UkolyViewModel(
     companion object {
         private const val prvniMesicVSkolnimRoce = 8
     }
+    private val idTTBVU = UUID.randomUUID()
 
     val jeOnline = repo.isOnlineFlow
     val inteligentni = flow {
@@ -45,7 +46,7 @@ class UkolyViewModel(
             }
                 .run {
                     if (any { it.stav == StavUkolu.Skrtly })
-                        plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
+                        plus(JednoduchyUkol(id = idTTBVU, "", stav = StavUkolu.TakovaTaBlboVecUprostred))
                     else this
                 }
                 .sortedBy {
