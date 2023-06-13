@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -59,15 +60,16 @@ import java.util.Calendar.WEDNESDAY
 
 class DnesWidget : GlanceAppWidget() {
 
+    @Suppress("DEPRECATION")
     @Composable
     fun Content() = GlanceTheme {
         val prefs = currentState<Preferences>()
         val bunky = Json.decodeFromString<List<Bunka>>(prefs[stringPreferencesKey("hodiny")] ?: "[]")
 
-        val bg = ColorProvider(R.color.background_color)
-        val bg2 = ColorProvider(R.color.background_color_alt)
-        val onbg = ColorProvider(R.color.on_background_color)
-        val onbg2 = ColorProvider(R.color.on_background_color_alt)
+        val bg = ColorProvider(Color(LocalContext.current.resources.getColor(R.color.background_color)))
+        val bg2 = ColorProvider(Color(LocalContext.current.resources.getColor(R.color.background_color_alt)))
+        val onbg = ColorProvider(Color(LocalContext.current.resources.getColor(R.color.on_background_color)))
+        val onbg2 = ColorProvider(Color(LocalContext.current.resources.getColor(R.color.on_background_color_alt)))
 
         Column(
             GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
