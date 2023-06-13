@@ -245,6 +245,6 @@ class Repository(
         val dataSnapshot = znicitRef.get().await()
         val verzeNaRozbiti = dataSnapshot.getValue(Int::class.java) ?: -1
 
-        emit(verzeNaRozbiti >= 3/*BuildConfig.VERSION_CODE*/)
+        emit(verzeNaRozbiti >= BuildConfig.VERSION_CODE)
     }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), false)
 }

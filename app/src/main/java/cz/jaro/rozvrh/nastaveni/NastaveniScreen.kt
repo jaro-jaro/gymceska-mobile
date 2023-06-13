@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.rozvrh.Vjec
@@ -181,6 +182,9 @@ fun NastaveniScreen(
                     )
                     Text(skupina)
                 }
+            }
+            item {
+                Text("Verze aplikace: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             }
             item {
                 Text("Simulate crash...", Modifier.clickable {
