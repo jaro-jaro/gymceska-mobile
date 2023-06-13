@@ -39,5 +39,5 @@
     <string name="verze_aplikace">Verze aplikace: %1$s (%2$s)</string>
     <string name="urcit_tmavy_rezim_podle_systemu">Určit tmavý režim podle systému</string>
     <string name="zpet">Zpět</string>
-    <string name="splnene_ukoly">Splněné úkoly</string>
+    <string name="splnene_ukoly">Splněné úkoly:</string>
 </resources>

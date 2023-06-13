@@ -100,7 +100,7 @@ fun UkolyScreen(
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
             when (state) {
                 UkolyState.Nacitani -> item { LinearProgressIndicator() }
