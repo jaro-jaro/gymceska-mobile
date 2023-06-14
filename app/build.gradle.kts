@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.crashlytics.ktx)
     implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.config.ktx)
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.bundles.koin)
