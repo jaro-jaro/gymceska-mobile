@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
@@ -59,7 +60,7 @@ fun MainSceeen(
                             Icon(Icons.Default.TableChart, null)
                         },
                         label = {
-                            Text("Rozvrh")
+                            Text(stringResource(R.string.rozvrh))
                         }
                     )
                     NavigationBarItem(
@@ -71,7 +72,7 @@ fun MainSceeen(
                             Icon(Icons.Default.FormatListBulleted, null)
                         },
                         label = {
-                            Text("Domácí úkoly")
+                            Text(stringResource(R.string.domaci_ukoly))
                         }
                     )
                 }

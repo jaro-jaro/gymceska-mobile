@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,11 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,6 +31,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
 import cz.jaro.rozvrh.destinations.SpravceUkoluScreenDestination
 import org.koin.androidx.compose.koinViewModel
@@ -76,7 +73,7 @@ fun UkolyScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Domácí úkoly")
+                    Text(stringResource(R.string.domaci_ukoly))
                 },
 
                 actions = {
@@ -85,33 +82,15 @@ fun UkolyScreen(
                             navigate(NastaveniScreenDestination)
                         }
                     ) {
-                        Icon(Icons.Default.Settings, "Nastavení")
+                        Icon(Icons.Default.Settings, stringResource(R.string.nastaveni))
                     }
 
-                    var menu by rememberSaveable { mutableStateOf(false) }
-                    DropdownMenu(
-                        expanded = menu,
-                        onDismissRequest = {
-                            menu = false
-                        }
-                    ) {
-                        if (!jeOffline) DropdownMenuItem(
-                            text = {
-                                Text("Spravovat úkoly")
-                            },
-                            onClick = {
-                                navigate(SpravceUkoluScreenDestination)
-                                menu = false
-                            }
-                        )
-                    }
-
-                    if (jeInteligentni) IconButton(
+                    if (jeInteligentni && !jeOffline) IconButton(
                         onClick = {
-                            menu = true
+                            navigate(SpravceUkoluScreenDestination)
                         }
                     ) {
-                        Icon(Icons.Default.MoreVert, "Více")
+                        Icon(Icons.Default.Edit, stringResource(R.string.spravovat_ukoly))
                     }
                 }
             )
@@ -121,14 +100,14 @@ fun UkolyScreen(
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
             when (state) {
                 UkolyState.Nacitani -> item { LinearProgressIndicator() }
                 is UkolyState.Nacteno -> {
                     items(state.ukoly, key = { it.id }) { ukol ->
                         if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred)
-                            Text("Splněné úkoly", Modifier.animateItemPlacement())
+                            Text(stringResource(R.string.splnene_ukoly), Modifier.animateItemPlacement())
                         else Row(
                             Modifier.animateItemPlacement(),
                             verticalAlignment = Alignment.CenterVertically,

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.rozvrh.Vjec
@@ -72,13 +73,13 @@ fun NastaveniScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = stringResource(id = R.string.nastaveni))
+                    Text(text = stringResource(R.string.nastaveni))
                 },
                 navigationIcon = {
                     IconButton(
                         onClick = navigateBack
                     ) {
-                        Icon(Icons.Default.ArrowBack, "Zpět")
+                        Icon(Icons.Default.ArrowBack, stringResource(R.string.zpet))
                     }
                 }
             )
@@ -98,7 +99,7 @@ fun NastaveniScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = "Určit tmavý režim podle sytému")
+                    Text(text = stringResource(R.string.urcit_tmavy_rezim_podle_systemu))
                     Switch(
                         checked = nastaveni.darkModePodleSystemu,
                         onCheckedChange = {
@@ -116,7 +117,7 @@ fun NastaveniScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = stringResource(id = R.string.tmavy_rezim))
+                    Text(text = stringResource(R.string.tmavy_rezim))
                     Switch(
                         checked = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
                         enabled = !nastaveni.darkModePodleSystemu,
@@ -135,7 +136,7 @@ fun NastaveniScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = "Použícat dynamické barvy")
+                    Text(text = stringResource(R.string.pouzivat_dynamicke_barvy))
                     Switch(
                         checked = nastaveni.dynamicColors,
                         onCheckedChange = {
@@ -153,7 +154,7 @@ fun NastaveniScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = stringResource(id = R.string.zvolte_svou_tridu))
+                    Text(text = stringResource(R.string.zvolte_svou_tridu))
                     Vybiratko(
                         seznam = Vjec.tridy,
                         value = nastaveni.mojeTrida
@@ -181,6 +182,9 @@ fun NastaveniScreen(
                     )
                     Text(skupina)
                 }
+            }
+            item {
+                Text(stringResource(R.string.verze_aplikace, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
             }
             item {
                 Text("Simulate crash...", Modifier.clickable {

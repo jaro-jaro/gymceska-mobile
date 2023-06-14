@@ -1,5 +1,7 @@
+@file:Suppress("UnstableApiUsage")
+
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
-    val libs = libs
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.application)
@@ -17,8 +19,8 @@ android {
         applicationId = "cz.jaro.rozvrh"
         minSdk = 26
         targetSdk = 33
-        versionCode = 3
-        versionName = "2.0.0"
+        versionCode = 4
+        versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -41,8 +43,8 @@ android {
         freeCompilerArgs += "-Xcontext-receivers"
     }
     buildFeatures {
-        viewBinding = true
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.7"
@@ -62,6 +64,7 @@ android {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     implementation("androidx.core:core-ktx:1.10.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.stdlib)
