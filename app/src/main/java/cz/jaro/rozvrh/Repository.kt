@@ -46,9 +46,8 @@ import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.koin.core.annotation.Single
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.seconds
@@ -66,7 +65,7 @@ class Repository(
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
         fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}")
-        fun rozvrhDatum(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_datum")
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_posledni")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
     }
@@ -156,8 +155,7 @@ class Repository(
 
                     preferences.edit {
                         it[Keys.rozvrh(trida, stalost)] = doc.toString()
-                        val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-                        it[Keys.rozvrhDatum(trida, stalost)] = formatter.format(Date())
+                        it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
                     }
                 }
             }
@@ -179,14 +177,21 @@ class Repository(
             .sorted()
     }
 
+    private suspend fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
+
+        val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) } ?: return false
+        val staryHodin = posledni.until(LocalDateTime.now(), ChronoUnit.HOURS)
+        return staryHodin < 1
+    }
+
     suspend fun ziskatDocument(trida: Vjec.TridaVjec, stalost: Stalost): Document? = withContext(Dispatchers.IO) {
         if (trida.odkaz == null) return@withContext null
-        if (isOnline()) {
+
+        if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) {
             Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
                 preferences.edit {
                     it[Keys.rozvrh(trida, stalost)] = doc.toString()
-                    val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-                    it[Keys.rozvrhDatum(trida, stalost)] = formatter.format(Date())
+                    it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
                 }
             }
         } else {
@@ -259,12 +264,12 @@ class Repository(
 
     @SuppressLint("HardwareIds")
     fun jeZarizeniPovoleno(): Boolean {
-        val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>().also { println(it) }
+        val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>()
 
-        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID).also { println(it) }
+        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
 
         return ja in povolene
     }
 
-    val verzeNaRozbiti = remoteConfig["rozbitAplikaci"].asString().toIntOrNull().also { println(it) } ?: -1
+    val verzeNaRozbiti = remoteConfig["rozbitAplikaci"].asString().toIntOrNull() ?: -1
 }
