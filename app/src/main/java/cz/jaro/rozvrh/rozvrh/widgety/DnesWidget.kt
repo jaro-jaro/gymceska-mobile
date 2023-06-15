@@ -152,7 +152,7 @@ class DnesWidget : GlanceAppWidget() {
                                             )
                                             Spacer(GlanceModifier.defaultWeight())
                                             Text(
-                                                text = vyucujici,
+                                                text = ucitel,
                                                 modifier = GlanceModifier
                                                     .clickable(actionStartActivity<MainActivity>())
                                                     .padding(bottom = 8.dp),

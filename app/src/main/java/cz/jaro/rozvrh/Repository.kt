@@ -18,6 +18,9 @@ import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.ktx.get
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
@@ -28,7 +31,6 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -69,17 +71,81 @@ class Repository(
         val UKOLY = stringPreferencesKey("ukoly")
     }
 
-    val nastaveni = preferences.data.map { it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni() }
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    private val firebase = Firebase
+    private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
+    private val remoteConfig = Firebase.remoteConfig
+
+    private val configActive = flow {
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+
+        emit(remoteConfig.fetchAndActivate().await())
+    }
+
+    val tridy = configActive.map {
+        listOf(Vjec.TridaVjec("Třídy")) + remoteConfig["tridy"].asString().fromJson<List<Vjec.TridaVjec>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf(Vjec.TridaVjec("Třídy")))
+    val mistnosti = configActive.map {
+        listOf(Vjec.MistnostVjec("Místnosti")) + remoteConfig["mistnosti"].asString().fromJson<List<Vjec.MistnostVjec>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf(Vjec.MistnostVjec("Místnosti")))
+    val vyucujici = configActive.map {
+        listOf(Vjec.VyucujiciVjec("Vyučující", "")) + remoteConfig["vyucujici"].asString().fromJson<List<Vjec.VyucujiciVjec>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf(Vjec.VyucujiciVjec("Vyučující", "")))
+
+    val nastaveni = preferences.data.combine(tridy) { it, tridy ->
+        it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
+    }
+
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
         preferences.edit {
-            it[Keys.NASTAVENI] = Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni()))
+            it[Keys.NASTAVENI] =
+                Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
         }
+    }
+
+    private val ukolyRef = database.getReference("ukoly")
+
+    init {
+        ukolyRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
+                val noveUkoly = ukoly?.mapNotNull {
+                    Ukol(
+                        datum = it["datum"] ?: return@mapNotNull null,
+                        nazev = it["nazev"] ?: return@mapNotNull null,
+                        predmet = it["predmet"] ?: return@mapNotNull null,
+                        id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
+                    )
+                }
+                onlineUkoly.value = noveUkoly
+
+                scope.launch {
+                    preferences.edit {
+                        it[Keys.UKOLY] = Json.encodeToString(noveUkoly)
+                    }
+
+                    upravitSkrtleUkoly { skrtle ->
+                        skrtle.filter { uuid ->
+                            uuid in (noveUkoly?.map { it.id } ?: emptyList())
+                        }.toSet()
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                error.toException().printStackTrace()
+            }
+        })
     }
 
     suspend fun stahnoutVse(update: (String) -> Unit, finish: () -> Unit) {
         if (!isOnline()) return
         withContext(Dispatchers.IO) {
-            Vjec.tridy.drop(1).forEach { trida ->
+            tridy.value.drop(1).forEach { trida ->
                 Stalost.values().forEach { stalost ->
                     update("Stahování:\n${trida.jmeno} – ${stalost.nazev}")
 
@@ -154,6 +220,8 @@ class Repository(
                 NetworkCapabilities.TRANSPORT_ETHERNET
             )
         }
+
+        inline fun <reified T> String.fromJson(): T = Json.decodeFromString(this)
     }
 
     val skrtleUkoly = preferences.data.map {
@@ -168,17 +236,12 @@ class Repository(
         }
     }
 
-    private val firebase = Firebase
-    private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
-
-    private val scope = CoroutineScope(Dispatchers.IO)
-
     val isOnlineFlow = flow {
         while (currentCoroutineContext().isActive) {
             delay(5.seconds)
             emit(isOnline())
         }
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), false)
+    }
 
     private val onlineUkoly = MutableStateFlow(null as List<Ukol>?)
 
@@ -190,61 +253,18 @@ class Repository(
         if (isOnline) onlineUkoly else offlineUkoly
     }
 
-    private val ukolyRef = database.getReference("ukoly")
-    private val povoleneRef = database.getReference("povolenaZarizeni")
-    private val znicitRef = database.getReference("rozbitAplikaci")
-
-    init {
-        ukolyRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
-                val noveUkoly = ukoly?.mapNotNull {
-                    Ukol(
-                        datum = it["datum"] ?: return@mapNotNull null,
-                        nazev = it["nazev"] ?: return@mapNotNull null,
-                        predmet = it["predmet"] ?: return@mapNotNull null,
-                        id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
-                    )
-                }
-                onlineUkoly.value = noveUkoly
-
-                scope.launch {
-                    preferences.edit {
-                        it[Keys.UKOLY] = Json.encodeToString(noveUkoly)
-                    }
-
-                    upravitSkrtleUkoly { skrtle ->
-                        skrtle.filter { uuid ->
-                            uuid in (noveUkoly?.map { it.id } ?: emptyList())
-                        }.toSet()
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                error.toException().printStackTrace()
-            }
-        })
-    }
-
     suspend fun upravitUkoly(ukoly: List<Ukol>) {
         ukolyRef.setValue(ukoly.map { mapOf("datum" to it.datum, "nazev" to it.nazev, "predmet" to it.predmet, "id" to it.id.toString()) }).await()
     }
 
     @SuppressLint("HardwareIds")
-    suspend fun jeZarizeniPovoleno(): Boolean {
-        val dataSnapshot = povoleneRef.get().await()
-        val povolene = dataSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
+    fun jeZarizeniPovoleno(): Boolean {
+        val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>().also { println(it) }
 
-        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
+        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID).also { println(it) }
 
         return ja in povolene
     }
 
-    val verzeNaRozbiti = flow {
-        val dataSnapshot = znicitRef.get().await()
-        val verzeNaRozbiti = dataSnapshot.getValue(Int::class.java) ?: -1
-
-        emit(verzeNaRozbiti)
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), -1)
+    val verzeNaRozbiti = remoteConfig["rozbitAplikaci"].asString().toIntOrNull().also { println(it) } ?: -1
 }

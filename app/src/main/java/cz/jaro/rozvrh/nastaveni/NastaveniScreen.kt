@@ -45,11 +45,11 @@ import org.koin.core.parameter.parametersOf
 fun NastaveniScreen(
     navigator: DestinationsNavigator
 ) {
-
     val viewModel = koinViewModel<NastaveniViewModel> {
         parametersOf()
     }
 
+    val tridy by viewModel.tridyFlow.collectAsStateWithLifecycle(emptyList())
     val nastaveni by viewModel.nastaveni.collectAsStateWithLifecycle(null)
     val skupiny by viewModel.skupiny.collectAsStateWithLifecycle(null)
 
@@ -57,6 +57,7 @@ fun NastaveniScreen(
         navigateBack = navigator::navigateUp,
         nastaveni = nastaveni,
         upravitNastaveni = viewModel::upravitNastaveni,
+        tridy = tridy,
         skupiny = skupiny,
     )
 }
@@ -67,6 +68,7 @@ fun NastaveniScreen(
     navigateBack: () -> Unit,
     nastaveni: Nastaveni?,
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
+    tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
 ) = Surface {
     Scaffold(
@@ -84,12 +86,12 @@ fun NastaveniScreen(
                 }
             )
         }
-    ) {
-        if (nastaveni == null) LinearProgressIndicator(Modifier.padding(it))
+    ) { paddingValues ->
+        if (nastaveni == null) LinearProgressIndicator(Modifier.padding(paddingValues))
         else LazyColumn(
             Modifier
                 .fillMaxSize()
-                .padding(it)
+                .padding(paddingValues)
                 .padding(all = 16.dp)
         ) {
             item {
@@ -156,11 +158,11 @@ fun NastaveniScreen(
                 ) {
                     Text(text = stringResource(R.string.zvolte_svou_tridu))
                     Vybiratko(
-                        seznam = Vjec.tridy,
-                        value = nastaveni.mojeTrida
+                        seznam = tridy.map { it.jmeno },
+                        aktualIndex = tridy.indexOf(nastaveni.mojeTrida)
                     ) {
                         upravitNastaveni { nastaveni ->
-                            nastaveni.copy(mojeTrida = it)
+                            nastaveni.copy(mojeTrida = tridy[it])
                         }
                     }
                 }
