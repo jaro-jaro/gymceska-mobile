@@ -10,4 +10,5 @@ data class Nastaveni(
     val mojeTrida: Vjec.TridaVjec,
     val mojeSkupiny: Set<String> = emptySet(),
     val dynamicColors: Boolean = true,
+    val prepnoutRozvrhWidget: PrepnoutRozvrhWidget = PrepnoutRozvrhWidget.OPulnoci,
 )

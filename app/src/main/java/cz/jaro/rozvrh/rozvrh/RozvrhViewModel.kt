@@ -7,6 +7,7 @@ import cz.jaro.rozvrh.Offline
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
+import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -55,7 +56,7 @@ class RozvrhViewModel(
                     if (result !is Uspech) return@Nacitani null
                     TvorbaRozvrhu.vytvoritTabulku(result.document) to result.zdroj.let { zdroj ->
                         if (zdroj is Offline)
-                            "Prohlížíte si verzi rozvrhu z ${zdroj.ziskano.dayOfMonth}. ${zdroj.ziskano.monthValue}. ${zdroj.ziskano.hour}:${zdroj.ziskano.minute}."
+                            "Prohlížíte si verzi rozvrhu z ${zdroj.ziskano.dayOfMonth}. ${zdroj.ziskano.monthValue}. ${zdroj.ziskano.hour}:${zdroj.ziskano.minute.nula()}."
                         else null
                     }
                 }
@@ -149,6 +150,6 @@ class RozvrhViewModel(
             }
         }
         if (nejstarsi == LocalDateTime.MAX) novaTabulka to null
-        else novaTabulka to "Nejstarší část tohoto rozvrhu pochází z ${nejstarsi.dayOfMonth}. ${nejstarsi.monthValue}. ${nejstarsi.hour}:${nejstarsi.minute}."
+        else novaTabulka to "Nejstarší část tohoto rozvrhu pochází z ${nejstarsi.dayOfMonth}. ${nejstarsi.monthValue}. ${nejstarsi.hour}:${nejstarsi.minute.nula()}."
     }
 }

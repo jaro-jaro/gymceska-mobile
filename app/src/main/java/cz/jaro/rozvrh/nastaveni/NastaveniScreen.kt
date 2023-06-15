@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -34,6 +35,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
+import cz.jaro.rozvrh.PrepnoutRozvrhWidget
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
@@ -150,6 +152,71 @@ fun NastaveniScreen(
                 }
             }
             item {
+                Text("Podle čeho chcete určit přepnutí widgetu na další den?")
+                Vybiratko(
+                    seznam = listOf(
+                        "Vždy o půlnoci",
+                        "V specifický čas",
+                        "Daný počet hodin po konci vyučování",
+                    ),
+                    aktualIndex = when (nastaveni.prepnoutRozvrhWidget) {
+                        is PrepnoutRozvrhWidget.OPulnoci -> 0
+                        is PrepnoutRozvrhWidget.VCas -> 1
+                        is PrepnoutRozvrhWidget.PoKonciVyucovani -> 2
+                    },
+                    poklik = {
+                        upravitNastaveni { nast ->
+                            nast.copy(
+                                prepnoutRozvrhWidget = when (it) {
+                                    0 -> PrepnoutRozvrhWidget.OPulnoci
+                                    1 -> PrepnoutRozvrhWidget.VCas(16, 0)
+                                    2 -> PrepnoutRozvrhWidget.PoKonciVyucovani(2)
+                                    else -> throw IllegalArgumentException("WTF")
+                                }
+                            )
+                        }
+                    },
+                )
+                if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = nastaveni.prepnoutRozvrhWidget.hodin.toString(),
+                        onValueChange = {
+                            it.toIntOrNull() ?: return@OutlinedTextField
+                            upravitNastaveni { nast ->
+                                nast.copy(prepnoutRozvrhWidget = nastaveni.prepnoutRozvrhWidget.copy(hodin = it.toInt()))
+                            }
+                        },
+                        Modifier.weight(1F)
+                    )
+                    Text(":", fontSize = 26.sp)
+                    OutlinedTextField(
+                        value = nastaveni.prepnoutRozvrhWidget.minut.toString(),
+                        onValueChange = {
+                            it.toIntOrNull() ?: return@OutlinedTextField
+                            upravitNastaveni { nast ->
+                                nast.copy(prepnoutRozvrhWidget = nastaveni.prepnoutRozvrhWidget.copy(minut = it.toInt()))
+                            }
+                        },
+                        Modifier.weight(1F)
+                    )
+                }
+                else if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) OutlinedTextField(
+                    value = nastaveni.prepnoutRozvrhWidget.poHodin.toString(),
+                    onValueChange = {
+                        it.toIntOrNull() ?: return@OutlinedTextField
+                        upravitNastaveni { nast ->
+                            nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.PoKonciVyucovani(poHodin = it.toInt()))
+                        }
+                    },
+                    Modifier.fillMaxWidth(),
+                    label = {
+                        Text("Počet hodin")
+                    }
+                )
+            }
+            item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -196,3 +263,5 @@ fun NastaveniScreen(
         }
     }
 }
+
+fun Int.nula(): String = if ("$this".length == 1) "0$this" else "$this"
