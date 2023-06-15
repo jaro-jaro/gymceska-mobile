@@ -35,6 +35,7 @@ import androidx.glance.unit.ColorProvider
 import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
+import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.rozvrh.Bunka
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritTabulku
@@ -188,8 +189,10 @@ class DnesWidget : GlanceAppWidget() {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val nastaveni = repo.nastaveni.first()
-                    val hodiny = repo.ziskatDocument(Stalost.TentoTyden)?.let { doc ->
-                        val tabulka = vytvoritTabulku(doc)
+                    val hodiny = repo.ziskatDocument(Stalost.TentoTyden).let { result ->
+                        if (result !is Uspech) return@let listOf(Bunka("", "Žádná data!", ""))
+
+                        val tabulka = vytvoritTabulku(result.document)
 
                         val cisloDne = dny.indexOf(Calendar.getInstance()[DAY_OF_WEEK]) /* 1-5 (6-7) */
 
@@ -216,12 +219,10 @@ class DnesWidget : GlanceAppWidget() {
                                 )
                             }
                             ?: listOf(Bunka("", "Víkend", ""))
-                    } ?: listOf(Bunka("", "Žádná data!", ""))
+                    }
 
-                    println(GlanceAppWidgetManager(context).getGlanceIds(DnesWidget::class.java) to GlanceAppWidgetManager(context))
                     appWidgetIds.forEach {
                         val id = GlanceAppWidgetManager(context).getGlanceIdBy(it)
-                        println(it)
 
                         updateAppWidgetState(context, id) { prefs ->
                             prefs[stringPreferencesKey("hodiny")] = Json.encodeToString(hodiny)
