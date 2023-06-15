@@ -97,7 +97,7 @@ class DnesWidget : GlanceAppWidget() {
                         Text(den, GlanceModifier.defaultWeight(), style = TextStyle(color = onbg))
                         Image(
                             provider = ImageProvider(R.drawable.baseline_refresh_24),
-                            colorFilter = ColorFilter.tint(ColorProvider(R.color.on_background_color)),
+                            colorFilter = ColorFilter.tint(onbg),
                             contentDescription = "Aktualizovat",
                             modifier = GlanceModifier.clickable {
                                 updateAll(context)
