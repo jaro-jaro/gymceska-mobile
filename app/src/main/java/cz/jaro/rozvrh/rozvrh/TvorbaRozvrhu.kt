@@ -1,8 +1,5 @@
 package cz.jaro.rozvrh.rozvrh
 
-import cz.jaro.rozvrh.Repository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.jsoup.nodes.Document
 
 object TvorbaRozvrhu {
@@ -95,57 +92,4 @@ object TvorbaRozvrhu {
                         ?: listOf(Bunka.prazdna)
                 }
         }
-
-    suspend fun vytvoritRozvrhPodleJinych(
-        vjec: Vjec,
-        stalost: Stalost,
-        repo: Repository,
-    ): Tyden = withContext(Dispatchers.IO) {
-        if (vjec is Vjec.TridaVjec) return@withContext emptyList()
-
-        val seznamNazvu = repo.tridy.value.drop(1)
-
-        val novaTabulka = MutableList(6) { MutableList(17) { mutableListOf<Bunka>() } }
-
-        seznamNazvu.forEach forE@{ trida ->
-            println(trida)
-
-            val doc = repo.ziskatDocument(trida, stalost) ?: return@withContext emptyList()
-
-            val rozvrhTridy = vytvoritTabulku(doc)
-
-            rozvrhTridy.forEachIndexed { i, den ->
-                den.forEachIndexed { j, hodina ->
-                    hodina.forEach { bunka ->
-                        if (bunka.ucitel.isEmpty() || bunka.predmet.isEmpty()) {
-                            return@forEach
-                        }
-                        if (i == 0 || j == 0) {
-                            novaTabulka[i][j] += bunka
-                            return@forEach
-                        }
-                        println(bunka)
-                        val zajimavaVec = when (vjec) {
-                            is Vjec.VyucujiciVjec -> bunka.ucitel.split(",").first()
-                            is Vjec.MistnostVjec -> bunka.ucebna
-                            else -> throw IllegalArgumentException()
-                        }
-                        if (zajimavaVec == vjec.zkratka) {
-                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim())
-                            return@forEach
-                        }
-                    }
-                }
-            }
-        }
-        novaTabulka.forEachIndexed { i, den ->
-            den.forEachIndexed { j, hodina ->
-                hodina.ifEmpty {
-                    novaTabulka[i][j] += Bunka.prazdna
-                }
-            }
-        }
-        println(novaTabulka)
-        novaTabulka
-    }
 }

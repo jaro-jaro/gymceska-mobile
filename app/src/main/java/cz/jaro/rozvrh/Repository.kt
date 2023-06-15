@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -44,11 +45,9 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
 import org.koin.core.annotation.Single
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.seconds
@@ -57,21 +56,35 @@ import kotlin.time.Duration.Companion.seconds
 class Repository(
     private val ctx: Context,
 ) {
+    private val scope = CoroutineScope(Dispatchers.IO)
+
     private val preferences = PreferenceDataStoreFactory.create(migrations = listOf(SharedPreferencesMigration({
         ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)!!
     }))) {
         ctx.preferencesDataStoreFile("Gymceska_JARO_datastore")
+    }.also {
+        scope.launch {
+            if (it.data.first().contains(booleanPreferencesKey("first")).not()) {
+                if (!isOnline()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
+                    }
+                    exitProcess(-1)
+                }
+                it.edit {
+                    it[booleanPreferencesKey("first")] = false
+                }
+            }
+        }
     }
 
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
         fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}")
-        fun rozvrhDatum(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_datum")
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_posledni")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
     }
-
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     private val firebase = Firebase
     private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
@@ -156,8 +169,7 @@ class Repository(
 
                     preferences.edit {
                         it[Keys.rozvrh(trida, stalost)] = doc.toString()
-                        val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-                        it[Keys.rozvrhDatum(trida, stalost)] = formatter.format(Date())
+                        it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
                     }
                 }
             }
@@ -166,9 +178,11 @@ class Repository(
     }
 
     suspend fun ziskatSkupiny(trida: Vjec.TridaVjec): Sequence<String> {
-        val doc = ziskatDocument(trida, Stalost.Staly) ?: exitProcess(-1)
+        val result = ziskatDocument(trida, Stalost.Staly)
 
-        return TvorbaRozvrhu.vytvoritTabulku(doc)
+        if (result !is Uspech) return emptySequence()
+
+        return TvorbaRozvrhu.vytvoritTabulku(result.document)
             .asSequence()
             .flatten()
             .filter { it.size > 1 }
@@ -179,31 +193,47 @@ class Repository(
             .sorted()
     }
 
-    suspend fun ziskatDocument(trida: Vjec.TridaVjec, stalost: Stalost): Document? = withContext(Dispatchers.IO) {
-        if (trida.odkaz == null) return@withContext null
-        if (isOnline()) {
-            Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
+    private suspend fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
+
+        val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) } ?: return false
+        val staryHodin = posledni.until(LocalDateTime.now(), ChronoUnit.HOURS)
+        return staryHodin < 1
+    }
+
+    suspend fun ziskatDocument(trida: Vjec.TridaVjec, stalost: Stalost): Result = withContext(Dispatchers.IO) {
+        if (trida.odkaz == null) return@withContext TridaNeexistuje
+
+        if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) {
+            val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
                 preferences.edit {
                     it[Keys.rozvrh(trida, stalost)] = doc.toString()
-                    val formatter = SimpleDateFormat("dd. MM. yyyy", Locale("cs"))
-                    it[Keys.rozvrhDatum(trida, stalost)] = formatter.format(Date())
+                    it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
                 }
             }
+
+            Uspech(doc, Online)
         } else {
+            val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) }
+                ?: run {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
+                    }
+                    return@withContext ZadnaData
+                }
 
             val html = preferences.data.first()[Keys.rozvrh(trida, stalost)]
                 ?: run {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
                     }
-                    null
+                    return@withContext ZadnaData
                 }
 
-            html?.let { Jsoup.parse(it) }
+            Uspech(Jsoup.parse(html), Offline(kdy))
         }
     }
 
-    suspend fun ziskatDocument(stalost: Stalost): Document? = ziskatDocument(nastaveni.first().mojeTrida, stalost)
+    suspend fun ziskatDocument(stalost: Stalost): Result = ziskatDocument(nastaveni.first().mojeTrida, stalost)
 
     private fun isOnline(): Boolean = ctx.isOnline()
 
@@ -259,12 +289,12 @@ class Repository(
 
     @SuppressLint("HardwareIds")
     fun jeZarizeniPovoleno(): Boolean {
-        val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>().also { println(it) }
+        val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>()
 
-        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID).also { println(it) }
+        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
 
         return ja in povolene
     }
 
-    val verzeNaRozbiti = remoteConfig["rozbitAplikaci"].asString().toIntOrNull().also { println(it) } ?: -1
+    val verzeNaRozbiti = remoteConfig["rozbitAplikaci"].asString().toIntOrNull() ?: -1
 }

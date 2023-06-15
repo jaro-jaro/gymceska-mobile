@@ -5,6 +5,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -63,7 +64,7 @@ fun RozvrhScreen(
     val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
 
     RozvrhScreen(
-        tabulka = tabulka,
+        tabulka = tabulka?.first,
         vjec = realVjec,
         stalost = viewModel.stalost,
         vybratRozvrh = viewModel::vybratRozvrh,
@@ -71,6 +72,7 @@ fun RozvrhScreen(
         stahnoutVse = viewModel.stahnoutVse,
         navigate = navigator.navigate,
         najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
+        rozvrhOfflineWarning = tabulka?.second,
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
@@ -87,6 +89,7 @@ fun RozvrhScreen(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    rozvrhOfflineWarning: String?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
@@ -155,6 +158,7 @@ fun RozvrhScreen(
             kliklNaNeco = { vjec ->
                 vybratRozvrh(vjec)
             },
+            rozvrhOfflineWarning = rozvrhOfflineWarning,
             tridy = tridy,
             mistnosti = mistnosti,
             vyucujici = vyucujici,
@@ -162,14 +166,23 @@ fun RozvrhScreen(
     }
 }
 
+context(ColumnScope)
 @Composable
 private fun Tabulka(
     tabulka: Tyden,
     kliklNaNeco: (vjec: Vjec) -> Unit,
+    rozvrhOfflineWarning: String?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
 ) {
+    Text(
+        rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    )
+
     if (tabulka.isEmpty()) return
 
     val horScrollState = rememberScrollState()
