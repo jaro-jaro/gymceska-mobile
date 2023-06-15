@@ -28,7 +28,7 @@ typealias Hodina = List<Bunka>
 data class Bunka(
     val ucebna: String,
     val predmet: String,
-    val vyucujici: String,
+    val ucitel: String,
     val tridaSkupina: String = "",
     val zbarvit: Boolean = false,
 ) {
@@ -37,7 +37,7 @@ data class Bunka(
         val prazdna = Bunka(
             ucebna = "",
             predmet = "",
-            vyucujici = "",
+            ucitel = "",
             tridaSkupina = "",
             zbarvit = false
         )
@@ -47,6 +47,9 @@ data class Bunka(
     fun Compose(
         bunekVHodine: Int,
         maxBunekDne: Int,
+        tridy: List<Vjec.TridaVjec>,
+        mistnosti: List<Vjec.MistnostVjec>,
+        vyucujici: List<Vjec.VyucujiciVjec>,
         kliklNaNeco: (vjec: Vjec) -> Unit,
     ) = Box(
         modifier = Modifier
@@ -72,8 +75,7 @@ data class Bunka(
                         .padding(all = 8.dp)
                         .clickable {
                             if (ucebna.isEmpty()) return@clickable
-                            val vjec = Vjec.mistnosti
-                                .plus(Vjec.MistnostVjec.Mim)
+                            val vjec = mistnosti
                                 .find { ucebna == it.zkratka } ?: return@clickable
                             kliklNaNeco(vjec)
                         },
@@ -86,7 +88,7 @@ data class Bunka(
                         .padding(all = 8.dp)
                         .clickable {
                             if (tridaSkupina.isEmpty()) return@clickable
-                            val vjec = Vjec.tridy.find {
+                            val vjec = tridy.find {
                                 tridaSkupina
                                     .split(" ")
                                     .first() == it.zkratka
@@ -106,20 +108,20 @@ data class Bunka(
                 color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
             )
             Text(
-                text = vyucujici,
+                text = ucitel,
                 modifier = Modifier
                     .padding(all = 8.dp)
                     .clickable {
-                        if (vyucujici.isEmpty()) return@clickable
-                        val vjec = Vjec.vyucujici.find {
-                            vyucujici
+                        if (ucitel.isEmpty()) return@clickable
+                        val vjec = vyucujici.find {
+                            ucitel
                                 .split(",")
                                 .first() == it.zkratka
                         } ?: return@clickable
                         kliklNaNeco(vjec)
                     }
                     .fillMaxWidth(
-                        vyucujici
+                        ucitel
                             .isNotEmpty()
                             .toInt()
                             .toFloat()

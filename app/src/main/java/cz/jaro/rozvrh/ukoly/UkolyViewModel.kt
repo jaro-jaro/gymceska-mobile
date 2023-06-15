@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.rozvrh.Repository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -21,12 +20,13 @@ class UkolyViewModel(
     companion object {
         private const val prvniMesicVSkolnimRoce = 8
     }
+
     private val idTTBVU = UUID.randomUUID()
 
     val jeOnline = repo.isOnlineFlow
-    val inteligentni = flow {
-        emit(repo.jeZarizeniPovoleno())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+
+    val inteligentni = repo.jeZarizeniPovoleno()
 
     val ukoly = repo.ukoly.map { ukoly ->
         ukoly?.sortedBy { ukol ->

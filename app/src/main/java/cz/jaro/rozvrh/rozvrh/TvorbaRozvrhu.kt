@@ -14,7 +14,7 @@ object TvorbaRozvrhu {
                 Bunka(
                     ucebna = "",
                     predmet = "",
-                    vyucujici = "",
+                    ucitel = "",
                     tridaSkupina = ""
                 )
             )
@@ -31,7 +31,7 @@ object TvorbaRozvrhu {
                     Bunka(
                         ucebna = "",
                         predmet = num.text(),
-                        vyucujici = hour.text(),
+                        ucitel = hour.text(),
                         tridaSkupina = ""
                     )
                 )
@@ -46,7 +46,7 @@ object TvorbaRozvrhu {
                     Bunka(
                         ucebna = "",
                         predmet = dny[i],
-                        vyucujici = "",
+                        ucitel = "",
                         tridaSkupina = ""
                     )
                 )
@@ -67,7 +67,7 @@ object TvorbaRozvrhu {
                                     predmet = dayFlex
                                         .getElementsByClass("middle").first()!!
                                         .text(),
-                                    vyucujici = dayFlex
+                                    ucitel = dayFlex
                                         .getElementsByClass("bottom").first()!!
                                         .text(),
                                     tridaSkupina = dayFlex
@@ -86,7 +86,7 @@ object TvorbaRozvrhu {
                                     Bunka(
                                         ucebna = "",
                                         predmet = it.text(),
-                                        vyucujici = "",
+                                        ucitel = "",
                                         tridaSkupina = "",
                                         zbarvit = true
                                     )
@@ -103,7 +103,7 @@ object TvorbaRozvrhu {
     ): Tyden = withContext(Dispatchers.IO) {
         if (vjec is Vjec.TridaVjec) return@withContext emptyList()
 
-        val seznamNazvu = Vjec.tridy.drop(1)
+        val seznamNazvu = repo.tridy.value.drop(1)
 
         val novaTabulka = MutableList(6) { MutableList(17) { mutableListOf<Bunka>() } }
 
@@ -117,7 +117,7 @@ object TvorbaRozvrhu {
             rozvrhTridy.forEachIndexed { i, den ->
                 den.forEachIndexed { j, hodina ->
                     hodina.forEach { bunka ->
-                        if (bunka.vyucujici.isEmpty() || bunka.predmet.isEmpty()) {
+                        if (bunka.ucitel.isEmpty() || bunka.predmet.isEmpty()) {
                             return@forEach
                         }
                         if (i == 0 || j == 0) {
@@ -126,7 +126,7 @@ object TvorbaRozvrhu {
                         }
                         println(bunka)
                         val zajimavaVec = when (vjec) {
-                            is Vjec.VyucujiciVjec -> bunka.vyucujici.split(",").first()
+                            is Vjec.VyucujiciVjec -> bunka.ucitel.split(",").first()
                             is Vjec.MistnostVjec -> bunka.ucebna
                             else -> throw IllegalArgumentException()
                         }

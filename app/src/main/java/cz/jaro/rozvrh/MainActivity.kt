@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
+import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ui.theme.AppTheme
 import org.koin.android.ext.android.inject
 
@@ -33,20 +34,17 @@ class MainActivity : ComponentActivity() {
         Firebase.analytics.setUserId(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
         Firebase.crashlytics.setUserId(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
 
-        val rozbitFlow = repo.verzeNaRozbiti
-
         val rozvrh = intent.getBooleanExtra("rozvrh", false) || intent.getStringExtra("rozvrh") == "true"
         val ukoly = intent.getBooleanExtra("ukoly", false) || intent.getStringExtra("ukoly") == "true"
-        setContent {
-            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle(Nastaveni())
 
-            val rozbit by rozbitFlow.collectAsStateWithLifecycle()
+        setContent {
+            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle(Nastaveni(mojeTrida = Vjec.TridaVjec("")))
 
             AppTheme(
                 useDarkTheme = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
                 useDynamicColor = nastaveni.dynamicColors,
             ) {
-                if (rozbit >= BuildConfig.VERSION_CODE) AlertDialog(
+                if (repo.verzeNaRozbiti >= BuildConfig.VERSION_CODE) AlertDialog(
                     onDismissRequest = {},
                     confirmButton = {
                         TextButton(

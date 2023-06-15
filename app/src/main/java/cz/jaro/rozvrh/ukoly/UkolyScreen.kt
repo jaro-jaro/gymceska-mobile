@@ -3,6 +3,7 @@ package cz.jaro.rozvrh.ukoly
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,7 +48,6 @@ fun UkolyScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()
-    val jeInteligentni by viewModel.inteligentni.collectAsStateWithLifecycle()
 
     UkolyScreen(
         state = state,
@@ -55,7 +55,7 @@ fun UkolyScreen(
         odskrtnout = viewModel::odskrtnout,
         navigate = navigator.navigate,
         jeOffline = !jeOnline,
-        jeInteligentni = jeInteligentni,
+        jeInteligentni = viewModel.inteligentni,
     )
 }
 
@@ -103,7 +103,7 @@ fun UkolyScreen(
                 .padding(horizontal = 16.dp)
         ) {
             when (state) {
-                UkolyState.Nacitani -> item { LinearProgressIndicator() }
+                UkolyState.Nacitani -> item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 is UkolyState.Nacteno -> {
                     items(state.ukoly, key = { it.id }) { ukol ->
                         if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred)

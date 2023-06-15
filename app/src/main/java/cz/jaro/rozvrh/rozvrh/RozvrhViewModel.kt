@@ -8,8 +8,6 @@ import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,8 +23,12 @@ class RozvrhViewModel(
     @InjectedParam private val navigovat: (Direction) -> Unit,
     private val repo: Repository,
 ) : ViewModel() {
-    val vjec = flow {
-        emit(vjec1 ?: repo.nastaveni.first().mojeTrida)
+    val tridy = repo.tridy
+    val mistnosti = repo.mistnosti
+    val vyucujici = repo.vyucujici
+
+    val vjec = repo.nastaveni.map {
+        vjec1 ?: it.mojeTrida
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), vjec1)
 
     val stalost = stalost1 ?: Stalost.TentoTyden
@@ -67,7 +69,7 @@ class RozvrhViewModel(
 
     fun najdiMivolnouTridu(stalost: Stalost, den: Int, hodina: Int, progress: (String) -> Unit, onComplete: (List<Vjec.MistnostVjec>?) -> Unit) {
         viewModelScope.launch {
-            val plneTridy = Vjec.tridy.drop(1).flatMap { trida ->
+            val plneTridy = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
                 TvorbaRozvrhu.vytvoritTabulku(repo.ziskatDocument(trida, stalost) ?: run {
                     onComplete(null)
@@ -78,7 +80,7 @@ class RozvrhViewModel(
             }
             progress("Už to skoro je")
 
-            onComplete(Vjec.mistnosti.drop(1).filter { it.zkratka !in plneTridy })
+            onComplete(mistnosti.value.drop(1).filter { it.zkratka !in plneTridy })
         }
     }
 }
