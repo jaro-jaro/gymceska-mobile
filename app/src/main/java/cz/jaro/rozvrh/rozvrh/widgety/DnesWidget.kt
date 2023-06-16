@@ -87,7 +87,8 @@ class DnesWidget : GlanceAppWidget() {
                 }
                 .let {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) it else it.take(10)
-                }.let { hodiny ->
+                }
+                .let { hodiny ->
                     Row(
                         modifier = GlanceModifier
                             .fillMaxWidth()
@@ -293,9 +294,7 @@ class DnesWidget : GlanceAppWidget() {
 
                     is PrepnoutRozvrhWidget.PoKonciVyucovani -> {
                         val cas = LocalTime.now()
-                        println(cas)
                         val konecVyucovani = zjistitKonecVyucovani()
-                        println(konecVyucovani)
 
                         cas < konecVyucovani.plusHours(nastaveni.poHodin.toLong())
                     }
@@ -305,18 +304,14 @@ class DnesWidget : GlanceAppWidget() {
                 val nastaveni = repo.nastaveni.first()
 
                 val result = repo.ziskatDocument(Stalost.TentoTyden)
-                println(result::class)
 
                 if (result !is Uspech) return LocalTime.MIDNIGHT
 
                 val tabulka = vytvoritTabulku(result.document)
-                println(tabulka)
 
                 val denTydne = LocalDate.now().dayOfWeek.value /* 1-5 (6-7) */
-                println(denTydne)
 
                 val den = tabulka.getOrNull(denTydne) ?: return LocalTime.NOON
-                println(den)
 
                 val hodina = den
                     .mapIndexed { i, hodina -> i to hodina }
@@ -329,7 +324,6 @@ class DnesWidget : GlanceAppWidget() {
                     }
                     ?.first
                     ?: return LocalTime.NOON
-                println(hodina)
 
                 return tabulka.first()[hodina].first().ucitel.split(" - ")[1].split(":").let { LocalTime.of(it[0].toInt(), it[1].toInt()) }
             }

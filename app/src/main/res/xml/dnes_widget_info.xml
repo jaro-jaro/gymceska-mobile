@@ -3,7 +3,7 @@
     android:minWidth="40dp"
     android:minHeight="40dp"
     android:updatePeriodMillis="300000"
-    android:description="@string/widget_ted_hodina_popis"
+    android:description="@string/dnes_widget_popis"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
