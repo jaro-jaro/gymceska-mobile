@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
+
 android {
     namespace = "cz.jaro.rozvrh"
     compileSdk = 33
@@ -61,6 +62,9 @@ android {
             }
         }
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -81,10 +85,17 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.bundles.koin)
+    testImplementation(libs.junit.jupiter)
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
     implementation(libs.compose.material3.datetime.pickers)
+
+    testImplementation(libs.json)
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 repositories {
