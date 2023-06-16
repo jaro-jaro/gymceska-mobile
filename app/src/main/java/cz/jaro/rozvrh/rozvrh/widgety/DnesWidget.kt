@@ -35,6 +35,7 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import cz.jaro.rozvrh.MainActivity
@@ -169,9 +170,12 @@ class DnesWidget : GlanceAppWidget() {
                                             Text(
                                                 text = predmet,
                                                 modifier = GlanceModifier
-                                                    .clickable(actionStartActivity<MainActivity>()),
+                                                    .clickable(actionStartActivity<MainActivity>())
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 4.dp),
                                                 style = TextStyle(
-                                                    color = if (zbarvit) onbg2 else onbg
+                                                    color = if (zbarvit) onbg2 else onbg,
+                                                    textAlign = TextAlign.Center
                                                 ),
                                             )
                                             Spacer(GlanceModifier.defaultWeight())
@@ -262,10 +266,6 @@ class DnesWidget : GlanceAppWidget() {
                             ?.ifEmpty {
                                 listOf(
                                     Bunka("", "Žádné hodiny!", ""),
-                                    Bunka("", "Žádné hodiny!", ""),
-                                    Bunka("", "Žádné hodiny!", ""),
-                                    Bunka("", "Žádné hodiny!", ""),
-                                    Bunka("", "Žádné hodiny!", ""),
                                 )
                             }
                             ?: listOf(Bunka("", "Víkend", ""))
@@ -293,24 +293,43 @@ class DnesWidget : GlanceAppWidget() {
 
                     is PrepnoutRozvrhWidget.PoKonciVyucovani -> {
                         val cas = LocalTime.now()
+                        println(cas)
                         val konecVyucovani = zjistitKonecVyucovani()
+                        println(konecVyucovani)
 
                         cas < konecVyucovani.plusHours(nastaveni.poHodin.toLong())
                     }
                 }
 
             private suspend fun zjistitKonecVyucovani(): LocalTime {
+                val nastaveni = repo.nastaveni.first()
+
                 val result = repo.ziskatDocument(Stalost.TentoTyden)
+                println(result::class)
 
                 if (result !is Uspech) return LocalTime.MIDNIGHT
 
                 val tabulka = vytvoritTabulku(result.document)
+                println(tabulka)
 
                 val denTydne = LocalDate.now().dayOfWeek.value /* 1-5 (6-7) */
+                println(denTydne)
 
                 val den = tabulka.getOrNull(denTydne) ?: return LocalTime.NOON
+                println(den)
 
-                val hodina = den.indexOfLast { it.isNotEmpty() }
+                val hodina = den
+                    .mapIndexed { i, hodina -> i to hodina }
+                    .drop(1)
+                    .filter { (_, hodina) -> hodina.first().predmet.isNotBlank() }
+                    .lastOrNull { (_, hodina) ->
+                        hodina.any { bunka ->
+                            bunka.tridaSkupina.isEmpty() || bunka.tridaSkupina in nastaveni.mojeSkupiny
+                        }
+                    }
+                    ?.first
+                    ?: return LocalTime.NOON
+                println(hodina)
 
                 return tabulka.first()[hodina].first().ucitel.split(" - ")[1].split(":").let { LocalTime.of(it[0].toInt(), it[1].toInt()) }
             }
