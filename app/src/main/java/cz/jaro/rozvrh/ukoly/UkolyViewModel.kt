@@ -26,7 +26,7 @@ class UkolyViewModel(
     val jeOnline = repo.isOnlineFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
 
-    val inteligentni = repo.jeZarizeniPovoleno()
+    val inteligentni = repo.jeZarizeniPovoleno
 
     val ukoly = repo.ukoly.map { ukoly ->
         ukoly?.sortedBy { ukol ->

@@ -37,12 +37,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val nastaveni by repo.nastaveni.collectAsStateWithLifecycle(Nastaveni(mojeTrida = Vjec.TridaVjec("")))
+            val verzeNaRozbiti by repo.verzeNaRozbiti.collectAsStateWithLifecycle()
 
             AppTheme(
                 useDarkTheme = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
                 useDynamicColor = nastaveni.dynamicColors,
             ) {
-                if (repo.verzeNaRozbiti >= BuildConfig.VERSION_CODE) AlertDialog(
+                if (verzeNaRozbiti >= BuildConfig.VERSION_CODE) AlertDialog(
                     onDismissRequest = {},
                     confirmButton = {
                         TextButton(

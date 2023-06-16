@@ -76,6 +76,15 @@ class Repository(
 
     private val ukolyRef = database.getReference("ukoly")
 
+    val isOnlineFlow = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(isOnline())
+            delay(5.seconds)
+        }
+    }
+
+    private val onlineUkoly = MutableStateFlow(null as List<Ukol>?)
+
     init {
         ukolyRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -154,6 +163,14 @@ class Repository(
                 it[Keys.VERZE] = BuildConfig.VERSION_CODE
             }
         }
+    }
+
+    private val offlineUkoly = preferences.data.map {
+        it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
+    }
+
+    val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
+        if (isOnline) onlineUkoly else offlineUkoly
     }
 
     val nastaveni = preferences.data.combine(tridy) { it, tridy ->
@@ -282,35 +299,20 @@ class Repository(
         }
     }
 
-    val isOnlineFlow = flow {
-        while (currentCoroutineContext().isActive) {
-            delay(5.seconds)
-            emit(isOnline())
-        }
-    }
-
-    private val onlineUkoly = MutableStateFlow(null as List<Ukol>?)
-
-    private val offlineUkoly = preferences.data.map {
-        it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
-    }
-
-    val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
-        if (isOnline) onlineUkoly else offlineUkoly
-    }
-
     suspend fun upravitUkoly(ukoly: List<Ukol>) {
         ukolyRef.setValue(ukoly.map { mapOf("datum" to it.datum, "nazev" to it.nazev, "predmet" to it.predmet, "id" to it.id.toString()) }).await()
     }
 
     @SuppressLint("HardwareIds")
-    fun jeZarizeniPovoleno(): Boolean {
+    val jeZarizeniPovoleno = configActive.map {
         val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>()
 
         val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
 
-        return ja in povolene
-    }
+        ja in povolene
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 
-    val verzeNaRozbiti = remoteConfig["rozbitAplikaci"].asString().toIntOrNull() ?: -1
+    val verzeNaRozbiti = configActive.map {
+        remoteConfig["rozbitAplikaci"].asString().toIntOrNull() ?: -1
+    }.stateIn(scope, SharingStarted.Eagerly, -1)
 }

@@ -43,11 +43,11 @@ import java.util.UUID
 fun UkolyScreen(
     navigator: DestinationsNavigator,
 ) {
-
     val viewModel = koinViewModel<UkolyViewModel>()
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()
+    val jeInteligentni by viewModel.inteligentni.collectAsStateWithLifecycle()
 
     UkolyScreen(
         state = state,
@@ -55,7 +55,7 @@ fun UkolyScreen(
         odskrtnout = viewModel::odskrtnout,
         navigate = navigator.navigate,
         jeOffline = !jeOnline,
-        jeInteligentni = viewModel.inteligentni,
+        jeInteligentni = jeInteligentni,
     )
 }
 
