@@ -10,7 +10,8 @@ import kotlinx.serialization.json.Json
 import org.json.JSONObject
 
 class FourToFiveMigration(
-    private val tridy: Flow<List<Vjec.TridaVjec>>
+    private val tridy: Flow<List<Vjec.TridaVjec>>,
+    private val versionCode: Int = BuildConfig.VERSION_CODE,
 ) : DataMigration<Preferences> {
 
     override suspend fun cleanUp() {}
@@ -38,7 +39,7 @@ class FourToFiveMigration(
     @Suppress("KotlinConstantConditions")
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
         val puvodniVerze = currentData[Repository.Keys.VERZE] ?: 4 // Nejvyšší verze ve které ještě nebyla implementována tato proměnná
-        val aktualniVerze = BuildConfig.VERSION_CODE
+        val aktualniVerze = versionCode
         return puvodniVerze <= 4 && aktualniVerze >= 5
     }
 }

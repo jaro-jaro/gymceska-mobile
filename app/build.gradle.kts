@@ -20,7 +20,7 @@ android {
         applicationId = "cz.jaro.rozvrh"
         minSdk = 26
         targetSdk = 33
-        versionCode = 4
+        versionCode = 5
         versionName = "2.1.0-alpha.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
