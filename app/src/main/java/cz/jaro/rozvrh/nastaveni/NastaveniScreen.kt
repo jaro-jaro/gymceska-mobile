@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,12 +26,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.rozvrh.BuildConfig
@@ -41,6 +46,8 @@ import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import java.time.LocalTime
+import java.time.format.DateTimeParseException
 
 @Destination
 @Composable
@@ -177,44 +184,76 @@ fun NastaveniScreen(
                         }
                     },
                 )
-                if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = nastaveni.prepnoutRozvrhWidget.hodin.toString(),
-                        onValueChange = {
-                            it.toIntOrNull() ?: return@OutlinedTextField
+                if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) {
+                    var hm by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.run { "$hodin:${minut.nula()}" }) }
+                    var dialog by remember { mutableStateOf(false) }
+                    if (dialog) TimePickerDialog(
+                        initialTime = try {
+                            LocalTime.parse(hm)
+                        } catch (e: DateTimeParseException) {
+                            nastaveni.prepnoutRozvrhWidget.run { LocalTime.of(hodin, minut) }
+                        },
+                        onTimeChange = {
+                            dialog = false
+                            hm = it.toString()
                             upravitNastaveni { nast ->
-                                nast.copy(prepnoutRozvrhWidget = nastaveni.prepnoutRozvrhWidget.copy(hodin = it.toInt()))
+                                nast.copy(prepnoutRozvrhWidget = nastaveni.prepnoutRozvrhWidget.copy(hodin = it.hour, minut = it.minute))
                             }
                         },
-                        Modifier.weight(1F)
+                        title = {
+                            Text("Vyberte čas")
+                        },
+                        onDismissRequest = {
+                            dialog = false
+                        },
                     )
-                    Text(":", fontSize = 26.sp)
                     OutlinedTextField(
-                        value = nastaveni.prepnoutRozvrhWidget.minut.toString(),
-                        onValueChange = {
-                            it.toIntOrNull() ?: return@OutlinedTextField
+                        value = hm,
+                        onValueChange = { s ->
+                            hm = s
+                            val (h, m) = hm.split(":").also {
+                                if (it.size < 2) return@OutlinedTextField
+                            }
+                            h.toIntOrNull() ?: return@OutlinedTextField
+                            m.toIntOrNull() ?: return@OutlinedTextField
                             upravitNastaveni { nast ->
-                                nast.copy(prepnoutRozvrhWidget = nastaveni.prepnoutRozvrhWidget.copy(minut = it.toInt()))
+                                nast.copy(prepnoutRozvrhWidget = nastaveni.prepnoutRozvrhWidget.copy(hodin = h.toInt(), minut = m.toInt()))
                             }
                         },
-                        Modifier.weight(1F)
+                        Modifier.fillMaxWidth(),
+                        label = {
+                            Text("Čas")
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    dialog = true
+                                }
+                            ) {
+                                Icon(Icons.Default.AccessTime, "Vybrat čas")
+                            }
+                        },
+                        singleLine = true,
                     )
                 }
-                else if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) OutlinedTextField(
-                    value = nastaveni.prepnoutRozvrhWidget.poHodin.toString(),
-                    onValueChange = {
-                        it.toIntOrNull() ?: return@OutlinedTextField
-                        upravitNastaveni { nast ->
-                            nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.PoKonciVyucovani(poHodin = it.toInt()))
-                        }
-                    },
-                    Modifier.fillMaxWidth(),
-                    label = {
-                        Text("Počet hodin")
-                    }
-                )
+                if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) {
+                    var h by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.poHodin.toString()) }
+                    OutlinedTextField(
+                        value = h,
+                        onValueChange = {
+                            h = it
+                            it.toIntOrNull() ?: return@OutlinedTextField
+                            upravitNastaveni { nast ->
+                                nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.PoKonciVyucovani(poHodin = it.toInt()))
+                            }
+                        },
+                        Modifier.fillMaxWidth(),
+                        label = {
+                            Text("Počet hodin")
+                        },
+                        singleLine = true,
+                    )
+                }
             }
             item {
                 Row(
