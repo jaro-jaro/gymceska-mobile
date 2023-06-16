@@ -10,6 +10,7 @@ import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
@@ -59,38 +60,19 @@ class Repository(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    private val preferences = PreferenceDataStoreFactory.create(migrations = listOf(SharedPreferencesMigration({
-        ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)!!
-    }))) {
-        ctx.preferencesDataStoreFile("Gymceska_JARO_datastore")
-    }.also {
-        scope.launch {
-            if (it.data.first().contains(booleanPreferencesKey("first")).not()) {
-                if (!isOnline()) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
-                    }
-                    exitProcess(-1)
-                }
-                it.edit {
-                    it[booleanPreferencesKey("first")] = false
-                }
-            }
-        }
-    }
-
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
         fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}")
         fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_posledni")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
+        val VERZE = intPreferencesKey("verze")
     }
 
     private val firebase = Firebase
+
     private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
     private val remoteConfig = Firebase.remoteConfig
-
     private val configActive = flow {
         val configSettings = remoteConfigSettings {
             minimumFetchIntervalInSeconds = 3600
@@ -109,6 +91,31 @@ class Repository(
     val vyucujici = configActive.map {
         listOf(Vjec.VyucujiciVjec("Vyučující", "")) + remoteConfig["vyucujici"].asString().fromJson<List<Vjec.VyucujiciVjec>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf(Vjec.VyucujiciVjec("Vyučující", "")))
+
+    private val preferences = PreferenceDataStoreFactory.create(
+        migrations = listOf(
+            SharedPreferencesMigration({
+                ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)!!
+            }),
+            FourToFiveMigration(tridy)
+        )
+    ) {
+        ctx.preferencesDataStoreFile("Gymceska_JARO_datastore")
+    }.also {
+        scope.launch {
+            if (it.data.first().contains(booleanPreferencesKey("first")).not()) {
+                if (!isOnline()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
+                    }
+                    exitProcess(-1)
+                }
+                it.edit {
+                    it[booleanPreferencesKey("first")] = false
+                }
+            }
+        }
+    }
 
     val nastaveni = preferences.data.combine(tridy) { it, tridy ->
         it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })

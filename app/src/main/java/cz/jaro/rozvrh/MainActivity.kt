@@ -23,8 +23,6 @@ import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
 
-//    private lateinit var binding: ActivityMainBinding
-
     private val repo by inject<Repository>()
 
     @SuppressLint("HardwareIds")
