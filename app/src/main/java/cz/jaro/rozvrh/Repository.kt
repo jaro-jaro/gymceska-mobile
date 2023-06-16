@@ -46,6 +46,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.koin.core.annotation.Single
+import java.io.IOException
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -204,33 +205,37 @@ class Repository(
         if (trida.odkaz == null) return@withContext TridaNeexistuje
 
         if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) {
-            val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
-                preferences.edit {
-                    it[Keys.rozvrh(trida, stalost)] = doc.toString()
-                    it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+            try {
+                val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
+                    preferences.edit {
+                        it[Keys.rozvrh(trida, stalost)] = doc.toString()
+                        it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+                    }
                 }
+
+                return@withContext Uspech(doc, Online)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+
+        val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) }
+            ?: run {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
+                }
+                return@withContext ZadnaData
             }
 
-            Uspech(doc, Online)
-        } else {
-            val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) }
-                ?: run {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
-                    }
-                    return@withContext ZadnaData
+        val html = preferences.data.first()[Keys.rozvrh(trida, stalost)]
+            ?: run {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
                 }
+                return@withContext ZadnaData
+            }
 
-            val html = preferences.data.first()[Keys.rozvrh(trida, stalost)]
-                ?: run {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
-                    }
-                    return@withContext ZadnaData
-                }
-
-            Uspech(Jsoup.parse(html), Offline(kdy))
-        }
+        Uspech(Jsoup.parse(html), Offline(kdy))
     }
 
     suspend fun ziskatDocument(stalost: Stalost): Result = ziskatDocument(nastaveni.first().mojeTrida, stalost)
