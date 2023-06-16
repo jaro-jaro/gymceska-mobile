@@ -73,6 +73,42 @@ class Repository(
 
     private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
     private val remoteConfig = Firebase.remoteConfig
+
+    private val ukolyRef = database.getReference("ukoly")
+
+    init {
+        ukolyRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
+                val noveUkoly = ukoly?.mapNotNull {
+                    Ukol(
+                        datum = it["datum"] ?: return@mapNotNull null,
+                        nazev = it["nazev"] ?: return@mapNotNull null,
+                        predmet = it["predmet"] ?: return@mapNotNull null,
+                        id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
+                    )
+                }
+                onlineUkoly.value = noveUkoly
+
+                scope.launch {
+                    preferences.edit {
+                        it[Keys.UKOLY] = Json.encodeToString(noveUkoly)
+                    }
+
+                    upravitSkrtleUkoly { skrtle ->
+                        skrtle.filter { uuid ->
+                            uuid in (noveUkoly?.map { it.id } ?: emptyList())
+                        }.toSet()
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                error.toException().printStackTrace()
+            }
+        })
+    }
+
     private val configActive = flow {
         val configSettings = remoteConfigSettings {
             minimumFetchIntervalInSeconds = 3600
@@ -114,6 +150,9 @@ class Repository(
                     it[booleanPreferencesKey("first")] = false
                 }
             }
+            it.edit {
+                it[Keys.VERZE] = BuildConfig.VERSION_CODE
+            }
         }
     }
 
@@ -126,41 +165,6 @@ class Repository(
             it[Keys.NASTAVENI] =
                 Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
         }
-    }
-
-    private val ukolyRef = database.getReference("ukoly")
-
-    init {
-        ukolyRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
-                val noveUkoly = ukoly?.mapNotNull {
-                    Ukol(
-                        datum = it["datum"] ?: return@mapNotNull null,
-                        nazev = it["nazev"] ?: return@mapNotNull null,
-                        predmet = it["predmet"] ?: return@mapNotNull null,
-                        id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
-                    )
-                }
-                onlineUkoly.value = noveUkoly
-
-                scope.launch {
-                    preferences.edit {
-                        it[Keys.UKOLY] = Json.encodeToString(noveUkoly)
-                    }
-
-                    upravitSkrtleUkoly { skrtle ->
-                        skrtle.filter { uuid ->
-                            uuid in (noveUkoly?.map { it.id } ?: emptyList())
-                        }.toSet()
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                error.toException().printStackTrace()
-            }
-        })
     }
 
     suspend fun stahnoutVse(update: (String) -> Unit, finish: () -> Unit) {
