@@ -323,10 +323,12 @@ private fun Tabulka(
 fun Vybiratko(
     seznam: List<Stalost>,
     value: Stalost,
-    poklik: (vjec: Stalost) -> Unit
+    modifier: Modifier = Modifier,
+    poklik: (vjec: Stalost) -> Unit,
 ) = Vybiratko(
     seznam = seznam.map { it.nazev },
     aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
+    modifier,
     poklik = {
         poklik(seznam[it])
     },
@@ -336,11 +338,12 @@ fun Vybiratko(
 fun Vybiratko(
     seznam: List<String>,
     aktualIndex: Int,
+    modifier: Modifier = Modifier,
     nulaDisabled: Boolean = false,
-    poklik: (i: Int) -> Unit
+    poklik: (i: Int) -> Unit,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(all = 8.dp)
     ) {
         var vidimMenu by remember { mutableStateOf(false) }

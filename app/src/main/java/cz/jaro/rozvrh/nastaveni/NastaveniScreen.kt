@@ -16,10 +16,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -39,6 +41,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -166,7 +169,10 @@ fun NastaveniScreen(
                 }
             }
             item {
-                Text("Podle čeho chcete určit přepnutí widgetu na další den?")
+                Divider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
+            }
+            item {
+                Text("Přepínat widget s rozvrhem další den"/* Modifier.padding(top = 16.dp)*/)
                 Vybiratko(
                     seznam = listOf(
                         "Vždy o půlnoci",
@@ -178,6 +184,7 @@ fun NastaveniScreen(
                         is PrepnoutRozvrhWidget.VCas -> 1
                         is PrepnoutRozvrhWidget.PoKonciVyucovani -> 2
                     },
+                    Modifier.padding(top = 8.dp),
                     poklik = {
                         upravitNastaveni { nast ->
                             nast.copy(
@@ -191,81 +198,84 @@ fun NastaveniScreen(
                         }
                     },
                 )
-                if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) {
-                    var hm by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.cas.toString()) }
-                    var dialog by remember { mutableStateOf(false) }
-                    if (dialog) TimePickerDialog(
-                        initialTime = try {
-                            LocalTime.parse(hm)
-                        } catch (e: DateTimeParseException) {
-                            nastaveni.prepnoutRozvrhWidget.cas
-                        },
-                        onTimeChange = {
-                            dialog = false
-                            hm = it.toString()
-                            upravitNastaveni { nast ->
-                                nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.VCas(it))
-                            }
-                        },
-                        title = {
-                            Text("Vyberte čas")
-                        },
-                        onDismissRequest = {
-                            dialog = false
-                        },
-                    )
+            }
+            if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) item {
+                var hm by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.cas.toString()) }
+                var dialog by remember { mutableStateOf(false) }
+                if (dialog) TimePickerDialog(
+                    initialTime = try {
+                        LocalTime.parse(hm)
+                    } catch (e: DateTimeParseException) {
+                        nastaveni.prepnoutRozvrhWidget.cas
+                    },
+                    onTimeChange = {
+                        dialog = false
+                        hm = it.toString()
+                        upravitNastaveni { nast ->
+                            nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.VCas(it))
+                        }
+                    },
+                    title = {
+                        Text("Vyberte čas")
+                    },
+                    onDismissRequest = {
+                        dialog = false
+                    },
+                )
 
-                    OutlinedTextField(
-                        value = hm,
-                        onValueChange = {},
-                        Modifier
-                            .fillMaxWidth()
-                            .onKeyEvent {
-                                if (it.key == Key.Enter) {
-                                    dialog = true
-                                }
-                                return@onKeyEvent it.key == Key.Enter
-                            },
-                        label = {
-                            Text("Čas")
+                OutlinedTextField(
+                    value = hm,
+                    onValueChange = {},
+                    Modifier
+                        .fillMaxWidth()
+                        .onKeyEvent {
+                            if (it.key == Key.Enter) {
+                                dialog = true
+                            }
+                            return@onKeyEvent it.key == Key.Enter
                         },
-                        singleLine = true,
-                        interactionSource = remember { MutableInteractionSource() }
-                            .also { interactionSource ->
-                                LaunchedEffect(interactionSource) {
-                                    interactionSource.interactions.collect {
-                                        if (it is PressInteraction.Release) {
-                                            dialog = true
-                                        }
+                    label = {
+                        Text("Čas")
+                    },
+                    singleLine = true,
+                    interactionSource = remember { MutableInteractionSource() }
+                        .also { interactionSource ->
+                            LaunchedEffect(interactionSource) {
+                                interactionSource.interactions.collect {
+                                    if (it is PressInteraction.Release) {
+                                        dialog = true
                                     }
                                 }
-                            },
-                        readOnly = true,
-                    )
-                    Text(if (hm == nastaveni.prepnoutRozvrhWidget.cas.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.cas}")
-                }
-                if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) {
-                    var h by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.poHodin.toString()) }
-                    OutlinedTextField(
-                        value = h,
-                        onValueChange = {
-                            h = it
-                            it.toIntOrNull() ?: return@OutlinedTextField
-                            upravitNastaveni { nast ->
-                                nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.PoKonciVyucovani(poHodin = it.toInt()))
                             }
                         },
-                        Modifier.fillMaxWidth(),
-                        label = {
-                            Text("Počet hodin")
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number
-                        ),
-                    )
-                    Text(if (h == nastaveni.prepnoutRozvrhWidget.poHodin.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.poHodin}")
-                }
+                    readOnly = true,
+                )
+                Text(if (hm == nastaveni.prepnoutRozvrhWidget.cas.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.cas}")
+            }
+            if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) item {
+                var h by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.poHodin.toString()) }
+                OutlinedTextField(
+                    value = h,
+                    onValueChange = {
+                        h = it
+                        it.toIntOrNull() ?: return@OutlinedTextField
+                        upravitNastaveni { nast ->
+                            nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.PoKonciVyucovani(poHodin = it.toInt()))
+                        }
+                    },
+                    Modifier.fillMaxWidth(),
+                    label = {
+                        Text("Počet hodin")
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
+                )
+                Text(if (h == nastaveni.prepnoutRozvrhWidget.poHodin.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.poHodin}")
+            }
+            item {
+                Divider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
             }
             item {
                 Row(
