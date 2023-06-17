@@ -33,6 +33,7 @@ ksp = "1.8.21-1.0.11"
 compose-destinations = "1.9.42-beta"
 androidx-lifecycle = "2.6.1"
 datastore = "1.0.0"
+semver = "1.4.2"
 
 [libraries]
 # Androidx
@@ -86,6 +87,8 @@ compose-destinations-ksp = { group = "io.github.raamcosta.compose-destinations",
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 # Datetime pickers
 compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
+# Semantic versioning
+semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 
 [bundles]
 androidx-jetpack-compose = [

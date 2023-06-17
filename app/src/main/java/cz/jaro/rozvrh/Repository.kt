@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.GenericTypeIndicator
@@ -27,6 +28,7 @@ import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ukoly.Ukol
+import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -48,6 +50,7 @@ import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.koin.core.annotation.Single
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -315,4 +318,34 @@ class Repository(
     val verzeNaRozbiti = configActive.map {
         remoteConfig["rozbitAplikaci"].asString().toIntOrNull() ?: -1
     }.stateIn(scope, SharingStarted.Eagerly, -1)
+
+    private suspend fun jePotrebaAktualizovatAplikaci(): Boolean {
+        val jeDebug = BuildConfig.DEBUG
+
+        if (jeDebug) return false
+
+        val response = try {
+            withContext(Dispatchers.IO) {
+                Jsoup
+                    .connect("https://raw.githubusercontent.com/jaro-jaro/gymceska-mobile/main/app/version.txt")
+                    .ignoreContentType(true)
+                    .maxBodySize(0)
+                    .execute()
+            }
+        } catch (e: SocketTimeoutException) {
+            Firebase.crashlytics.recordException(e)
+            return false
+        }
+
+        if (response.statusCode() != 200) return false
+
+        val mistniVerze = BuildConfig.VERSION_NAME.toVersion(false)
+        val nejnovejsiVerze = response.body().toVersion(false)
+
+        return mistniVerze < nejnovejsiVerze
+    }
+
+    val jePotrebaAktualizovatAplikaci = flow {
+        emit(jePotrebaAktualizovatAplikaci())
+    }
 }

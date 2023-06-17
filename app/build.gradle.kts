@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
     implementation(libs.compose.material3.datetime.pickers)
+    implementation(libs.semver)
 
     testImplementation(libs.json)
 }
