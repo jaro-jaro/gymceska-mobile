@@ -15,9 +15,11 @@ sealed interface PrepnoutRozvrhWidget {
 
     @Serializable
     data class VCas(
-        val hodin: Int,
-        val minut: Int,
+        private val hodin: Int,
+        private val minut: Int,
     ) : PrepnoutRozvrhWidget {
-        fun toLocalTime() = LocalTime.of(hodin, minut)
+        val cas get() = LocalTime.of(hodin, minut)
+
+        constructor(cas: LocalTime) : this(cas.hour, cas.minute)
     }
 }
