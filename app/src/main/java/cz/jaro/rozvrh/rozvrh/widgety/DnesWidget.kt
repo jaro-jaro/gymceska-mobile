@@ -289,7 +289,7 @@ class DnesWidget : GlanceAppWidget() {
                     is PrepnoutRozvrhWidget.OPulnoci -> true
                     is PrepnoutRozvrhWidget.VCas -> {
                         val cas = LocalTime.now()
-                        cas < nastaveni.toLocalTime()
+                        cas < nastaveni.cas
                     }
 
                     is PrepnoutRozvrhWidget.PoKonciVyucovani -> {

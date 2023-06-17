@@ -116,6 +116,7 @@ fun RozvrhScreen(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            println(vjec to tridy)
             Vybiratko(
                 seznam = tridy.map { it.jmeno },
                 aktualIndex = if (vjec is Vjec.TridaVjec) tridy.indexOf(vjec) else 0,
