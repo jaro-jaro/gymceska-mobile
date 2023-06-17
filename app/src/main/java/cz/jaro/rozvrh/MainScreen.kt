@@ -4,15 +4,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.rememberNavController
@@ -28,7 +33,43 @@ import cz.jaro.rozvrh.destinations.UkolyScreenDestination
 fun MainSceeen(
     rozvrh: Boolean,
     ukoly: Boolean,
+    jePotrebaAktualizovatAplikaci: Boolean,
+    aktualizovatAplikaci: () -> Unit,
 ) {
+    if (jePotrebaAktualizovatAplikaci) {
+        var zobrazitDialog by remember { mutableStateOf(true) }
+
+        if (zobrazitDialog) AlertDialog(
+            onDismissRequest = {
+                zobrazitDialog = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        zobrazitDialog = false
+                        aktualizovatAplikaci()
+                    }
+                ) {
+                    Text("Ano")
+                }
+            },
+            title = {
+                Text("Aktualizace aplikace")
+            },
+            text = {
+                Text("Je k dispozici nová verze aplikace, chcete ji aktualizovat?")
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        zobrazitDialog = false
+                    }
+                ) {
+                    Text("Ne")
+                }
+            },
+        )
+    }
     Surface {
         val navController = rememberNavController()
         val destination by navController.appCurrentDestinationAsState()

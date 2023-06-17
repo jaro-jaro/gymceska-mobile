@@ -21,7 +21,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 5
-        versionName = "2.1.0-pre.2"
+        versionName = "2.1.0-rc.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
     implementation(libs.compose.material3.datetime.pickers)
+    implementation(libs.semver)
 
     testImplementation(libs.json)
 }

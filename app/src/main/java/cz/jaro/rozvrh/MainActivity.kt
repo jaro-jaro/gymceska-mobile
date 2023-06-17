@@ -14,12 +14,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.coroutineScope
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ui.theme.AppTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
 import org.koin.android.ext.android.inject
+import java.net.SocketTimeoutException
 
 class MainActivity : ComponentActivity() {
 
@@ -35,9 +41,37 @@ class MainActivity : ComponentActivity() {
         val rozvrh = intent.getBooleanExtra("rozvrh", false) || intent.getStringExtra("rozvrh") == "true"
         val ukoly = intent.getBooleanExtra("ukoly", false) || intent.getStringExtra("ukoly") == "true"
 
+        val aktualizovatAplikaci = {
+            lifecycle.coroutineScope.launch(Dispatchers.IO) {
+                val response = try {
+                    withContext(Dispatchers.IO) {
+                        Jsoup
+                            .connect("https://raw.githubusercontent.com/jaro-jaro/gymceska-mobile/main/app/version.txt")
+                            .ignoreContentType(true)
+                            .maxBodySize(0)
+                            .execute()
+                    }
+                } catch (e: SocketTimeoutException) {
+                    Firebase.crashlytics.recordException(e)
+                    return@launch
+                }
+
+                if (response.statusCode() != 200) return@launch
+
+                val nejnovejsiVerze = response.body()
+
+                startActivity(Intent().apply {
+                    action = Intent.ACTION_VIEW
+                    data = Uri.parse("https://github.com/jaro-jaro/gymceska-mobile/releases/download/v$nejnovejsiVerze/Gymceska-v$nejnovejsiVerze.apk")
+                })
+            }
+            Unit
+        }
+
         setContent {
             val nastaveni by repo.nastaveni.collectAsStateWithLifecycle(Nastaveni(mojeTrida = Vjec.TridaVjec("")))
             val verzeNaRozbiti by repo.verzeNaRozbiti.collectAsStateWithLifecycle()
+            val jePotrebaAktualizovatAplikaci by repo.jePotrebaAktualizovatAplikaci.collectAsStateWithLifecycle(false)
 
             AppTheme(
                 useDarkTheme = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
@@ -72,6 +106,8 @@ class MainActivity : ComponentActivity() {
                 MainSceeen(
                     rozvrh = rozvrh,
                     ukoly = ukoly,
+                    jePotrebaAktualizovatAplikaci = jePotrebaAktualizovatAplikaci,
+                    aktualizovatAplikaci = aktualizovatAplikaci
                 )
             }
         }
