@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
+
 android {
     namespace = "cz.jaro.rozvrh"
     compileSdk = 33
@@ -19,8 +20,8 @@ android {
         applicationId = "cz.jaro.rozvrh"
         minSdk = 26
         targetSdk = 33
-        versionCode = 4
-        versionName = "2.0.1"
+        versionCode = 5
+        versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -61,6 +62,9 @@ android {
             }
         }
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -77,13 +81,22 @@ dependencies {
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.crashlytics.ktx)
     implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.config.ktx)
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.bundles.koin)
+    testImplementation(libs.junit.jupiter)
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
     implementation(libs.compose.material3.datetime.pickers)
+    implementation(libs.semver)
+
+    testImplementation(libs.json)
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 repositories {

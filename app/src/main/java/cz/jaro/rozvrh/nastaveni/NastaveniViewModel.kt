@@ -13,6 +13,8 @@ class NastaveniViewModel(
     private val repo: Repository,
 ) : ViewModel() {
 
+    val tridyFlow = repo.tridy
+
     val nastaveni = repo.nastaveni
 
     val skupiny = nastaveni.map {

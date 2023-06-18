@@ -5,6 +5,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -56,17 +57,25 @@ fun RozvrhScreen(
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
-    val vjec by viewModel.vjec.collectAsStateWithLifecycle()
+    val realVjec by viewModel.vjec.collectAsStateWithLifecycle()
+
+    val tridy by viewModel.tridy.collectAsStateWithLifecycle()
+    val mistnosti by viewModel.mistnosti.collectAsStateWithLifecycle()
+    val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
 
     RozvrhScreen(
-        tabulka = tabulka,
-        vjec = vjec,
+        tabulka = tabulka?.first,
+        vjec = realVjec,
         stalost = viewModel.stalost,
         vybratRozvrh = viewModel::vybratRozvrh,
         zmenitStalost = viewModel::zmenitStalost,
         stahnoutVse = viewModel.stahnoutVse,
         navigate = navigator.navigate,
-        najdiMiVolnouTridu = viewModel::najdiMivolnouTridu
+        najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
+        rozvrhOfflineWarning = tabulka?.second,
+        tridy = tridy,
+        mistnosti = mistnosti,
+        vyucujici = vyucujici,
     )
 }
 
@@ -80,6 +89,10 @@ fun RozvrhScreen(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    rozvrhOfflineWarning: String?,
+    tridy: List<Vjec.TridaVjec>,
+    mistnosti: List<Vjec.MistnostVjec>,
+    vyucujici: List<Vjec.VyucujiciVjec>,
 ) = Scaffold(
     topBar = {
         AppBar(
@@ -89,7 +102,11 @@ fun RozvrhScreen(
         )
     }
 ) { paddingValues ->
-    Column(
+    if (vjec == null) LinearProgressIndicator(
+        Modifier
+            .padding(paddingValues)
+            .fillMaxWidth())
+    else Column(
         modifier = Modifier
             .padding(paddingValues)
             .fillMaxSize()
@@ -99,12 +116,14 @@ fun RozvrhScreen(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            println(vjec to tridy)
             Vybiratko(
-                seznam = Vjec.tridy,
-                value = if (vjec is Vjec.TridaVjec) vjec else Vjec.TridaVjec.Tridy,
-            ) { vjec ->
-                if (vjec == Vjec.TridaVjec.Tridy) return@Vybiratko
-                vybratRozvrh(vjec)
+                seznam = tridy.map { it.jmeno },
+                aktualIndex = if (vjec is Vjec.TridaVjec) tridy.indexOf(vjec) else 0,
+                nulaDisabled = true,
+            ) { i ->
+                if (i == 0) return@Vybiratko
+                vybratRozvrh(tridy[i])
             }
 
             Vybiratko(
@@ -121,19 +140,21 @@ fun RozvrhScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Vybiratko(
-                seznam = Vjec.mistnosti,
-                value = if (vjec is Vjec.MistnostVjec) vjec else Vjec.MistnostVjec.Mistnosti,
-            ) { vjec ->
-                if (vjec == Vjec.MistnostVjec.Mistnosti) return@Vybiratko
-                vybratRozvrh(vjec)
+                seznam = mistnosti.map { it.jmeno },
+                aktualIndex = if (vjec is Vjec.MistnostVjec) mistnosti.indexOf(vjec) else 0,
+                nulaDisabled = true,
+            ) { i ->
+                if (i == 0) return@Vybiratko
+                vybratRozvrh(mistnosti[i])
             }
 
             Vybiratko(
-                seznam = Vjec.vyucujici,
-                value = if (vjec is Vjec.VyucujiciVjec) vjec else Vjec.VyucujiciVjec.Vyucujici,
-            ) { vjec ->
-                if (vjec == Vjec.VyucujiciVjec.Vyucujici) return@Vybiratko
-                vybratRozvrh(vjec)
+                seznam = vyucujici.map { it.jmeno },
+                aktualIndex = if (vjec is Vjec.VyucujiciVjec) vyucujici.indexOf(vjec) else 0,
+                nulaDisabled = true,
+            ) { i ->
+                if (i == 0) return@Vybiratko
+                vybratRozvrh(vyucujici[i])
             }
         }
         if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -142,15 +163,31 @@ fun RozvrhScreen(
             kliklNaNeco = { vjec ->
                 vybratRozvrh(vjec)
             },
+            rozvrhOfflineWarning = rozvrhOfflineWarning,
+            tridy = tridy,
+            mistnosti = mistnosti,
+            vyucujici = vyucujici,
         )
     }
 }
 
+context(ColumnScope)
 @Composable
 private fun Tabulka(
     tabulka: Tyden,
     kliklNaNeco: (vjec: Vjec) -> Unit,
+    rozvrhOfflineWarning: String?,
+    tridy: List<Vjec.TridaVjec>,
+    mistnosti: List<Vjec.MistnostVjec>,
+    vyucujici: List<Vjec.VyucujiciVjec>,
 ) {
+    Text(
+        rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    )
+
     if (tabulka.isEmpty()) return
 
     val horScrollState = rememberScrollState()
@@ -204,7 +241,7 @@ private fun Tabulka(
                         contentAlignment = Alignment.BottomCenter,
                     ) {
                         Text(
-                            text = cisloHodiny.first().vyucujici,
+                            text = cisloHodiny.first().ucitel,
                             modifier = Modifier
                                 .padding(all = 8.dp)
                         )
@@ -266,7 +303,10 @@ private fun Tabulka(
                                         bunka.Compose(
                                             bunekVHodine = hodina.size,
                                             maxBunekDne = maxy[i + 1],
-                                            kliklNaNeco = kliklNaNeco
+                                            kliklNaNeco = kliklNaNeco,
+                                            tridy = tridy,
+                                            mistnosti = mistnosti,
+                                            vyucujici = vyucujici,
                                         )
                                     }
                                 }
@@ -280,27 +320,15 @@ private fun Tabulka(
 }
 
 @Composable
-fun <T : Vjec> Vybiratko(
-    seznam: List<T>,
-    value: T,
-    poklik: (vjec: T) -> Unit
-) = Vybiratko(
-    seznam = seznam.map { it.jmeno },
-    aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
-    poklik = {
-        poklik(seznam[it])
-    },
-    nulaDisabled = true
-)
-
-@Composable
 fun Vybiratko(
     seznam: List<Stalost>,
     value: Stalost,
-    poklik: (vjec: Stalost) -> Unit
+    modifier: Modifier = Modifier,
+    poklik: (vjec: Stalost) -> Unit,
 ) = Vybiratko(
     seznam = seznam.map { it.nazev },
     aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
+    modifier,
     poklik = {
         poklik(seznam[it])
     },
@@ -310,11 +338,12 @@ fun Vybiratko(
 fun Vybiratko(
     seznam: List<String>,
     aktualIndex: Int,
+    modifier: Modifier = Modifier,
     nulaDisabled: Boolean = false,
-    poklik: (i: Int) -> Unit
+    poklik: (i: Int) -> Unit,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(all = 8.dp)
     ) {
         var vidimMenu by remember { mutableStateOf(false) }
