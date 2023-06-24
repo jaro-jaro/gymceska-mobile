@@ -102,10 +102,11 @@ fun RozvrhScreen(
         )
     }
 ) { paddingValues ->
-    if (vjec == null) LinearProgressIndicator(
+    if (vjec == null || tridy.size <= 1) LinearProgressIndicator(
         Modifier
             .padding(paddingValues)
-            .fillMaxWidth())
+            .fillMaxWidth()
+    )
     else Column(
         modifier = Modifier
             .padding(paddingValues)
