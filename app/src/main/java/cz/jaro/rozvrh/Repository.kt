@@ -126,8 +126,10 @@ class Repository(
             minimumFetchIntervalInSeconds = 3600
         }
         remoteConfig.setConfigSettingsAsync(configSettings)
-
-        emit(remoteConfig.fetchAndActivate().await())
+        if (!isOnline())
+            emit(remoteConfig.activate().await())
+        else
+            emit(remoteConfig.fetchAndActivate().await())
     }
 
     val tridy = configActive.map {
