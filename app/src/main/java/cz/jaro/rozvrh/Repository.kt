@@ -44,7 +44,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
@@ -174,8 +173,14 @@ class Repository(
         it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
     }
 
+    val fakeUkol = UUID.fromString("00000000-0000-0000-0000-000000000000")
+
     val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
         if (isOnline) onlineUkoly else offlineUkoly
+    }.map { ukoly ->
+        ukoly?.filter {
+            it.id != fakeUkol
+        }
     }
 
     val nastaveni = preferences.data.combine(tridy) { it, tridy ->

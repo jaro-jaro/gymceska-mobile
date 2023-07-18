@@ -44,7 +44,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
@@ -126,6 +125,15 @@ class UkolyWidget : GlanceAppWidget() {
                         ),
                     )
                 }
+            }
+            if (ukoly.isEmpty()) item {
+                Text(
+                    text = "Žádné úkoly nejsou! Jupí!!!",
+                    GlanceModifier.clickable(action),
+                    style = TextStyle(
+                        color = onbg
+                    )
+                )
             }
         }
     }

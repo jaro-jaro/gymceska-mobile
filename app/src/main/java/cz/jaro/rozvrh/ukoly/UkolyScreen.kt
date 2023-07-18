@@ -128,6 +128,9 @@ fun UkolyScreen(
                             )
                         }
                     }
+                    if (state.ukoly.isEmpty()) item {
+                        Text("Žádné úkoly nejsou! Jupí!!!")
+                    }
                 }
             }
         }

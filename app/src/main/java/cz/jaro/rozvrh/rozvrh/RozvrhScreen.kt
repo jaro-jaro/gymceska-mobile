@@ -53,7 +53,7 @@ fun RozvrhScreen(
     navigator: DestinationsNavigator,
 ) {
     val viewModel = koinViewModel<RozvrhViewModel> {
-        parametersOf(vjec, stalost, navigator.navigate)
+        parametersOf(RozvrhViewModel.Parameters(vjec, stalost, navigator.navigate))
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()

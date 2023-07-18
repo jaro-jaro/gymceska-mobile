@@ -22,27 +22,31 @@ import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
 class RozvrhViewModel(
-    @InjectedParam vjec1: Vjec?,
-    @InjectedParam stalost1: Stalost?,
-    @InjectedParam private val navigovat: (Direction) -> Unit,
+    @InjectedParam private val params: Parameters,
     private val repo: Repository,
 ) : ViewModel() {
+    data class Parameters(
+        val vjec: Vjec?,
+        val stalost: Stalost?,
+        val navigovat: (Direction) -> Unit,
+    )
+
     val tridy = repo.tridy
     val mistnosti = repo.mistnosti
     val vyucujici = repo.vyucujici
 
     val vjec = repo.nastaveni.map {
-        vjec1 ?: it.mojeTrida
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), vjec1)
+        params.vjec ?: it.mojeTrida
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), params.vjec)
 
-    val stalost = stalost1 ?: Stalost.TentoTyden
+    val stalost = params.stalost ?: Stalost.TentoTyden
 
     fun vybratRozvrh(vjec: Vjec) {
-        navigovat(RozvrhScreenDestination(vjec, stalost))
+        params.navigovat(RozvrhScreenDestination(vjec, stalost))
     }
 
     fun zmenitStalost(stalost: Stalost) {
-        navigovat(RozvrhScreenDestination(vjec.value, stalost))
+        params.navigovat(RozvrhScreenDestination(vjec.value, stalost))
     }
 
     val tabulka = vjec.map { vjec ->
