@@ -40,6 +40,7 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.ukoly.JednoduchyUkol
 import cz.jaro.rozvrh.ukoly.StavUkolu
+import cz.jaro.rozvrh.ukoly.zjednusit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

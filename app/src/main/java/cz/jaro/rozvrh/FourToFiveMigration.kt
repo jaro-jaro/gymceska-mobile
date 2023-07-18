@@ -36,7 +36,6 @@ class FourToFiveMigration(
         return data.toPreferences()
     }
 
-    @Suppress("KotlinConstantConditions")
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
         val puvodniVerze = currentData[Repository.Keys.VERZE] ?: 4 // Nejvyšší verze ve které ještě nebyla implementována tato proměnná
         val aktualniVerze = versionCode
