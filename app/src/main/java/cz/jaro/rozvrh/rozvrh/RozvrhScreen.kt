@@ -18,10 +18,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.PeopleAlt
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -62,6 +65,8 @@ fun RozvrhScreen(
     val tridy by viewModel.tridy.collectAsStateWithLifecycle()
     val mistnosti by viewModel.mistnosti.collectAsStateWithLifecycle()
     val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
+    val mujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
+    val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
 
     RozvrhScreen(
         tabulka = tabulka?.first,
@@ -76,6 +81,9 @@ fun RozvrhScreen(
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
+        mujRozvrh = mujRozvrh,
+        zmenitMujRozvrh = viewModel::zmenitMujRozvrh,
+        zobrazitMujRozvrh = zobrazitMujRozvrh,
     )
 }
 
@@ -93,6 +101,9 @@ fun RozvrhScreen(
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
+    mujRozvrh: Boolean,
+    zmenitMujRozvrh: () -> Unit,
+    zobrazitMujRozvrh: Boolean,
 ) = Scaffold(
     topBar = {
         AppBar(
@@ -115,7 +126,7 @@ fun RozvrhScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
             println(vjec to tridy)
             Vybiratko(
@@ -126,6 +137,13 @@ fun RozvrhScreen(
                 if (i == 0) return@Vybiratko
                 vybratRozvrh(tridy[i])
             }
+            if (zobrazitMujRozvrh) IconButton(
+                onClick = zmenitMujRozvrh
+            ) {
+                Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
+            }
+
+            Spacer(modifier = Modifier.weight(1F))
 
             Vybiratko(
                 seznam = Stalost.values().toList(),

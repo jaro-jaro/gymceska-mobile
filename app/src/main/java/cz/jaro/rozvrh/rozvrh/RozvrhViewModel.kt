@@ -9,8 +9,11 @@ import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
 import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -49,7 +52,26 @@ class RozvrhViewModel(
         params.navigovat(RozvrhScreenDestination(vjec.value, stalost))
     }
 
-    val tabulka = vjec.map { vjec ->
+    private val _mujRozvrh = MutableStateFlow(false)
+    val mujRozvrh = _mujRozvrh.asStateFlow()
+
+    fun zmenitMujRozvrh() {
+        _mujRozvrh.value = !_mujRozvrh.value
+    }
+
+    init {
+        viewModelScope.launch {
+            repo.nastaveni.collect {
+                _mujRozvrh.value = it.defaultMujRozvrh
+            }
+        }
+    }
+
+    val zobrazitMujRozvrh = vjec.combine(repo.nastaveni) { vjec, nastaveni ->
+        vjec == nastaveni.mojeTrida
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
+
+    val tabulka = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
         if (vjec == null) null
         else when (vjec) {
             is Vjec.TridaVjec -> withContext(Dispatchers.IO) Nacitani@{
@@ -58,7 +80,7 @@ class RozvrhViewModel(
                     stalost = stalost
                 ).let { result ->
                     if (result !is Uspech) return@Nacitani null
-                    TvorbaRozvrhu.vytvoritTabulku(result.document) to result.zdroj.let { zdroj ->
+                    TvorbaRozvrhu.vytvoritTabulku(result.document, mujRozvrh && zobrazitMujRozvrh, nastaveni.mojeSkupiny) to result.zdroj.let { zdroj ->
                         if (zdroj is Offline)
                             "Prohlížíte si verzi rozvrhu z ${zdroj.ziskano.dayOfMonth}. ${zdroj.ziskano.monthValue}. ${zdroj.ziskano.hour}:${zdroj.ziskano.minute.nula()}."
                         else null
