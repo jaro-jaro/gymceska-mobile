@@ -11,4 +11,5 @@ data class Nastaveni(
     val mojeSkupiny: Set<String> = emptySet(),
     val dynamicColors: Boolean = true,
     val prepnoutRozvrhWidget: PrepnoutRozvrhWidget = PrepnoutRozvrhWidget.OPulnoci,
+    val defaultMujRozvrh: Boolean = false,
 )
