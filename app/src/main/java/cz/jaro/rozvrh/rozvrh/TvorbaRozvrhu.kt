@@ -77,7 +77,7 @@ object TvorbaRozvrhu {
                             } ?: Bunka.prazdna
                         }
                         ?.filter {
-                            !mujRozvrh || it.tridaSkupina in mojeSkupiny
+                            !mujRozvrh || (it.tridaSkupina.isBlank() || it.tridaSkupina in mojeSkupiny)
                         }
                         ?: timetableCell.getElementsByClass("day-item-volno").first()
                             ?.getElementsByClass("day-off")?.first()
