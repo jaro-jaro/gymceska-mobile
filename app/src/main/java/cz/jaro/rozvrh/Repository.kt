@@ -6,6 +6,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.provider.Settings
 import android.widget.Toast
+import androidx.annotation.Keep
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -87,6 +88,7 @@ class Repository(
 
     private val onlineUkoly = MutableStateFlow(null as List<Ukol>?)
 
+    @Keep
     object TI : GenericTypeIndicator<List<Map<String, String>>?>()
 
     init {
