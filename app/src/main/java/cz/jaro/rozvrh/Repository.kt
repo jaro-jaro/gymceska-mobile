@@ -87,10 +87,12 @@ class Repository(
 
     private val onlineUkoly = MutableStateFlow(null as List<Ukol>?)
 
+    object TY : GenericTypeIndicator<List<Map<String, String>>?>()
+
     init {
         ukolyRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val ukoly = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, String>>?>() {})
+                val ukoly = snapshot.getValue(TY)
                 val noveUkoly = ukoly?.mapNotNull {
                     Ukol(
                         datum = it["datum"] ?: return@mapNotNull null,
