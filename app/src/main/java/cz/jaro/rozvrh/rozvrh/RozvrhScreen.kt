@@ -2,7 +2,6 @@ package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,19 +13,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.PeopleAlt
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,7 +59,7 @@ fun RozvrhScreen(
     navigator: DestinationsNavigator,
 ) {
     val viewModel = koinViewModel<RozvrhViewModel> {
-        parametersOf(vjec, stalost, navigator.navigate)
+        parametersOf(RozvrhViewModel.Parameters(vjec, stalost, navigator.navigate))
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
@@ -62,6 +68,8 @@ fun RozvrhScreen(
     val tridy by viewModel.tridy.collectAsStateWithLifecycle()
     val mistnosti by viewModel.mistnosti.collectAsStateWithLifecycle()
     val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
+    val mujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
+    val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
 
     RozvrhScreen(
         tabulka = tabulka?.first,
@@ -76,6 +84,9 @@ fun RozvrhScreen(
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
+        mujRozvrh = mujRozvrh,
+        zmenitMujRozvrh = viewModel::zmenitMujRozvrh,
+        zobrazitMujRozvrh = zobrazitMujRozvrh,
     )
 }
 
@@ -93,6 +104,9 @@ fun RozvrhScreen(
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
+    mujRozvrh: Boolean,
+    zmenitMujRozvrh: () -> Unit,
+    zobrazitMujRozvrh: Boolean,
 ) = Scaffold(
     topBar = {
         AppBar(
@@ -115,7 +129,7 @@ fun RozvrhScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
             println(vjec to tridy)
             Vybiratko(
@@ -126,6 +140,13 @@ fun RozvrhScreen(
                 if (i == 0) return@Vybiratko
                 vybratRozvrh(tridy[i])
             }
+            if (zobrazitMujRozvrh) IconButton(
+                onClick = zmenitMujRozvrh
+            ) {
+                Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
+            }
+
+            Spacer(modifier = Modifier.weight(1F))
 
             Vybiratko(
                 seznam = Stalost.values().toList(),
@@ -134,11 +155,11 @@ fun RozvrhScreen(
                 zmenitStalost(novaStalost)
             }
         }
-
+        var napoveda by remember { mutableStateOf(false) }
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Vybiratko(
                 seznam = mistnosti.map { it.jmeno },
@@ -148,6 +169,15 @@ fun RozvrhScreen(
                 if (i == 0) return@Vybiratko
                 vybratRozvrh(mistnosti[i])
             }
+            IconButton(
+                onClick = {
+                    napoveda = true
+                }
+            ) {
+                Icon(Icons.Default.Help, null)
+            }
+
+            Spacer(modifier = Modifier.weight(1F))
 
             Vybiratko(
                 seznam = vyucujici.map { it.jmeno },
@@ -158,6 +188,31 @@ fun RozvrhScreen(
                 vybratRozvrh(vyucujici[i])
             }
         }
+        if (napoveda) AlertDialog(
+            onDismissRequest = {
+                napoveda = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        napoveda = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            title = {
+                Text("Nápověda k místnostím")
+            },
+            text = {
+                LazyColumn {
+                    items(mistnosti.drop(1)) {
+                        Text("${it.jmeno} - to je${it.napoveda}")
+                    }
+                }
+            }
+        )
+
         if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
         else Tabulka(
             tabulka = tabulka,

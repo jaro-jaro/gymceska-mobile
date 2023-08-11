@@ -5,7 +5,7 @@ import org.jsoup.nodes.Document
 object TvorbaRozvrhu {
 
     private val dny = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne", "Rden", "Pi")
-    fun vytvoritTabulku(doc: Document): Tyden = listOf(
+    fun vytvoritTabulku(doc: Document, mujRozvrh: Boolean = false, mojeSkupiny: Set<String> = emptySet()): Tyden = listOf(
         listOf(
             listOf(
                 Bunka(
@@ -75,6 +75,9 @@ object TvorbaRozvrhu {
                                     zbarvit = dayItemHover.hasClass("pink") || dayItemHover.hasClass("green")
                                 )
                             } ?: Bunka.prazdna
+                        }
+                        ?.filter {
+                            !mujRozvrh || (it.tridaSkupina.isBlank() || it.tridaSkupina in mojeSkupiny)
                         }
                         ?: timetableCell.getElementsByClass("day-item-volno").first()
                             ?.getElementsByClass("day-off")?.first()

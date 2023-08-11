@@ -13,15 +13,14 @@ plugins {
 
 android {
     namespace = "cz.jaro.rozvrh"
-    compileSdk = 33
-    buildToolsVersion = "31.0.0"
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "cz.jaro.rozvrh"
         minSdk = 26
-        targetSdk = 33
-        versionCode = 6
-        versionName = "2.1.1"
+        targetSdk = 34
+        versionCode = 10
+        versionName = "2.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -31,7 +30,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -48,7 +47,7 @@ android {
         buildConfig = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.7"
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
     packaging {
         resources {
@@ -97,9 +96,4 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-repositories {
-    google()
-    mavenCentral()
 }

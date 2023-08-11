@@ -16,8 +16,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -169,7 +169,25 @@ fun NastaveniScreen(
                 }
             }
             item {
-                Divider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = stringResource(R.string.zapnout_na_mym))
+                    Switch(
+                        checked = nastaveni.defaultMujRozvrh,
+                        onCheckedChange = {
+                            upravitNastaveni { nastaveni ->
+                                nastaveni.copy(defaultMujRozvrh = it)
+                            }
+                        }
+                    )
+                }
+            }
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
             }
             item {
                 Text("Přepínat widget s rozvrhem další den"/* Modifier.padding(top = 16.dp)*/)
@@ -275,7 +293,7 @@ fun NastaveniScreen(
                 Text(if (h == nastaveni.prepnoutRozvrhWidget.poHodin.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.poHodin}")
             }
             item {
-                Divider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
+                HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
             }
             item {
                 Row(
