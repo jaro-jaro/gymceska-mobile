@@ -351,7 +351,7 @@ class Repository(
         if (response.statusCode() != 200) return false
 
         val mistniVerze = BuildConfig.VERSION_NAME.toVersion(false)
-        val nejnovejsiVerze = response.body().toVersion(false)
+        val nejnovejsiVerze = response.body().trim().toVersion(false)
 
         return mistniVerze < nejnovejsiVerze
     }
