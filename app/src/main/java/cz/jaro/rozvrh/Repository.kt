@@ -202,7 +202,7 @@ class Repository(
         if (!isOnline()) return
         withContext(Dispatchers.IO) {
             tridy.value.drop(1).forEach { trida ->
-                Stalost.values().forEach { stalost ->
+                Stalost.entries.forEach { stalost ->
                     update("Stahování:\n${trida.jmeno} – ${stalost.nazev}")
 
                     val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: run {
@@ -282,7 +282,7 @@ class Repository(
 
     suspend fun ziskatDocument(stalost: Stalost): Result = ziskatDocument(nastaveni.first().mojeTrida, stalost)
 
-    private fun isOnline(): Boolean = ctx.isOnline()
+    fun isOnline(): Boolean = ctx.isOnline()
 
     companion object {
         fun Context.isOnline(): Boolean {

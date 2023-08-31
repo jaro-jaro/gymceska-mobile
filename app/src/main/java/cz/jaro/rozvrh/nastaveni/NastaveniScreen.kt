@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,7 +43,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -52,12 +58,14 @@ import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalTime
 import java.time.format.DateTimeParseException
+import kotlin.reflect.KFunction3
 
 @Destination
 @Composable
@@ -78,6 +86,7 @@ fun NastaveniScreen(
         upravitNastaveni = viewModel::upravitNastaveni,
         tridy = tridy,
         skupiny = skupiny,
+        kopirovatVse = viewModel::kopirovatVse
     )
 }
 
@@ -89,6 +98,7 @@ fun NastaveniScreen(
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
+    kopirovatVse: KFunction3<Stalost, (String) -> Unit, (String?) -> Unit, Unit>,
 ) = Surface {
     Scaffold(
         topBar = {
@@ -329,6 +339,113 @@ fun NastaveniScreen(
                         }
                     )
                     Text(skupina)
+                }
+            }
+            item {
+                val clipboardManager = LocalClipboardManager.current
+
+                var kopirovatNastaveniDialog by remember { mutableStateOf(false) }
+                var kopirovatDialog by remember { mutableStateOf(false) }
+                var stalost by remember { mutableStateOf(Stalost.TentoTyden) }
+                var nacitame by remember { mutableStateOf(false) }
+                var podrobnostiNacitani by remember { mutableStateOf("") }
+
+                if (nacitame) AlertDialog(
+                    onDismissRequest = {
+                        nacitame = false
+                    },
+                    confirmButton = {},
+                    title = {
+                        Text(text = podrobnostiNacitani)
+                    },
+                    text = {
+                        CircularProgressIndicator()
+                    },
+                )
+
+                if (kopirovatDialog) AlertDialog(
+                    onDismissRequest = {
+                        kopirovatDialog = false
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                kopirovatDialog = false
+                            }
+                        ) {
+                            Text(text = stringResource(android.R.string.ok))
+                        }
+                    },
+                    dismissButton = {},
+                    title = {
+                        Text(text = "Kopírovat rozvrhy")
+                    },
+                    text = {
+                        Text("Hotovo!")
+                    }
+                )
+
+                if (kopirovatNastaveniDialog) AlertDialog(
+                    onDismissRequest = {
+                        kopirovatNastaveniDialog = false
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                nacitame = true
+                                kopirovatNastaveniDialog = false
+                                podrobnostiNacitani = "Generuji text"
+
+                                kopirovatVse(
+                                    stalost,
+                                    {
+                                        podrobnostiNacitani = it
+                                    },
+                                    {
+                                        if (it == null) {
+                                            podrobnostiNacitani = "Nejste připojeni k internetu a nemáte staženou offline verzi všech rozvrhů tříd"
+                                            return@kopirovatVse
+                                        }
+                                        clipboardManager.setText(AnnotatedString(it))
+                                        kopirovatDialog = true
+                                        nacitame = false
+                                    }
+                                )
+                            }
+                        ) {
+                            Text(text = "Vygenerovat")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                kopirovatNastaveniDialog = false
+                            }
+                        ) {
+                            Text(text = "Zrušit")
+                        }
+                    },
+                    title = {
+                        Text(text = "Kopírovat rozvrhy")
+                    },
+                    text = {
+                        Column {
+                            Vybiratko(
+                                seznam = Stalost.entries,
+                                value = stalost,
+                            ) {
+                                stalost = it
+                            }
+                        }
+                    }
+                )
+
+                TextButton(
+                    onClick = {
+                        kopirovatNastaveniDialog = true
+                    }
+                ) {
+                    Text("Zkopírovat rozvrhy")
                 }
             }
             item {
