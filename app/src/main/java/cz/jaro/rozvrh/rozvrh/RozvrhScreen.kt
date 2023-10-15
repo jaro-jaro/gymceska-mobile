@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -17,19 +18,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,6 +52,7 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.ResponsiveText
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -90,6 +96,7 @@ fun RozvrhScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RozvrhScreen(
     tabulka: Tyden?,
@@ -127,65 +134,199 @@ fun RozvrhScreen(
             .fillMaxSize()
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.Bottom
         ) {
-            println(vjec to tridy)
-            Vybiratko(
-                seznam = tridy.map { it.jmeno },
-                aktualIndex = if (vjec is Vjec.TridaVjec) tridy.indexOf(vjec) else 0,
-                nulaDisabled = true,
-            ) { i ->
-                if (i == 0) return@Vybiratko
-                vybratRozvrh(tridy[i])
-            }
-            if (zobrazitMujRozvrh) IconButton(
-                onClick = zmenitMujRozvrh
+            var expanded1 by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded1,
+                onExpandedChange = { expanded1 = !expanded1 },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
             ) {
-                Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
+                OutlinedTextField(
+                    modifier = Modifier
+                        .menuAnchor(),
+                    readOnly = true,
+                    value = if (vjec is Vjec.TridaVjec) vjec.jmeno else "",
+                    onValueChange = {},
+                    label = { Text(tridy.first().jmeno) },
+                    trailingIcon = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1)
+
+                            if (zobrazitMujRozvrh) IconButton(
+                                onClick = {
+                                    expanded1 = false
+                                    zmenitMujRozvrh()
+                                }
+                            ) {
+                                Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
+                            }
+                        }
+                    },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded1,
+                    onDismissRequest = { expanded1 = false },
+                ) {
+                    tridy.map { it.jmeno }.drop(1).forEachIndexed { i, option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                vybratRozvrh(tridy[i + 1])
+                                expanded1 = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.weight(1F))
-
-            Vybiratko(
-                seznam = Stalost.values().toList(),
-                value = stalost
-            ) { novaStalost ->
-                zmenitStalost(novaStalost)
+            var expanded2 by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded2,
+                onExpandedChange = { expanded2 = !expanded2 },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier
+                        .menuAnchor(),
+                    readOnly = true,
+                    value = stalost.nazev,
+                    onValueChange = {},
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2)
+                    },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded2,
+                    onDismissRequest = { expanded2 = false },
+                ) {
+                    Stalost.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.nazev) },
+                            onClick = {
+                                zmenitStalost(option)
+                                expanded2 = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
             }
         }
         var napoveda by remember { mutableStateOf(false) }
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.Bottom,
         ) {
-            Vybiratko(
-                seznam = mistnosti.map { it.jmeno },
-                aktualIndex = if (vjec is Vjec.MistnostVjec) mistnosti.indexOf(vjec) else 0,
-                nulaDisabled = true,
-            ) { i ->
-                if (i == 0) return@Vybiratko
-                vybratRozvrh(mistnosti[i])
-            }
-            IconButton(
-                onClick = {
-                    napoveda = true
-                }
+            var expanded1 by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded1,
+                onExpandedChange = { expanded1 = !expanded1 },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
             ) {
-                Icon(Icons.Default.Help, null)
+                OutlinedTextField(
+                    modifier = Modifier
+                        .menuAnchor(),
+                    readOnly = true,
+                    value = if (vjec is Vjec.MistnostVjec) vjec.jmeno else "",
+                    onValueChange = {},
+                    label = { Text(mistnosti.first().jmeno) },
+                    trailingIcon = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1)
+
+                            IconButton(
+                                onClick = {
+                                    expanded1 = false
+                                    napoveda = true
+                                }
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Help, null)
+                            }
+                        }
+                    },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded1,
+                    onDismissRequest = { expanded1 = false },
+                ) {
+                    mistnosti.map { it.jmeno }.drop(1).forEachIndexed { i, option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                vybratRozvrh(mistnosti[i + 1])
+                                expanded1 = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
             }
-
-            Spacer(modifier = Modifier.weight(1F))
-
-            Vybiratko(
-                seznam = vyucujici.map { it.jmeno },
-                aktualIndex = if (vjec is Vjec.VyucujiciVjec) vyucujici.indexOf(vjec) else 0,
-                nulaDisabled = true,
-            ) { i ->
-                if (i == 0) return@Vybiratko
-                vybratRozvrh(vyucujici[i])
+            var expanded2 by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded2,
+                onExpandedChange = { expanded2 = !expanded2 },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier
+                        .menuAnchor(),
+                    readOnly = true,
+                    value = if (vjec is Vjec.VyucujiciVjec) vjec.jmeno else "",
+                    onValueChange = {},
+                    label = { Text(vyucujici.first().jmeno) },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2)
+                    },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded2,
+                    onDismissRequest = { expanded2 = false },
+                ) {
+                    vyucujici.map { it.jmeno }.drop(1).forEachIndexed { i, option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                vybratRozvrh(vyucujici[i + 1])
+                                expanded2 = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
             }
         }
         if (napoveda) AlertDialog(
@@ -215,6 +356,7 @@ fun RozvrhScreen(
 
         if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
         else Tabulka(
+            vjec = vjec,
             tabulka = tabulka,
             kliklNaNeco = { vjec ->
                 vybratRozvrh(vjec)
@@ -223,6 +365,7 @@ fun RozvrhScreen(
             tridy = tridy,
             mistnosti = mistnosti,
             vyucujici = vyucujici,
+            mujRozvrh = mujRozvrh,
         )
     }
 }
@@ -230,28 +373,29 @@ fun RozvrhScreen(
 context(ColumnScope)
 @Composable
 private fun Tabulka(
+    vjec: Vjec,
     tabulka: Tyden,
     kliklNaNeco: (vjec: Vjec) -> Unit,
     rozvrhOfflineWarning: String?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
+    mujRozvrh: Boolean,
 ) {
-    Text(
-        rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-    )
-
     if (tabulka.isEmpty()) return
 
     val horScrollState = rememberScrollState()
 
+    val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
+    val polovicniBunky = remember(tabulka) {
+        val minLimit = if (mujRozvrh || vjec !is Vjec.TridaVjec) 2 else 4
+        tabulka.map { radek -> radek.maxBy { it.size }.size >= minLimit }
+    }
+
     Row(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp),
     ) {
 
         Row(
@@ -263,7 +407,7 @@ private fun Tabulka(
                 modifier = Modifier
                     .aspectRatio(1F)
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .size(60.dp, 60.dp)
+                    .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2)
             )
         }
 
@@ -272,34 +416,33 @@ private fun Tabulka(
                 .horizontalScroll(horScrollState)
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
         ) {
-            tabulka.first().drop(1).forEach { cisloHodiny ->
-
+            tabulka.first().drop(1).map { it.first() }.forEach { bunka ->
                 Box(
                     modifier = Modifier
-                        .aspectRatio(1F)
+                        .aspectRatio(2F / 1)
                         .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .size(120.dp, 60.dp)
+                        .size(zakladniVelikostBunky, zakladniVelikostBunky / 2),
+                    contentAlignment = Alignment.Center
                 ) {
                     Box(
-                        modifier = Modifier
-                            .matchParentSize(),
+                        Modifier.matchParentSize(),
                         contentAlignment = Alignment.TopCenter,
                     ) {
-                        Text(
-                            text = cisloHodiny.first().predmet,
+                        ResponsiveText(
+                            text = bunka.predmet,
                             modifier = Modifier
-                                .padding(all = 8.dp)
+                                .padding(all = 8.dp),
                         )
                     }
                     Box(
-                        modifier = Modifier
-                            .matchParentSize(),
+                        Modifier.matchParentSize(),
                         contentAlignment = Alignment.BottomCenter,
                     ) {
-                        Text(
-                            text = cisloHodiny.first().ucitel,
+                        ResponsiveText(
+                            text = bunka.ucitel,
                             modifier = Modifier
-                                .padding(all = 8.dp)
+                                .padding(all = 8.dp),
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
                 }
@@ -313,31 +456,30 @@ private fun Tabulka(
     ) {
         item {
             Row {
-                val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
-
                 Column(
                     Modifier.horizontalScroll(rememberScrollState())
                 ) {
-                    tabulka.drop(1).map { it.first() }.forEachIndexed { i, den ->
+                    tabulka.drop(1).map { it.first().first() }.forEachIndexed { i, bunka ->
                         Column(
                             modifier = Modifier
                                 .border(1.dp, MaterialTheme.colorScheme.secondary)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .aspectRatio(1F)
+                                    .aspectRatio((if (polovicniBunky[i + 1]) 2F else 1F) / maxy[i + 1])
+                                    .animateContentSize()
                                     .border(1.dp, MaterialTheme.colorScheme.secondary)
-                                    .size(60.dp, 120.dp * maxy[i + 1])
+                                    .size(zakladniVelikostBunky / 2, zakladniVelikostBunky * maxy[i + 1] / (if (polovicniBunky[i + 1]) 2F else 1F)),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Box(
-                                    modifier = Modifier
-                                        .matchParentSize(),
+                                    Modifier.matchParentSize(),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Text(
-                                        text = den.first().predmet,
+                                    ResponsiveText(
+                                        text = bunka.predmet,
                                         modifier = Modifier
-                                            .padding(all = 8.dp)
+                                            .padding(all = 8.dp),
                                     )
                                 }
                             }
@@ -353,11 +495,12 @@ private fun Tabulka(
                             radek.drop(1).forEach { hodina ->
                                 Column(
                                     modifier = Modifier
+                                        .animateContentSize()
                                         .border(1.dp, MaterialTheme.colorScheme.secondary)
                                 ) {
                                     hodina.forEach { bunka ->
                                         bunka.Compose(
-                                            bunekVHodine = hodina.size,
+                                            bunekVHodine = if (polovicniBunky[i + 1]) hodina.size * 2 else hodina.size,
                                             maxBunekDne = maxy[i + 1],
                                             kliklNaNeco = kliklNaNeco,
                                             tridy = tridy,
@@ -371,6 +514,14 @@ private fun Tabulka(
                     }
                 }
             }
+        }
+        item {
+            Text(
+                rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            )
         }
     }
 }

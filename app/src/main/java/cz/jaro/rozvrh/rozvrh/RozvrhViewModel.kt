@@ -122,7 +122,7 @@ class RozvrhViewModel(
         }
     }
 
-    suspend fun vytvoritRozvrhPodleJinych(
+    private suspend fun vytvoritRozvrhPodleJinych(
         vjec: Vjec,
         stalost: Stalost,
         repo: Repository,
@@ -141,15 +141,15 @@ class RozvrhViewModel(
 
             val rozvrhTridy = TvorbaRozvrhu.vytvoritTabulku(result.document)
 
-            rozvrhTridy.forEachIndexed { i, den ->
-                den.forEachIndexed { j, hodina ->
-                    hodina.forEach { bunka ->
-                        if (bunka.ucitel.isEmpty() || bunka.predmet.isEmpty()) {
-                            return@forEach
-                        }
+            rozvrhTridy.forEachIndexed trida@{ i, den ->
+                den.forEachIndexed den@{ j, hodina ->
+                    hodina.forEach hodina@{ bunka ->
                         if (i == 0 || j == 0) {
-                            novaTabulka[i][j] += bunka
-                            return@forEach
+                            if (novaTabulka[i][j].isEmpty()) novaTabulka[i][j] += bunka
+                            return@hodina
+                        }
+                        if (bunka.ucitel.isEmpty() || bunka.predmet.isEmpty()) {
+                            return@hodina
                         }
                         val zajimavaVec = when (vjec) {
                             is Vjec.VyucujiciVjec -> bunka.ucitel.split(",").first()
@@ -157,8 +157,13 @@ class RozvrhViewModel(
                             else -> throw IllegalArgumentException()
                         }
                         if (zajimavaVec == vjec.zkratka) {
-                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim())
-                            return@forEach
+                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim()).let {
+                                when (vjec) {
+                                    is Vjec.VyucujiciVjec -> it.copy(ucitel = "")
+                                    is Vjec.MistnostVjec -> it.copy(ucebna = "")
+                                    else -> throw IllegalArgumentException()
+                                }
+                            }
                         }
                     }
                 }
