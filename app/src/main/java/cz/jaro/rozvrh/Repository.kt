@@ -228,7 +228,6 @@ class Repository(
         return TvorbaRozvrhu.vytvoritTabulku(result.document)
             .asSequence()
             .flatten()
-            .filter { it.size > 1 }
             .flatten()
             .map { it.tridaSkupina }
             .filter { it.isNotEmpty() }
