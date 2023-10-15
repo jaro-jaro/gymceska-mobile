@@ -177,7 +177,7 @@ class Repository(
         it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
     }
 
-    val fakeUkol = UUID.fromString("00000000-0000-0000-0000-000000000000")
+    private val fakeUkol = UUID.fromString("00000000-0000-0000-0000-000000000000")!!
 
     val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
         if (isOnline) onlineUkoly else offlineUkoly
