@@ -356,6 +356,7 @@ fun RozvrhScreen(
 
         if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
         else Tabulka(
+            vjec = vjec,
             tabulka = tabulka,
             kliklNaNeco = { vjec ->
                 vybratRozvrh(vjec)
@@ -372,6 +373,7 @@ fun RozvrhScreen(
 context(ColumnScope)
 @Composable
 private fun Tabulka(
+    vjec: Vjec,
     tabulka: Tyden,
     kliklNaNeco: (vjec: Vjec) -> Unit,
     rozvrhOfflineWarning: String?,
@@ -386,7 +388,8 @@ private fun Tabulka(
 
     val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
     val polovicniBunky = remember(tabulka) {
-        tabulka.map { radek -> radek.maxBy { it.size }.size >= (if (mujRozvrh) 2 else 4) }
+        val minLimit = if (mujRozvrh || vjec !is Vjec.TridaVjec) 2 else 4
+        tabulka.map { radek -> radek.maxBy { it.size }.size >= minLimit }
     }
 
     Row(
