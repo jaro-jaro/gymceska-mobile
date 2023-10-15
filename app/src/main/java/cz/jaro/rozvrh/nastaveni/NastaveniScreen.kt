@@ -12,12 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -96,7 +95,7 @@ fun NastaveniScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalStdlibApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NastaveniScreen(
     navigateBack: () -> Unit,
@@ -122,7 +121,10 @@ fun NastaveniScreen(
             )
         }
     ) { paddingValues ->
-        if (nastaveni == null) LinearProgressIndicator(Modifier.padding(paddingValues))
+        if (nastaveni == null) LinearProgressIndicator(
+            Modifier
+                .padding(paddingValues)
+                .fillMaxWidth())
         else LazyColumn(
             Modifier
                 .fillMaxSize()
@@ -171,7 +173,9 @@ fun NastaveniScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(vertical = 8.dp),
+                    /*
+                                            .padding(16.dp)*/
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
@@ -209,6 +213,7 @@ fun NastaveniScreen(
                         ExposedDropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
+                            Modifier.fillMaxWidth(),
                         ) {
                             options.forEachIndexed { i, option ->
                                 DropdownMenuItem(
@@ -252,32 +257,77 @@ fun NastaveniScreen(
                 HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
             }
             item {
-                Text("Přepínat widget s rozvrhem další den"/* Modifier.padding(top = 16.dp)*/)
-                Vybiratko(
-                    seznam = listOf(
-                        "Vždy o půlnoci",
-                        "V specifický čas",
-                        "Daný počet hodin po konci vyučování",
-                    ),
-                    aktualIndex = when (nastaveni.prepnoutRozvrhWidget) {
-                        is PrepnoutRozvrhWidget.OPulnoci -> 0
-                        is PrepnoutRozvrhWidget.VCas -> 1
-                        is PrepnoutRozvrhWidget.PoKonciVyucovani -> 2
-                    },
-                    Modifier.padding(top = 8.dp),
-                    poklik = {
-                        upravitNastaveni { nast ->
-                            nast.copy(
-                                prepnoutRozvrhWidget = when (it) {
-                                    0 -> PrepnoutRozvrhWidget.OPulnoci
-                                    1 -> PrepnoutRozvrhWidget.VCas(16, 0)
-                                    2 -> PrepnoutRozvrhWidget.PoKonciVyucovani(2)
-                                    else -> throw IllegalArgumentException("WTF")
-                                }
-                            )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    /*
+                                            .padding(16.dp)*/
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val options = remember {
+                        listOf(
+                            "Vždy o půlnoci",
+                            "Ve specifický čas",
+                            "Daný počet hodin po konci vyučování",
+                        )
+                    }
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedOption by remember(nastaveni.prepnoutRozvrhWidget) {
+                        derivedStateOf {
+                            when (nastaveni.prepnoutRozvrhWidget) {
+                                is PrepnoutRozvrhWidget.OPulnoci -> 0
+                                is PrepnoutRozvrhWidget.VCas -> 1
+                                is PrepnoutRozvrhWidget.PoKonciVyucovani -> 2
+                            }
                         }
-                    },
-                )
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
+                    ) {
+                        TextField(
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            readOnly = true,
+                            value = options[selectedOption],
+                            onValueChange = {},
+                            label = { Text("Přepínat widget s rozvrhem další den") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            Modifier.fillMaxWidth(),
+                        ) {
+                            options.forEachIndexed { i, option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        upravitNastaveni { nast ->
+                                            nast.copy(
+                                                prepnoutRozvrhWidget = when (i) {
+                                                    0 -> PrepnoutRozvrhWidget.OPulnoci
+                                                    1 -> PrepnoutRozvrhWidget.VCas(16, 0)
+                                                    2 -> PrepnoutRozvrhWidget.PoKonciVyucovani(2)
+                                                    else -> throw IllegalArgumentException("WTF")
+                                                }
+                                            )
+                                        }
+                                        expanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                    leadingIcon = {
+                                        if (selectedOption == i) Icon(Icons.Default.Check, null)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
             if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) item {
                 var hm by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.cas.toString()) }
@@ -308,6 +358,7 @@ fun NastaveniScreen(
                     onValueChange = {},
                     Modifier
                         .fillMaxWidth()
+                        .padding(top = 8.dp)
                         .onKeyEvent {
                             if (it.key == Key.Enter) {
                                 dialog = true
@@ -330,7 +381,6 @@ fun NastaveniScreen(
                         },
                     readOnly = true,
                 )
-                Text(if (hm == nastaveni.prepnoutRozvrhWidget.cas.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.cas}")
             }
             if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) item {
                 var h by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.poHodin.toString()) }
@@ -343,7 +393,9 @@ fun NastaveniScreen(
                             nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.PoKonciVyucovani(poHodin = it.toInt()))
                         }
                     },
-                    Modifier.fillMaxWidth(),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     label = {
                         Text("Počet hodin")
                     },
@@ -352,7 +404,6 @@ fun NastaveniScreen(
                         keyboardType = KeyboardType.Number
                     ),
                 )
-                Text(if (h == nastaveni.prepnoutRozvrhWidget.poHodin.toString()) "" else "Uloženo: ${nastaveni.prepnoutRozvrhWidget.poHodin}")
             }
             item {
                 HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
@@ -360,17 +411,55 @@ fun NastaveniScreen(
             item {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    /*
+                                            .padding(16.dp)*/
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = stringResource(R.string.zvolte_svou_tridu))
-                    Vybiratko(
-                        seznam = tridy.map { it.jmeno },
-                        aktualIndex = tridy.indexOf(nastaveni.mojeTrida)
+                    val options = remember { tridy.map { it.jmeno }.drop(1) }
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedOption by remember(nastaveni.mojeTrida) {
+                        derivedStateOf {
+                            options.indexOf(nastaveni.mojeTrida.jmeno)
+                        }
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
                     ) {
-                        upravitNastaveni { nastaveni ->
-                            nastaveni.copy(mojeTrida = tridy[it])
+                        TextField(
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            readOnly = true,
+                            value = options[selectedOption],
+                            onValueChange = {},
+                            label = { Text(stringResource(R.string.zvolte_svou_tridu)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            Modifier.fillMaxWidth(),
+                        ) {
+                            options.forEachIndexed { i, option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        upravitNastaveni { nastaveni ->
+                                            nastaveni.copy(mojeTrida = tridy[i + 1])
+                                        }
+                                        expanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                    leadingIcon = {
+                                        if (selectedOption == i) Icon(Icons.Default.Check, null)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -378,19 +467,56 @@ fun NastaveniScreen(
             if (skupiny == null) item {
                 LinearProgressIndicator()
             }
-            else items(skupiny.toList()) { skupina ->
+            else item {
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    /*
+                                            .padding(16.dp)*/
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Checkbox(
-                        checked = skupina in nastaveni.mojeSkupiny,
-                        onCheckedChange = { chciJi ->
-                            upravitNastaveni { nastaveni ->
-                                nastaveni.copy(mojeSkupiny = if (chciJi) nastaveni.mojeSkupiny + skupina else nastaveni.mojeSkupiny - skupina)
+                    val options = remember { skupiny }
+                    var expanded by remember { mutableStateOf(false) }
+                    val moje = skupiny.filter { it in nastaveni.mojeSkupiny }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
+                    ) {
+                        TextField(
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            readOnly = true,
+                            value = moje.joinToString(),
+                            onValueChange = {},
+                            label = { Text(stringResource(R.string.zvolte_sve_skupiny)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            Modifier.fillMaxWidth(),
+                        ) {
+                            options.forEach { option ->
+                                val selected = option in moje
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        upravitNastaveni { nastaveni ->
+                                            nastaveni.copy(mojeSkupiny = if (selected) nastaveni.mojeSkupiny - option else nastaveni.mojeSkupiny + option)
+                                        }
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                    leadingIcon = {
+                                        if (selected) Icon(Icons.Default.Check, null)
+                                    }
+                                )
                             }
                         }
-                    )
-                    Text(skupina)
+                    }
                 }
             }
             item {
