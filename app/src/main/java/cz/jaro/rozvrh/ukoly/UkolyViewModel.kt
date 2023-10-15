@@ -18,7 +18,7 @@ class UkolyViewModel(
     private val repo: Repository
 ) : ViewModel() {
     companion object {
-        private const val prvniMesicVSkolnimRoce = 8
+        const val PRVNI_MESIC_VE_SKOLNIM_ROCE = 8
     }
 
     private val idTTBVU = UUID.randomUUID()
@@ -34,7 +34,7 @@ class UkolyViewModel(
             val den = datum.getOrNull(0)?.toIntOrNull() ?: return@sortedBy 0
             val mesic = datum.getOrNull(1)?.toIntOrNull() ?: return@sortedBy 0
 
-            ((den - 1) + 31 * ((mesic - 1) + (12 - (prvniMesicVSkolnimRoce - 1)))) % (12 * 31)
+            ((den - 1) + 31 * ((mesic - 1) + (12 - (PRVNI_MESIC_VE_SKOLNIM_ROCE - 1)))) % (12 * 31)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 

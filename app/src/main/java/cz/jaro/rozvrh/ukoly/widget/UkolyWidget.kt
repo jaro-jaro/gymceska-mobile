@@ -40,6 +40,7 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.ukoly.JednoduchyUkol
 import cz.jaro.rozvrh.ukoly.StavUkolu
+import cz.jaro.rozvrh.ukoly.UkolyViewModel
 import cz.jaro.rozvrh.ukoly.zjednusit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -175,13 +176,21 @@ class UkolyWidget : GlanceAppWidget() {
                 CoroutineScope(Dispatchers.IO).launch {
                     val rawUkoly = repo.ukoly.first()
                     val skrtle = repo.skrtleUkoly.first()
-                    val ukoly = rawUkoly?.map {
-                        it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
-                    }
-                        ?.run {
-                            if (any { it.stav == StavUkolu.Skrtly })
-                                plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
-                            else this
+                    val ukoly = rawUkoly
+                        ?.sortedBy { ukol ->
+                            val datum = ukol.datum.replace(" ", "").split(".")
+                            val den = datum.getOrNull(0)?.toIntOrNull() ?: return@sortedBy 0
+                            val mesic = datum.getOrNull(1)?.toIntOrNull() ?: return@sortedBy 0
+
+                            ((den - 1) + 31 * ((mesic - 1) + (12 - (UkolyViewModel.PRVNI_MESIC_VE_SKOLNIM_ROCE - 1)))) % (12 * 31)
+                        }
+                        ?.map {
+                            it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
+                        }
+                        ?.let { ukoly ->
+                            if (ukoly.any { it.stav == StavUkolu.Skrtly })
+                                ukoly.plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
+                            else ukoly
                         }
                         ?.sortedBy {
                             when (it.stav) {
