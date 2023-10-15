@@ -15,11 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,9 +33,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +65,7 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
+import cz.jaro.rozvrh.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalTime
@@ -110,7 +115,7 @@ fun NastaveniScreen(
                     IconButton(
                         onClick = navigateBack
                     ) {
-                        Icon(Icons.Default.ArrowBack, stringResource(R.string.zpet))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.zpet))
                     }
                 }
             )
@@ -160,22 +165,68 @@ fun NastaveniScreen(
                     )
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) item {
+
+            item {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = stringResource(R.string.pouzivat_dynamicke_barvy))
-                    Switch(
-                        checked = nastaveni.dynamicColors,
-                        onCheckedChange = {
-                            upravitNastaveni { nastaveni ->
-                                nastaveni.copy(dynamicColors = it)
+                    val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+                    val options = remember {
+                        buildList {
+                            if (dynamicColorsSupported) add("Dynamické")
+                            addAll(Theme.entries.map { it.jmeno })
+                        }
+                    }
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedOption by remember(nastaveni.dynamicColors, nastaveni.tema) {
+                        derivedStateOf {
+                            when {
+                                dynamicColorsSupported && nastaveni.dynamicColors -> options.first()
+                                else -> nastaveni.tema.jmeno
                             }
                         }
-                    )
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
+                    ) {
+                        TextField(
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            readOnly = true,
+                            value = selectedOption,
+                            onValueChange = {},
+                            label = { Text("Téma aplikace") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            options.forEachIndexed { i, option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        upravitNastaveni { nastaveni ->
+                                            when {
+                                                dynamicColorsSupported && i == 0 -> nastaveni.copy(dynamicColors = true)
+                                                dynamicColorsSupported -> nastaveni.copy(tema = Theme.entries[i - 1], dynamicColors = false)
+                                                else -> nastaveni.copy(tema = Theme.entries[i], dynamicColors = false)
+                                            }
+                                        }
+                                        expanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                )
+                            }
+                        }
+                    }
                 }
             }
             item {
