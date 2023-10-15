@@ -1,11 +1,11 @@
 package cz.jaro.rozvrh.ukoly.widget
 
+import android.annotation.SuppressLint
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -54,7 +54,7 @@ import java.util.UUID
 
 class UkolyWidget : GlanceAppWidget() {
 
-    @Suppress("DEPRECATION")
+    @SuppressLint("RestrictedApi")
     @Composable
     fun Content(
         context: Context
@@ -62,9 +62,8 @@ class UkolyWidget : GlanceAppWidget() {
         val prefs = currentState<Preferences>()
         val ukoly = Json.decodeFromString<List<JednoduchyUkol>>(prefs[stringPreferencesKey("ukoly")] ?: "[]")
 
-        val bg = ColorProvider(Color(context.resources.getColor(R.color.background_color)))
-        val onbgColor = Color(context.resources.getColor(R.color.on_background_color))
-        val onbg = ColorProvider(onbgColor)
+        val bg = ColorProvider(R.color.background_color)
+        val onbg = ColorProvider(R.color.on_background_color)
 
         val action = actionStartActivity(Intent(context, MainActivity::class.java).apply {
             putExtra("ukoly", true)
@@ -115,7 +114,7 @@ class UkolyWidget : GlanceAppWidget() {
                         text = ukol.text,
                         GlanceModifier.clickable(action),
                         style = TextStyle(
-                            color = ColorProvider(onbgColor.copy(alpha = .38F)),
+                            color = ColorProvider(onbg.getColor(context).copy(alpha = .38F)),
                             textDecoration = TextDecoration.LineThrough,
                         ),
                     )
