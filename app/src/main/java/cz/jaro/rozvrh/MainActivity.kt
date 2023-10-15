@@ -19,7 +19,7 @@ import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.rozvrh.rozvrh.Vjec
-import cz.jaro.rozvrh.ui.theme.AppTheme
+import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,9 +73,10 @@ class MainActivity : ComponentActivity() {
             val verzeNaRozbiti by repo.verzeNaRozbiti.collectAsStateWithLifecycle()
             val jePotrebaAktualizovatAplikaci by repo.jePotrebaAktualizovatAplikaci.collectAsStateWithLifecycle(false)
 
-            AppTheme(
+            GymceskaTheme(
                 useDarkTheme = if (nastaveni.darkModePodleSystemu) isSystemInDarkTheme() else nastaveni.darkMode,
                 useDynamicColor = nastaveni.dynamicColors,
+                theme = nastaveni.tema,
             ) {
                 if (verzeNaRozbiti >= BuildConfig.VERSION_CODE) AlertDialog(
                     onDismissRequest = {},

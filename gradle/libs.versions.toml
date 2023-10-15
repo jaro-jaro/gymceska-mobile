@@ -24,7 +24,7 @@ material = "latest.release"
 material3 = "latest.release"
 androidx-navigation = "latest.release"
 androidx-work = "latest.release"
-android-gradle-plugin = "8.3.0-alpha01"
+android-gradle-plugin = "8.3.0-alpha07"
 gms-google-services = "latest.release"
 koin = "latest.release"
 koin-androidx-compose = "latest.release"
@@ -34,7 +34,7 @@ compose-destinations = "latest.release"
 androidx-lifecycle = "latest.release"
 datastore = "1.0.0"
 semver = "latest.release"
-compose-compiler = "1.5.3"
+compose-compiler = "1.5.4-dev-k1.9.20-RC-1edce5fd625"
 
 [libraries]
 # Androidx
