@@ -1,23 +1,20 @@
 package cz.jaro.rozvrh.rozvrh
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import cz.jaro.rozvrh.ResponsiveText
 import kotlinx.serialization.Serializable
 
 typealias Tyden = List<Den>
@@ -54,22 +51,24 @@ data class Bunka(
     ) = Box(
         modifier = Modifier
             .aspectRatio(1F * bunekVHodine / maxBunekDne)
+            .animateContentSize()
             .border(1.dp, MaterialTheme.colorScheme.secondary)
-            .size(120.dp, 120.dp * maxBunekDne / bunekVHodine)
+            .size(zakladniVelikostBunky, zakladniVelikostBunky * maxBunekDne / bunekVHodine)
             .background(if (zbarvit) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
+        Row(
+            Modifier
                 .matchParentSize()
+                .animateContentSize(),
+            verticalAlignment = Alignment.Top,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
+            if (ucebna.isNotBlank()) Box(
+                Modifier
+                    .animateContentSize(),
+                contentAlignment = Alignment.TopStart,
             ) {
-                Text(
+                ResponsiveText(
                     text = ucebna,
                     modifier = Modifier
                         .padding(all = 8.dp)
@@ -79,10 +78,16 @@ data class Bunka(
                                 .find { ucebna == it.zkratka } ?: return@clickable
                             kliklNaNeco(vjec)
                         },
-                    textAlign = TextAlign.Start,
-                    color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground
+                    color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground,
                 )
-                Text(
+            }
+            if (tridaSkupina.isNotBlank()) Box(
+                Modifier
+                    .weight(1F)
+                    .animateContentSize(),
+                contentAlignment = Alignment.TopEnd,
+            ) {
+                ResponsiveText(
                     text = tridaSkupina,
                     modifier = Modifier
                         .padding(all = 8.dp)
@@ -95,42 +100,79 @@ data class Bunka(
                             } ?: return@clickable
                             kliklNaNeco(vjec)
                         },
-                    textAlign = TextAlign.End,
-                    color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground
+                    color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground,
                 )
             }
-            Text(
-                text = predmet,
-                modifier = Modifier
-                    .padding(all = 8.dp)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = ucitel,
-                modifier = Modifier
-                    .padding(all = 8.dp)
-                    .clickable {
-                        if (ucitel.isEmpty()) return@clickable
-                        val vjec = vyucujici.find {
-                            ucitel
-                                .split(",")
-                                .first() == it.zkratka
-                        } ?: return@clickable
-                        kliklNaNeco(vjec)
-                    }
-                    .fillMaxWidth(
+        }
+        @Composable
+        fun Predmet() = ResponsiveText(
+            text = predmet,
+            modifier = Modifier
+                .padding(all = 8.dp),
+            color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
+        )
+
+        @Composable
+        fun Ucitel() = ResponsiveText(
+            text = ucitel,
+            modifier = Modifier
+                .padding(all = 8.dp)
+                .clickable {
+                    if (ucitel.isEmpty()) return@clickable
+                    val vjec = vyucujici.find {
                         ucitel
-                            .isNotEmpty()
-                            .toInt()
-                            .toFloat()
-                    ),
-                textAlign = TextAlign.Center,
-                color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground
-            )
+                            .split(",")
+                            .first() == it.zkratka
+                    } ?: return@clickable
+                    kliklNaNeco(vjec)
+                },
+            color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground,
+        )
+
+        val divnyRozlozeni = maxBunekDne < bunekVHodine
+
+        if (divnyRozlozeni) Row(
+            Modifier
+                .matchParentSize()
+                .animateContentSize(),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            if (predmet.isNotBlank()) Box(
+                Modifier
+                    .animateContentSize(),
+                contentAlignment = Alignment.BottomStart,
+            ) {
+                Predmet()
+            }
+            if (ucitel.isNotBlank()) Box(
+                Modifier
+                    .weight(1F)
+                    .animateContentSize(),
+                contentAlignment = Alignment.BottomEnd,
+            ) {
+                Ucitel()
+            }
+        }
+
+        if (!divnyRozlozeni) Box(
+            Modifier
+                .matchParentSize()
+                .animateContentSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Predmet()
+        }
+        if (!divnyRozlozeni) Box(
+            Modifier
+                .matchParentSize()
+                .animateContentSize(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Ucitel()
         }
     }
 }
+
+val zakladniVelikostBunky = 128.dp
 
 fun Boolean.toInt() = if (this) 1 else 0

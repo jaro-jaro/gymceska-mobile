@@ -383,6 +383,9 @@ fun NastaveniScreen(
                 )
             }
             if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) item {
+                Text("Pokud není rozvrh, počítá se jako konec vyučování poledne")
+            }
+            if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.PoKonciVyucovani) item {
                 var h by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.poHodin.toString()) }
                 OutlinedTextField(
                     value = h,
