@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,12 +18,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -33,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -86,6 +81,7 @@ fun RozvrhScreen(
         stahnoutVse = viewModel.stahnoutVse,
         navigate = navigator.navigate,
         najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
+        najdiMiVolnehoUcitele = viewModel::najdiMiVolnehoUcitele,
         rozvrhOfflineWarning = tabulka?.second,
         tridy = tridy,
         mistnosti = mistnosti,
@@ -107,6 +103,7 @@ fun RozvrhScreen(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    najdiMiVolnehoUcitele: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     rozvrhOfflineWarning: String?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
@@ -120,6 +117,8 @@ fun RozvrhScreen(
             stahnoutVse = stahnoutVse,
             navigate = navigate,
             najdiMiVolnouTridu = najdiMiVolnouTridu,
+            najdiMiVolnehoUcitele = najdiMiVolnehoUcitele,
+            tabulka = tabulka
         )
     }
 ) { paddingValues ->
@@ -140,94 +139,34 @@ fun RozvrhScreen(
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            var expanded1 by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expanded1,
-                onExpandedChange = { expanded1 = !expanded1 },
+            Vybiratko(
+                value = if (vjec is Vjec.TridaVjec) vjec.jmeno else "",
+                seznam = tridy.map { it.jmeno }.drop(1),
+                onClick = { i, _ -> vybratRozvrh(tridy[i + 1]) },
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier
-                        .menuAnchor(),
-                    readOnly = true,
-                    value = if (vjec is Vjec.TridaVjec) vjec.jmeno else "",
-                    onValueChange = {},
-                    label = { Text(tridy.first().jmeno) },
-                    trailingIcon = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1)
-
-                            if (zobrazitMujRozvrh) IconButton(
-                                onClick = {
-                                    expanded1 = false
-                                    zmenitMujRozvrh()
-                                }
-                            ) {
-                                Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
-                            }
+                label = tridy.first().jmeno,
+                trailingIcon = { hide ->
+                    if (zobrazitMujRozvrh) IconButton(
+                        onClick = {
+                            hide()
+                            zmenitMujRozvrh()
                         }
-                    },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
-                        focusedTextColor = MaterialTheme.colorScheme.primary,
-                    ),
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded1,
-                    onDismissRequest = { expanded1 = false },
-                ) {
-                    tridy.map { it.jmeno }.drop(1).forEachIndexed { i, option ->
-                        DropdownMenuItem(
-                            text = { Text(option) },
-                            onClick = {
-                                vybratRozvrh(tridy[i + 1])
-                                expanded1 = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
+                    ) {
+                        Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
                     }
-                }
-            }
+                },
+            )
 
-            var expanded2 by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expanded2,
-                onExpandedChange = { expanded2 = !expanded2 },
+            Vybiratko(
+                value = stalost,
+                seznam = Stalost.entries,
+                onClick = { _, stalost -> zmenitStalost(stalost) },
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier
-                        .menuAnchor(),
-                    readOnly = true,
-                    value = stalost.nazev,
-                    onValueChange = {},
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2)
-                    },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded2,
-                    onDismissRequest = { expanded2 = false },
-                ) {
-                    Stalost.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option.nazev) },
-                            onClick = {
-                                zmenitStalost(option)
-                                expanded2 = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
-                    }
-                }
-            }
+            )
         }
         var napoveda by remember { mutableStateOf(false) }
         Row(
@@ -237,97 +176,35 @@ fun RozvrhScreen(
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
-            var expanded1 by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expanded1,
-                onExpandedChange = { expanded1 = !expanded1 },
+            Vybiratko(
+                value = if (vjec is Vjec.MistnostVjec) vjec.jmeno else "",
+                seznam = mistnosti.map { it.jmeno }.drop(1),
+                onClick = { i, _ -> vybratRozvrh(mistnosti[i + 1]) },
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier
-                        .menuAnchor(),
-                    readOnly = true,
-                    value = if (vjec is Vjec.MistnostVjec) vjec.jmeno else "",
-                    onValueChange = {},
-                    label = { Text(mistnosti.first().jmeno) },
-                    trailingIcon = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1)
-
-                            IconButton(
-                                onClick = {
-                                    expanded1 = false
-                                    napoveda = true
-                                }
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Help, null)
-                            }
+                label = mistnosti.first().jmeno,
+                trailingIcon = { hide ->
+                    IconButton(
+                        onClick = {
+                            hide()
+                            napoveda = true
                         }
-                    },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
-                        focusedTextColor = MaterialTheme.colorScheme.primary,
-                    ),
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded1,
-                    onDismissRequest = { expanded1 = false },
-                ) {
-                    mistnosti.map { it.jmeno }.drop(1).forEachIndexed { i, option ->
-                        DropdownMenuItem(
-                            text = { Text(option) },
-                            onClick = {
-                                vybratRozvrh(mistnosti[i + 1])
-                                expanded1 = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Help, null)
                     }
-                }
-            }
-            var expanded2 by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expanded2,
-                onExpandedChange = { expanded2 = !expanded2 },
+                },
+            )
+
+            Vybiratko(
+                value = if (vjec is Vjec.VyucujiciVjec) vjec.jmeno else "",
+                seznam = vyucujici.map { it.jmeno }.drop(1),
+                onClick = { i, _ -> vybratRozvrh(vyucujici[i + 1]) },
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier
-                        .menuAnchor(),
-                    readOnly = true,
-                    value = if (vjec is Vjec.VyucujiciVjec) vjec.jmeno else "",
-                    onValueChange = {},
-                    label = { Text(vyucujici.first().jmeno) },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2)
-                    },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
-                        focusedTextColor = MaterialTheme.colorScheme.primary,
-                    ),
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded2,
-                    onDismissRequest = { expanded2 = false },
-                ) {
-                    vyucujici.map { it.jmeno }.drop(1).forEachIndexed { i, option ->
-                        DropdownMenuItem(
-                            text = { Text(option) },
-                            onClick = {
-                                vybratRozvrh(vyucujici[i + 1])
-                                expanded2 = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
-                    }
-                }
-            }
+                label = vyucujici.first().jmeno,
+            )
         }
         if (napoveda) AlertDialog(
             onDismissRequest = {
@@ -343,7 +220,7 @@ fun RozvrhScreen(
                 }
             },
             title = {
-                Text("Nápověda k místnostím")
+                Text("Nápověda k místnostem")
             },
             text = {
                 LazyColumn {
@@ -367,6 +244,96 @@ fun RozvrhScreen(
             vyucujici = vyucujici,
             mujRozvrh = mujRozvrh,
         )
+    }
+}
+
+@ExperimentalMaterial3Api
+@Composable
+fun Vybiratko(
+    value: Stalost,
+    seznam: List<Stalost>,
+    onClick: (Int, Stalost) -> Unit,
+    modifier: Modifier = Modifier,
+    trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
+) = Vybiratko(
+    value = value.nazev,
+    seznam = seznam.map { it.nazev },
+    onClick = { i, _ -> onClick(i, seznam[i]) },
+    modifier = modifier,
+    trailingIcon = trailingIcon,
+)
+
+@Composable
+@ExperimentalMaterial3Api
+fun Vybiratko(
+    index: Int,
+    seznam: List<String>,
+    onClick: (Int, String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "",
+    trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
+) = Vybiratko(
+    value = seznam[index],
+    seznam = seznam,
+    onClick = onClick,
+    modifier = modifier,
+    label = label,
+    trailingIcon = trailingIcon,
+)
+
+@Composable
+@ExperimentalMaterial3Api
+fun Vybiratko(
+    value: String,
+    seznam: List<String>,
+    onClick: (Int, String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "",
+    trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier,
+    ) {
+        OutlinedTextField(
+            modifier = Modifier
+                .menuAnchor(),
+            readOnly = true,
+            value = value,
+            onValueChange = {},
+            label = { Text(label) },
+            trailingIcon = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    trailingIcon?.invoke {
+                        expanded = false
+                    }
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
+            },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                unfocusedTextColor = MaterialTheme.colorScheme.primary,
+                focusedTextColor = MaterialTheme.colorScheme.primary,
+            ),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            seznam.forEachIndexed { i, option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onClick(i, option)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                )
+            }
+        }
     }
 }
 
@@ -521,68 +488,6 @@ private fun Tabulka(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun Vybiratko(
-    seznam: List<Stalost>,
-    value: Stalost,
-    modifier: Modifier = Modifier,
-    poklik: (vjec: Stalost) -> Unit,
-) = Vybiratko(
-    seznam = seznam.map { it.nazev },
-    aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
-    modifier,
-    poklik = {
-        poklik(seznam[it])
-    },
-)
-
-@Composable
-fun Vybiratko(
-    seznam: List<String>,
-    aktualIndex: Int,
-    modifier: Modifier = Modifier,
-    nulaDisabled: Boolean = false,
-    poklik: (i: Int) -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .padding(all = 8.dp)
-    ) {
-        var vidimMenu by remember { mutableStateOf(false) }
-
-        DropdownMenu(
-            expanded = vidimMenu,
-            onDismissRequest = { vidimMenu = false }
-        ) {
-            seznam.forEachIndexed { i, x ->
-
-                DropdownMenuItem(
-                    text = { Text(x) },
-                    onClick = {
-                        vidimMenu = false
-                        poklik(i)
-                    },
-                    enabled = !(nulaDisabled && i == 0)
-                )
-            }
-        }
-
-        OutlinedButton(
-            onClick = {
-                vidimMenu = true
-            }
-        ) {
-            Text(seznam[aktualIndex])
-            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Icon(
-                Icons.Filled.ArrowDropDown,
-                contentDescription = "Vyberte",
-                modifier = Modifier.size(ButtonDefaults.IconSize)
             )
         }
     }

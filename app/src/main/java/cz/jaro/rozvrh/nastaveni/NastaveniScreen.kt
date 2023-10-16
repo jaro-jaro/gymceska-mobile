@@ -614,9 +614,10 @@ fun NastaveniScreen(
                             Vybiratko(
                                 seznam = Stalost.entries,
                                 value = stalost,
-                            ) {
-                                stalost = it
-                            }
+                                onClick = { _, it ->
+                                    stalost = it
+                                },
+                            )
                         }
                     }
                 )

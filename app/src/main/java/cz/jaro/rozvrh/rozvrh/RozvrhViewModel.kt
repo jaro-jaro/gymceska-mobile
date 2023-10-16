@@ -122,6 +122,26 @@ class RozvrhViewModel(
         }
     }
 
+    fun najdiMiVolnehoUcitele(stalost: Stalost, den: Int, hodina: Int, progress: (String) -> Unit, onComplete: (List<Vjec.VyucujiciVjec>?) -> Unit) {
+        viewModelScope.launch {
+            val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
+                progress("Prohledávám třídu\n${trida.zkratka}")
+                TvorbaRozvrhu.vytvoritTabulku(repo.ziskatDocument(trida, stalost).let { result ->
+                    if (result !is Uspech) {
+                        onComplete(null)
+                        return@launch
+                    }
+                    result.document
+                }).drop(1)[den].drop(1)[hodina].map { bunka ->
+                    bunka.ucitel
+                }
+            }
+            progress("Už to skoro je")
+
+            onComplete(vyucujici.value.drop(1).filter { it.zkratka !in zaneprazdneniUcitele })
+        }
+    }
+
     private suspend fun vytvoritRozvrhPodleJinych(
         vjec: Vjec,
         stalost: Stalost,
