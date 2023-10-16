@@ -14,4 +14,5 @@ data class Nastaveni(
     val dynamicColors: Boolean = true,
     val prepnoutRozvrhWidget: PrepnoutRozvrhWidget = PrepnoutRozvrhWidget.OPulnoci,
     val defaultMujRozvrh: Boolean = false,
+    val stahovatHned: Boolean = false,
 )

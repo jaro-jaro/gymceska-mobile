@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.R
@@ -39,6 +41,7 @@ fun AppBar(
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     tabulka: Tyden?,
+    vybratRozvrh: (Vjec) -> Unit,
 ) {
     val nacitani = stringResource(R.string.nacitani)
     var nacitame by remember { mutableStateOf(false) }
@@ -88,7 +91,7 @@ fun AppBar(
             var volnaTridaDialog by remember { mutableStateOf(false) }
             var volneTridy by remember { mutableStateOf(emptyList<Vjec.MistnostVjec>()) }
             var volniUcitele by remember { mutableStateOf(emptyList<Vjec.VyucujiciVjec>()) }
-            var ucebna by remember { mutableStateOf(false) }
+            var ucebna by remember { mutableStateOf(true) }
             var stalost by remember { mutableStateOf(Stalost.TentoTyden) }
             var denIndex by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value - 1) }
             var hodinaIndex by remember(tabulka) {
@@ -130,16 +133,22 @@ fun AppBar(
                 text = {
                     LazyColumn {
                         if (ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny6Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volné tyto učebny:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volné tyto učebny:")
                         }
                         if (ucebna) items(volneTridy.toList()) {
-                            Text("${it.jmeno}, to je${it.napoveda}")
+                            Text("${it.jmeno}, to je${it.napoveda}", Modifier.clickable {
+                                volnaTridaDialog = false
+                                vybratRozvrh(it)
+                            })
                         }
                         if (!ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny6Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volní tito učitelé:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volní tito učitelé:")
                         }
                         if (!ucebna) items(volniUcitele.toList()) {
-                            Text(it.jmeno)
+                            Text(it.jmeno, Modifier.clickable {
+                                volnaTridaDialog = false
+                                vybratRozvrh(it)
+                            })
                         }
                     }
                 }
@@ -209,30 +218,34 @@ fun AppBar(
                             seznam = listOf("volnou učebnu", "volného učitele"),
                             index = if (ucebna) 0 else 1,
                             onClick = { i, _ ->
-                                ucebna = i != 0
+                                ucebna = i == 0
                             },
-                            label = "Najdi mi"
+                            label = "Najdi mi",
+                            zaskrtavatko = { false },
                         )
                         Vybiratko(
-                            seznam = Stalost.entries,
-                            value = stalost,
-                            onClick = { _, it ->
-                                stalost = it
+                            seznam = Stalost.entries.map { it.kdy },
+                            value = stalost.kdy,
+                            onClick = { i, _ ->
+                                stalost = Stalost.entries[i]
                             },
+                            zaskrtavatko = { false },
                         )
                         Vybiratko(
-                            seznam = Seznamy.dny1Pad,
+                            seznam = Seznamy.dny4Pad,
                             index = denIndex,
                             onClick = { i, _ ->
                                 denIndex = i
-                            }
+                            },
+                            zaskrtavatko = { false },
                         )
                         Vybiratko(
-                            seznam = Seznamy.hodiny1Pad,
+                            seznam = Seznamy.hodiny4Pad,
                             index = hodinaIndex,
                             onClick = { i, _ ->
                                 hodinaIndex = i
-                            }
+                            },
+                            zaskrtavatko = { false },
                         )
                     }
                 }

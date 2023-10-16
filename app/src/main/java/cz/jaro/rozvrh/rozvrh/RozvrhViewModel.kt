@@ -37,6 +37,7 @@ class RozvrhViewModel(
     val tridy = repo.tridy
     val mistnosti = repo.mistnosti
     val vyucujici = repo.vyucujici
+    val vyucujici2 = repo.vyucujici2
 
     val vjec = repo.nastaveni.map {
         params.vjec ?: it.mojeTrida
@@ -138,7 +139,7 @@ class RozvrhViewModel(
             }
             progress("Už to skoro je")
 
-            onComplete(vyucujici.value.drop(1).filter { it.zkratka !in zaneprazdneniUcitele })
+            onComplete(vyucujici.value.drop(1).filter { it.zkratka !in zaneprazdneniUcitele && it.zkratka in vyucujici2.value })
         }
     }
 

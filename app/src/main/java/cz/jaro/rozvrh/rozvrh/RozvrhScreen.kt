@@ -2,6 +2,8 @@ package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -37,9 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -48,6 +53,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.ResponsiveText
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -118,7 +124,8 @@ fun RozvrhScreen(
             navigate = navigate,
             najdiMiVolnouTridu = najdiMiVolnouTridu,
             najdiMiVolnehoUcitele = najdiMiVolnehoUcitele,
-            tabulka = tabulka
+            tabulka = tabulka,
+            vybratRozvrh = vybratRozvrh,
         )
     }
 ) { paddingValues ->
@@ -140,8 +147,8 @@ fun RozvrhScreen(
             verticalAlignment = Alignment.Bottom
         ) {
             Vybiratko(
-                value = if (vjec is Vjec.TridaVjec) vjec.jmeno else "",
-                seznam = tridy.map { it.jmeno }.drop(1),
+                value = if (vjec is Vjec.TridaVjec) vjec else null,
+                seznam = tridy.drop(1),
                 onClick = { i, _ -> vybratRozvrh(tridy[i + 1]) },
                 Modifier
                     .weight(1F)
@@ -177,8 +184,8 @@ fun RozvrhScreen(
             verticalAlignment = Alignment.Bottom,
         ) {
             Vybiratko(
-                value = if (vjec is Vjec.MistnostVjec) vjec.jmeno else "",
-                seznam = mistnosti.map { it.jmeno }.drop(1),
+                value = if (vjec is Vjec.MistnostVjec) vjec else null,
+                seznam = mistnosti.drop(1),
                 onClick = { i, _ -> vybratRozvrh(mistnosti[i + 1]) },
                 Modifier
                     .weight(1F)
@@ -197,8 +204,8 @@ fun RozvrhScreen(
             )
 
             Vybiratko(
-                value = if (vjec is Vjec.VyucujiciVjec) vjec.jmeno else "",
-                seznam = vyucujici.map { it.jmeno }.drop(1),
+                value = if (vjec is Vjec.VyucujiciVjec) vjec else null,
+                seznam = vyucujici.drop(1),
                 onClick = { i, _ -> vybratRozvrh(vyucujici[i + 1]) },
                 Modifier
                     .weight(1F)
@@ -254,6 +261,7 @@ fun Vybiratko(
     seznam: List<Stalost>,
     onClick: (Int, Stalost) -> Unit,
     modifier: Modifier = Modifier,
+    zbarvit: Boolean = false,
     trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
 ) = Vybiratko(
     value = value.nazev,
@@ -261,6 +269,29 @@ fun Vybiratko(
     onClick = { i, _ -> onClick(i, seznam[i]) },
     modifier = modifier,
     trailingIcon = trailingIcon,
+    zbarvit = zbarvit,
+    zaskrtavatko = { false }
+)
+
+@ExperimentalMaterial3Api
+@Composable
+fun Vybiratko(
+    value: Vjec?,
+    seznam: List<Vjec>,
+    onClick: (Int, Vjec) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "",
+    zbarvit: Boolean = true,
+    trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
+) = Vybiratko(
+    value = value?.jmeno ?: "",
+    seznam = seznam.map { it.jmeno },
+    onClick = { i, _ -> onClick(i, seznam[i]) },
+    modifier = modifier,
+    label = label,
+    trailingIcon = trailingIcon,
+    zbarvit = zbarvit,
+    zaskrtavatko = { false }
 )
 
 @Composable
@@ -271,6 +302,8 @@ fun Vybiratko(
     onClick: (Int, String) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "",
+    zaskrtavatko: (String) -> Boolean = { it == seznam[index] },
+    zbarvit: Boolean = false,
     trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
 ) = Vybiratko(
     value = seznam[index],
@@ -278,7 +311,9 @@ fun Vybiratko(
     onClick = onClick,
     modifier = modifier,
     label = label,
+    zbarvit = zbarvit,
     trailingIcon = trailingIcon,
+    zaskrtavatko = zaskrtavatko,
 )
 
 @Composable
@@ -289,7 +324,10 @@ fun Vybiratko(
     onClick: (Int, String) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "",
+    zbarvit: Boolean = false,
+    zaskrtavatko: (String) -> Boolean = { it == value },
     trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
+    zavirat: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
@@ -299,6 +337,7 @@ fun Vybiratko(
     ) {
         OutlinedTextField(
             modifier = Modifier
+                .fillMaxWidth()
                 .menuAnchor(),
             readOnly = true,
             value = value,
@@ -314,23 +353,27 @@ fun Vybiratko(
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 }
             },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+            colors = if (zbarvit) ExposedDropdownMenuDefaults.outlinedTextFieldColors(
                 unfocusedTextColor = MaterialTheme.colorScheme.primary,
                 focusedTextColor = MaterialTheme.colorScheme.primary,
-            ),
+            ) else ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
         )
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
+            val zaskrtavatka = seznam.map(zaskrtavatko)
             seznam.forEachIndexed { i, option ->
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
                         onClick(i, option)
-                        expanded = false
+                        if (zavirat) expanded = false
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                    leadingIcon = if (zaskrtavatka.any { it }) (@Composable {
+                        if (zaskrtavatka[i]) Icon(Icons.Default.Check, null)
+                    }) else null
                 )
             }
         }
@@ -352,76 +395,89 @@ private fun Tabulka(
     if (tabulka.isEmpty()) return
 
     val horScrollState = rememberScrollState()
+    val verScrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
-    val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
-    val polovicniBunky = remember(tabulka) {
-        val minLimit = if (mujRozvrh || vjec !is Vjec.TridaVjec) 2 else 4
-        tabulka.map { radek -> radek.maxBy { it.size }.size >= minLimit }
-    }
-
-    Row(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp),
+    Column(
+        Modifier
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, _, _ ->
+                    scope.launch {
+                        horScrollState.scrollBy(-pan.x)
+                        verScrollState.scrollBy(-pan.y)
+                    }
+                }
+            }
     ) {
-
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
-        ) {
-            Box(
-                modifier = Modifier
-                    .aspectRatio(1F)
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2)
-            )
+        val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
+        val polovicniBunky = remember(tabulka) {
+            val minLimit = if (mujRozvrh || vjec !is Vjec.TridaVjec) 2 else 4
+            tabulka.map { radek -> radek.maxBy { it.size }.size >= minLimit }
         }
 
         Row(
             modifier = Modifier
-                .horizontalScroll(horScrollState)
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
+                .verticalScroll(rememberScrollState(), enabled = false)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp),
         ) {
-            tabulka.first().drop(1).map { it.first() }.forEach { bunka ->
+
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState(), enabled = false)
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+            ) {
                 Box(
                     modifier = Modifier
-                        .aspectRatio(2F / 1)
+                        .aspectRatio(1F)
                         .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .size(zakladniVelikostBunky, zakladniVelikostBunky / 2),
-                    contentAlignment = Alignment.Center
-                ) {
+                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(horScrollState, enabled = false)
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+            ) {
+                tabulka.first().drop(1).map { it.first() }.forEach { bunka ->
                     Box(
-                        Modifier.matchParentSize(),
-                        contentAlignment = Alignment.TopCenter,
+                        modifier = Modifier
+                            .aspectRatio(2F / 1)
+                            .border(1.dp, MaterialTheme.colorScheme.secondary)
+                            .size(zakladniVelikostBunky, zakladniVelikostBunky / 2),
+                        contentAlignment = Alignment.Center
                     ) {
-                        ResponsiveText(
-                            text = bunka.predmet,
-                            modifier = Modifier
-                                .padding(all = 8.dp),
-                        )
-                    }
-                    Box(
-                        Modifier.matchParentSize(),
-                        contentAlignment = Alignment.BottomCenter,
-                    ) {
-                        ResponsiveText(
-                            text = bunka.ucitel,
-                            modifier = Modifier
-                                .padding(all = 8.dp),
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
+                        Box(
+                            Modifier.matchParentSize(),
+                            contentAlignment = Alignment.TopCenter,
+                        ) {
+                            ResponsiveText(
+                                text = bunka.predmet,
+                                modifier = Modifier
+                                    .padding(all = 8.dp),
+                            )
+                        }
+                        Box(
+                            Modifier.matchParentSize(),
+                            contentAlignment = Alignment.BottomCenter,
+                        ) {
+                            ResponsiveText(
+                                text = bunka.ucitel,
+                                modifier = Modifier
+                                    .padding(all = 8.dp),
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
                     }
                 }
             }
         }
-    }
 
-    LazyColumn(
-        modifier = Modifier
-            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-    ) {
-        item {
+        Column(
+            modifier = Modifier
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .verticalScroll(verScrollState, enabled = false),
+        ) {
             Row {
                 Column(
                     Modifier.horizontalScroll(rememberScrollState())
@@ -455,7 +511,7 @@ private fun Tabulka(
                 }
 
                 Column(
-                    Modifier.horizontalScroll(horScrollState)
+                    Modifier.horizontalScroll(horScrollState, enabled = false)
                 ) {
                     tabulka.drop(1).forEachIndexed { i, radek ->
                         Row {
@@ -481,8 +537,7 @@ private fun Tabulka(
                     }
                 }
             }
-        }
-        item {
+
             Text(
                 rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
                 Modifier

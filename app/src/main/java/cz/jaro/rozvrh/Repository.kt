@@ -144,6 +144,9 @@ class Repository(
     val vyucujici = configActive.map {
         listOf(Vjec.VyucujiciVjec("Vyučující", "")) + remoteConfig["vyucujici"].asString().fromJson<List<Vjec.VyucujiciVjec>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf(Vjec.VyucujiciVjec("Vyučující", "")))
+    val vyucujici2 = configActive.map {
+        remoteConfig["vyucujici2"].asString().also(::println).fromJson<List<String>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf())
 
     private val preferences = PreferenceDataStoreFactory.create(
         migrations = listOf(
@@ -191,6 +194,25 @@ class Repository(
         it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
     }
 
+    init {
+        scope.launch {
+            nastaveni.collect {
+                if (it.stahovatHned)
+                    tridy.first().drop(1).forEach { trida ->
+                        launch {
+                            ziskatDocument(trida, Stalost.TentoTyden)
+                        }
+                        launch {
+                            ziskatDocument(trida, Stalost.PristiTyden)
+                        }
+                        launch {
+                            ziskatDocument(trida, Stalost.Staly)
+                        }
+                    }
+            }
+        }
+    }
+
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
         preferences.edit {
             it[Keys.NASTAVENI] =
@@ -236,10 +258,10 @@ class Repository(
     }
 
     private suspend fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
-
+        val limit = if (stalost == Stalost.Staly) 168 * 2 else 1
         val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) } ?: return false
         val staryHodin = posledni.until(LocalDateTime.now(), ChronoUnit.HOURS)
-        return staryHodin < 1
+        return staryHodin < limit
     }
 
     suspend fun ziskatDocument(trida: Vjec.TridaVjec, stalost: Stalost): Result = withContext(Dispatchers.IO) {
