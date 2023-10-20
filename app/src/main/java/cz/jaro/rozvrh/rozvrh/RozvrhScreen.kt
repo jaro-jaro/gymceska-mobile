@@ -1,8 +1,11 @@
 package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -44,7 +47,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -396,18 +407,9 @@ private fun Tabulka(
 
     val horScrollState = rememberScrollState()
     val verScrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
 
     Column(
-        Modifier
-            .pointerInput(Unit) {
-                detectTransformGestures { _, pan, _, _ ->
-                    scope.launch {
-                        horScrollState.scrollBy(-pan.x)
-                        verScrollState.scrollBy(-pan.y)
-                    }
-                }
-            }
+        Modifier.doubleScrollable(horScrollState, verScrollState)
     ) {
         val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
         val polovicniBunky = remember(tabulka) {
@@ -436,7 +438,7 @@ private fun Tabulka(
 
             Row(
                 modifier = Modifier
-                    .horizontalScroll(horScrollState, enabled = false)
+                    .horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 tabulka.first().drop(1).map { it.first() }.forEach { bunka ->
@@ -476,7 +478,7 @@ private fun Tabulka(
         Column(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                .verticalScroll(verScrollState, enabled = false),
+                .verticalScroll(verScrollState, enabled = false, reverseScrolling = true),
         ) {
             Row {
                 Column(
@@ -511,7 +513,7 @@ private fun Tabulka(
                 }
 
                 Column(
-                    Modifier.horizontalScroll(horScrollState, enabled = false)
+                    Modifier.horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
                 ) {
                     tabulka.drop(1).forEachIndexed { i, radek ->
                         Row {
@@ -545,5 +547,80 @@ private fun Tabulka(
                     .padding(top = 8.dp)
             )
         }
+    }
+}
+
+private fun Modifier.doubleScrollable(
+    scrollStateX: ScrollState,
+    scrollStateY: ScrollState
+) = composed {
+    val coroutineScope = rememberCoroutineScope()
+
+    val flingBehaviorX = ScrollableDefaults.flingBehavior()
+    val flingBehaviorY = ScrollableDefaults.flingBehavior()
+
+    val velocityTracker = remember { VelocityTracker() }
+    val nestedScrollDispatcher = remember { NestedScrollDispatcher() }
+    val maximumFlingVelocity = LocalViewConfiguration.current.maximumFlingVelocity.toFloat()
+
+    pointerInput(maximumFlingVelocity) {
+        detectDragGestures(
+            onDrag = { pointerInputChange, offset ->
+                coroutineScope.launch {
+                    velocityTracker.addPointerInputChange(pointerInputChange)
+                    scrollStateX.scrollBy(offset.x)
+                    scrollStateY.scrollBy(offset.y)
+                }
+            },
+            onDragEnd = {
+                val velocity = velocityTracker.calculateVelocity(maximumVelocity = Velocity(maximumFlingVelocity, maximumFlingVelocity))
+                velocityTracker.resetTracking()
+                coroutineScope.launch {
+                    scrollStateX.scroll {
+                        val scrollScope = object : ScrollScope {
+                            override fun scrollBy(pixels: Float): Float {
+                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(pixels, 0F), NestedScrollSource.Fling).x
+                                val scrollAvailableAfterPreScroll = pixels - consumedByPreScroll
+                                val consumedBySelfScroll = this@scroll.scrollBy(scrollAvailableAfterPreScroll)
+                                val deltaAvailableAfterScroll = scrollAvailableAfterPreScroll - consumedBySelfScroll
+                                val consumedByPostScroll = nestedScrollDispatcher.dispatchPostScroll(
+                                    Offset(consumedBySelfScroll, 0F),
+                                    Offset(deltaAvailableAfterScroll, 0F),
+                                    NestedScrollSource.Fling
+                                ).x
+                                return consumedByPreScroll + consumedBySelfScroll + consumedByPostScroll
+                            }
+                        }
+
+                        with(flingBehaviorX) {
+                            scrollScope.performFling(velocity.x)
+                        }
+                    }
+                    scrollStateY.scroll {
+                        val scrollScope = object : ScrollScope {
+                            override fun scrollBy(pixels: Float): Float {
+                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(0F, pixels), NestedScrollSource.Fling).y
+                                val scrollAvailableAfterPreScroll = pixels - consumedByPreScroll
+                                val consumedBySelfScroll = this@scroll.scrollBy(scrollAvailableAfterPreScroll)
+                                val deltaAvailableAfterScroll = scrollAvailableAfterPreScroll - consumedBySelfScroll
+                                val consumedByPostScroll = nestedScrollDispatcher.dispatchPostScroll(
+                                    Offset(0F, consumedBySelfScroll),
+                                    Offset(0F, deltaAvailableAfterScroll),
+                                    NestedScrollSource.Fling
+                                ).y
+                                return consumedByPreScroll + consumedBySelfScroll + consumedByPostScroll
+                            }
+                        }
+
+                        with(flingBehaviorY) {
+                            scrollScope.performFling(velocity.y)
+                        }
+                    }
+                }
+            },
+            onDragStart = {
+                velocityTracker.resetTracking()
+            }
+        )
     }
 }
