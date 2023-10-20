@@ -73,11 +73,12 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun RozvrhScreen(
     vjec: Vjec? = null,
+    mujRozvrh: Boolean? = null,
     stalost: Stalost? = null,
     navigator: DestinationsNavigator,
 ) {
     val viewModel = koinViewModel<RozvrhViewModel> {
-        parametersOf(RozvrhViewModel.Parameters(vjec, stalost, navigator.navigate))
+        parametersOf(RozvrhViewModel.Parameters(vjec, stalost, mujRozvrh, navigator.navigate))
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
@@ -86,7 +87,7 @@ fun RozvrhScreen(
     val tridy by viewModel.tridy.collectAsStateWithLifecycle()
     val mistnosti by viewModel.mistnosti.collectAsStateWithLifecycle()
     val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
-    val mujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
+    val realMujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
     val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
 
     RozvrhScreen(
@@ -103,7 +104,7 @@ fun RozvrhScreen(
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
-        mujRozvrh = mujRozvrh,
+        mujRozvrh = realMujRozvrh,
         zmenitMujRozvrh = viewModel::zmenitMujRozvrh,
         zobrazitMujRozvrh = zobrazitMujRozvrh,
     )
@@ -125,7 +126,7 @@ fun RozvrhScreen(
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
-    mujRozvrh: Boolean,
+    mujRozvrh: Boolean?,
     zmenitMujRozvrh: () -> Unit,
     zobrazitMujRozvrh: Boolean,
 ) = Scaffold(
@@ -140,7 +141,7 @@ fun RozvrhScreen(
         )
     }
 ) { paddingValues ->
-    if (vjec == null || tridy.size <= 1) LinearProgressIndicator(
+    if (vjec == null || mujRozvrh == null || tridy.size <= 1) LinearProgressIndicator(
         Modifier
             .padding(paddingValues)
             .fillMaxWidth()
@@ -179,7 +180,7 @@ fun RozvrhScreen(
 
             Vybiratko(
                 value = stalost,
-                seznam = Stalost.entries,
+                seznam = Stalost.dnesniEntries(),
                 onClick = { _, stalost -> zmenitStalost(stalost) },
                 Modifier
                     .weight(1F)
@@ -405,8 +406,8 @@ private fun Tabulka(
 ) {
     if (tabulka.isEmpty()) return
 
-    val horScrollState = rememberScrollState()
-    val verScrollState = rememberScrollState()
+    val horScrollState = rememberScrollState(Int.MAX_VALUE)
+    val verScrollState = rememberScrollState(Int.MAX_VALUE)
 
     Column(
         Modifier.doubleScrollable(horScrollState, verScrollState)

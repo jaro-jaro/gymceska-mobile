@@ -59,6 +59,7 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
+import cz.jaro.rozvrh.rozvrh.dnesniEntries
 import cz.jaro.rozvrh.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -371,7 +372,7 @@ fun NastaveniScreen(
 
             var kopirovatNastaveniDialog by remember { mutableStateOf(false) }
             var kopirovatDialog by remember { mutableStateOf(false) }
-            var stalost by remember { mutableStateOf(Stalost.TentoTyden) }
+            var stalost by remember { mutableStateOf(Stalost.dnesniEntries().first()) }
             var nacitame by remember { mutableStateOf(false) }
             var podrobnostiNacitani by remember { mutableStateOf("") }
 

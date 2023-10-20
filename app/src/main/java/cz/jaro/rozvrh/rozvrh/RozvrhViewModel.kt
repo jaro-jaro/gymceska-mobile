@@ -9,11 +9,10 @@ import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
 import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -31,41 +30,42 @@ class RozvrhViewModel(
     data class Parameters(
         val vjec: Vjec?,
         val stalost: Stalost?,
+        val mujRozvrh: Boolean?,
         val navigovat: (Direction) -> Unit,
     )
 
     val tridy = repo.tridy
     val mistnosti = repo.mistnosti
     val vyucujici = repo.vyucujici
-    val vyucujici2 = repo.vyucujici2
+    private val vyucujici2 = repo.vyucujici2
 
     val vjec = repo.nastaveni.map {
         params.vjec ?: it.mojeTrida
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), params.vjec)
 
-    val stalost = params.stalost ?: Stalost.TentoTyden
+    val stalost = params.stalost ?: Stalost.dnesniEntries().first()
+
+    private val _mujRozvrh = repo.nastaveni.map { nastaveni ->
+        params.mujRozvrh ?: nastaveni.defaultMujRozvrh
+    }
+
+    val mujRozvrh = combine(_mujRozvrh, repo.nastaveni, vjec) { mujRozvrh, nastaveni, vjec ->
+        if (vjec == null) null
+        else mujRozvrh && vjec == nastaveni.mojeTrida
+    }
+        .filterNotNull()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), params.mujRozvrh)
 
     fun vybratRozvrh(vjec: Vjec) {
-        params.navigovat(RozvrhScreenDestination(vjec, stalost))
+        params.navigovat(RozvrhScreenDestination(vjec, mujRozvrh.value, stalost))
     }
 
     fun zmenitStalost(stalost: Stalost) {
-        params.navigovat(RozvrhScreenDestination(vjec.value, stalost))
+        params.navigovat(RozvrhScreenDestination(vjec.value, mujRozvrh.value, stalost))
     }
-
-    private val _mujRozvrh = MutableStateFlow(false)
-    val mujRozvrh = _mujRozvrh.asStateFlow()
 
     fun zmenitMujRozvrh() {
-        _mujRozvrh.value = !_mujRozvrh.value
-    }
-
-    init {
-        viewModelScope.launch {
-            repo.nastaveni.collect {
-                _mujRozvrh.value = it.defaultMujRozvrh
-            }
-        }
+        params.navigovat(RozvrhScreenDestination(vjec.value, mujRozvrh.value != true, stalost))
     }
 
     val zobrazitMujRozvrh = vjec.combine(repo.nastaveni) { vjec, nastaveni ->
@@ -73,7 +73,7 @@ class RozvrhViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
 
     val tabulka = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
-        if (vjec == null) null
+        if (vjec == null || mujRozvrh == null) null
         else when (vjec) {
             is Vjec.TridaVjec -> withContext(Dispatchers.IO) Nacitani@{
                 repo.ziskatDocument(

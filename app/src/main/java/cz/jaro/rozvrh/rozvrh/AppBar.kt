@@ -92,8 +92,8 @@ fun AppBar(
             var volneTridy by remember { mutableStateOf(emptyList<Vjec.MistnostVjec>()) }
             var volniUcitele by remember { mutableStateOf(emptyList<Vjec.VyucujiciVjec>()) }
             var ucebna by remember { mutableStateOf(true) }
-            var stalost by remember { mutableStateOf(Stalost.TentoTyden) }
-            var denIndex by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value - 1) }
+            var stalost by remember { mutableStateOf(Stalost.dnesniEntries().first()) }
+            var denIndex by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value.coerceAtMost(5) - 1) }
             var hodinaIndex by remember(tabulka) {
                 mutableIntStateOf(
                     tabulka
@@ -224,10 +224,10 @@ fun AppBar(
                             zaskrtavatko = { false },
                         )
                         Vybiratko(
-                            seznam = Stalost.entries.map { it.kdy },
+                            seznam = Stalost.dnesniEntries().map { it.kdy },
                             value = stalost.kdy,
                             onClick = { i, _ ->
-                                stalost = Stalost.entries[i]
+                                stalost = Stalost.dnesniEntries()[i]
                             },
                             zaskrtavatko = { false },
                         )
