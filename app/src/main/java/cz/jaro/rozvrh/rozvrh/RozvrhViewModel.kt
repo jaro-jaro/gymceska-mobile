@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
+import androidx.compose.foundation.ScrollState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -32,6 +34,8 @@ class RozvrhViewModel(
         val stalost: Stalost?,
         val mujRozvrh: Boolean?,
         val navigovat: (Direction) -> Unit,
+        val horScrollState: ScrollState,
+        val verScrollState: ScrollState,
     )
 
     val tridy = repo.tridy
@@ -54,18 +58,46 @@ class RozvrhViewModel(
         else mujRozvrh && vjec == nastaveni.mojeTrida
     }
         .filterNotNull()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), params.mujRozvrh)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
 
     fun vybratRozvrh(vjec: Vjec) {
-        params.navigovat(RozvrhScreenDestination(vjec, mujRozvrh.value, stalost))
+        viewModelScope.launch {
+            params.navigovat(
+                RozvrhScreenDestination(
+                    vjec = if (vjec.jmeno == "HOME") repo.nastaveni.first().mojeTrida else vjec,
+                    mujRozvrh = _mujRozvrh.first(),
+                    stalost = stalost,
+                )
+            )
+        }
     }
 
     fun zmenitStalost(stalost: Stalost) {
-        params.navigovat(RozvrhScreenDestination(vjec.value, mujRozvrh.value, stalost))
+        viewModelScope.launch {
+            params.navigovat(
+                RozvrhScreenDestination(
+                    vjec = vjec.value,
+                    mujRozvrh = _mujRozvrh.first(),
+                    stalost = stalost,
+                    horScroll = params.horScrollState.value,
+                    verScroll = params.verScrollState.value,
+                )
+            )
+        }
     }
 
     fun zmenitMujRozvrh() {
-        params.navigovat(RozvrhScreenDestination(vjec.value, mujRozvrh.value != true, stalost))
+        viewModelScope.launch {
+            params.navigovat(
+                RozvrhScreenDestination(
+                    vjec = vjec.value,
+                    mujRozvrh = !_mujRozvrh.first(),
+                    stalost = stalost,
+                    horScroll = params.horScrollState.value,
+                    verScroll = params.verScrollState.value,
+                )
+            )
+        }
     }
 
     val zobrazitMujRozvrh = vjec.combine(repo.nastaveni) { vjec, nastaveni ->
@@ -73,7 +105,7 @@ class RozvrhViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
 
     val tabulka = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
-        if (vjec == null || mujRozvrh == null) null
+        if (vjec == null) null
         else when (vjec) {
             is Vjec.TridaVjec -> withContext(Dispatchers.IO) Nacitani@{
                 repo.ziskatDocument(

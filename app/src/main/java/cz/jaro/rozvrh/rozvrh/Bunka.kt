@@ -1,6 +1,5 @@
 package cz.jaro.rozvrh.rozvrh
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,30 +41,26 @@ data class Bunka(
 
     @Composable
     fun Compose(
-        bunekVHodine: Int,
-        maxBunekDne: Int,
+        aspectRatio: Float,
         tridy: List<Vjec.TridaVjec>,
         mistnosti: List<Vjec.MistnostVjec>,
         vyucujici: List<Vjec.VyucujiciVjec>,
         kliklNaNeco: (vjec: Vjec) -> Unit,
     ) = Box(
         modifier = Modifier
-            .aspectRatio(1F * bunekVHodine / maxBunekDne)
-            .animateContentSize()
+            .aspectRatio(aspectRatio)
             .border(1.dp, MaterialTheme.colorScheme.secondary)
-            .size(zakladniVelikostBunky, zakladniVelikostBunky * maxBunekDne / bunekVHodine)
+            .size(zakladniVelikostBunky, zakladniVelikostBunky / aspectRatio)
             .background(if (zbarvit) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Row(
             Modifier
-                .matchParentSize()
-                .animateContentSize(),
+                .matchParentSize(),
             verticalAlignment = Alignment.Top,
         ) {
             if (ucebna.isNotBlank()) Box(
-                Modifier
-                    .animateContentSize(),
+                Modifier,
                 contentAlignment = Alignment.TopStart,
             ) {
                 ResponsiveText(
@@ -83,8 +78,7 @@ data class Bunka(
             }
             if (tridaSkupina.isNotBlank()) Box(
                 Modifier
-                    .weight(1F)
-                    .animateContentSize(),
+                    .weight(1F),
                 contentAlignment = Alignment.TopEnd,
             ) {
                 ResponsiveText(
@@ -129,25 +123,22 @@ data class Bunka(
             color = if (zbarvit) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onBackground,
         )
 
-        val divnyRozlozeni = maxBunekDne < bunekVHodine
+        val divnyRozlozeni = aspectRatio > 1F
 
         if (divnyRozlozeni) Row(
             Modifier
-                .matchParentSize()
-                .animateContentSize(),
+                .matchParentSize(),
             verticalAlignment = Alignment.Bottom,
         ) {
             if (predmet.isNotBlank()) Box(
-                Modifier
-                    .animateContentSize(),
+                Modifier,
                 contentAlignment = Alignment.BottomStart,
             ) {
                 Predmet()
             }
             if (ucitel.isNotBlank()) Box(
                 Modifier
-                    .weight(1F)
-                    .animateContentSize(),
+                    .weight(1F),
                 contentAlignment = Alignment.BottomEnd,
             ) {
                 Ucitel()
@@ -156,16 +147,14 @@ data class Bunka(
 
         if (!divnyRozlozeni) Box(
             Modifier
-                .matchParentSize()
-                .animateContentSize(),
+                .matchParentSize(),
             contentAlignment = Alignment.Center,
         ) {
             Predmet()
         }
         if (!divnyRozlozeni) Box(
             Modifier
-                .matchParentSize()
-                .animateContentSize(),
+                .matchParentSize(),
             contentAlignment = Alignment.BottomCenter,
         ) {
             Ucitel()
