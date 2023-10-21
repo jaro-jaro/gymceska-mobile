@@ -200,7 +200,11 @@ class UkolyWidget : GlanceAppWidget() {
                         } ?: return@launch
 
                     appWidgetIds.forEach {
-                        val id = GlanceAppWidgetManager(context).getGlanceIdBy(it)
+                        val id = try {
+                            GlanceAppWidgetManager(context).getGlanceIdBy(it)
+                        } catch (_: IllegalArgumentException) {
+                            return@forEach
+                        }
 
                         updateAppWidgetState(context, id) { prefs ->
                             prefs[stringPreferencesKey("ukoly")] = Json.encodeToString(ukoly)

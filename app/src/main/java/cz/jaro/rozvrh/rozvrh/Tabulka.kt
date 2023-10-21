@@ -253,6 +253,8 @@ private fun Modifier.doubleScrollable(
                             scrollScope.performFling(velocity.x)
                         }
                     }
+                }
+                coroutineScope.launch {
                     scrollStateY.scroll {
                         val scrollScope = object : ScrollScope {
                             override fun scrollBy(pixels: Float): Float {
