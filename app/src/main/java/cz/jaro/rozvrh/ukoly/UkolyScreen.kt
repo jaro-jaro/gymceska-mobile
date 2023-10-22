@@ -2,7 +2,6 @@ package cz.jaro.rozvrh.ukoly
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
@@ -108,33 +107,34 @@ fun UkolyScreen(
                 is UkolyState.Nacteno -> {
                     items(state.ukoly.size, key = { state.ukoly[it].id }) { i ->
                         val ukol = state.ukoly[i]
-
                         if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred) {
                             val alpha by animateFloatAsState(if (i != state.ukoly.lastIndex) 1F else 0F, label = "alpha")
                             Text(stringResource(R.string.splnene_ukoly),
                                 Modifier
                                     .animateItemPlacement()
                                     .alpha(alpha))
-                        }
-                        else Row(
-                            Modifier.animateItemPlacement(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = ukol.stav == StavUkolu.Skrtly,
-                                onCheckedChange = {
-                                    (if (ukol.stav == StavUkolu.Skrtly) odskrtnout else skrtnout)(ukol.id)
+                        } else
+                            ListItem(
+                                headlineContent = {
+                                    if (ukol.stav == StavUkolu.Skrtly) Text(
+                                        text = ukol.text,
+                                        textDecoration = TextDecoration.LineThrough,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = .38F)
+                                    )
+                                    else Text(
+                                        text = ukol.text,
+                                    )
+                                },
+                                Modifier.animateItemPlacement(),
+                                leadingContent = {
+                                    Checkbox(
+                                        checked = ukol.stav == StavUkolu.Skrtly,
+                                        onCheckedChange = {
+                                            (if (ukol.stav == StavUkolu.Skrtly) odskrtnout else skrtnout)(ukol.id)
+                                        }
+                                    )
                                 }
                             )
-                            if (ukol.stav == StavUkolu.Skrtly) Text(
-                                text = ukol.text,
-                                textDecoration = TextDecoration.LineThrough,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = .38F)
-                            )
-                            else Text(
-                                text = ukol.text,
-                            )
-                        }
                     }
                     if (state.ukoly.isEmpty()) item {
                         Text("Žádné úkoly nejsou! Jupí!!!")

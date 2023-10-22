@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
@@ -207,7 +207,7 @@ fun RozvrhScreen(
                             napoveda = true
                         }
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Help, null)
+                        Icon(Icons.Filled.Help, null)
                     }
                 },
             )

@@ -31,8 +31,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
-import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import cz.jaro.rozvrh.ResponsiveText
 import kotlinx.coroutines.launch
@@ -218,9 +216,8 @@ private fun Modifier.doubleScrollable(
 
     val velocityTracker = remember { VelocityTracker() }
     val nestedScrollDispatcher = remember { NestedScrollDispatcher() }
-    val maximumFlingVelocity = LocalViewConfiguration.current.maximumFlingVelocity.toFloat()
 
-    pointerInput(maximumFlingVelocity) {
+    pointerInput(Unit) {
         detectDragGestures(
             onDrag = { pointerInputChange, offset ->
                 coroutineScope.launch {
@@ -230,7 +227,7 @@ private fun Modifier.doubleScrollable(
                 }
             },
             onDragEnd = {
-                val velocity = velocityTracker.calculateVelocity(maximumVelocity = Velocity(maximumFlingVelocity, maximumFlingVelocity))
+                val velocity = velocityTracker.calculateVelocity()
                 velocityTracker.resetTracking()
                 coroutineScope.launch {
                     scrollStateX.scroll {

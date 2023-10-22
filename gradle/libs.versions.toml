@@ -1,40 +1,33 @@
 [versions]
-accompanist-flowlayout = "latest.release"
-accompanist-permissions = "latest.release"
-androidx-activity-compose = "latest.release"
-androidx-constraintlayout = "latest.release"
-androidx-appcompat = "latest.release"
-androidx-core = "latest.release"
-compose-material3-datetime-pickers = "latest.release"
-firebase-analytics = "latest.release"
-firebase-config = "latest.release"
-firebase-crashlytics = "latest.release"
-firebase-crashlytics-gradle = "latest.release"
-androidx-glance = "latest.release"
-androidx-compose = "latest.release"
-firebase-database = "latest.release"
-json = "latest.release"
-jsoup = "latest.release"
-junit-jupiter = "latest.release"
-kotlin = "latest.release"
-kotlinx-coroutines = "latest.release"
+androidx-activity-compose = "1.8.0"
+androidx-core = "1.12.0"
+compose-material3-datetime-pickers = "0.7.2"
+firebase-analytics = "21.4.0"
+firebase-config = "21.5.0"
+firebase-crashlytics = "18.5.0"
+firebase-crashlytics-gradle = "2.9.9"
+androidx-glance = "1.0.0"
+androidx-compose = "1.5.3"
+firebase-database = "20.3.0"
+json = "20231013"
+jsoup = "1.16.2"
+junit-jupiter = "5.10.0"
+kotlin = "1.9.10"
+kotlinx-coroutines = "1.7.3"
 kotlinx-serialization-json = "1.5.1"
-androidx-legacy-support-v4 = "latest.release"
-material = "latest.release"
-material3 = "latest.release"
-androidx-navigation = "latest.release"
-androidx-work = "latest.release"
+material3 = "1.1.2"
+androidx-navigation = "2.7.4"
 android-gradle-plugin = "8.3.0-alpha09"
-gms-google-services = "latest.release"
-koin = "latest.release"
-koin-androidx-compose = "latest.release"
-koin-annotations = "latest.release"
-ksp = "latest.release"
-compose-destinations = "latest.release"
-androidx-lifecycle = "latest.release"
+gms-google-services = "4.4.0"
+koin = "3.5.0"
+koin-androidx-compose = "3.5.0"
+koin-annotations = "1.3.0"
+ksp = "1.9.10-1.0.13"
+compose-destinations = "1.9.54"
+androidx-lifecycle = "2.6.2"
 datastore = "1.0.0"
-semver = "latest.release"
-compose-compiler = "1.5.4-dev-k1.9.20-RC-1edce5fd625"
+semver = "1.4.2"
+compose-compiler = "1.5.3"
 
 [libraries]
 # Androidx
@@ -49,7 +42,6 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Kotlinx Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 # Androidx Navigation
-#androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "androidx-navigation" }
 #   Compose
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidx-navigation" }
 # Androidx Jetpack Compose
@@ -104,7 +96,6 @@ androidx-jetpack-compose = [
     "androidx-lifecycle-viewmodel-compose",
 ]
 androidx-navigation = [
-    #    "androidx-navigation-ui-ktx",
     "androidx-navigation-compose",
 ]
 androidx-jetpack-glance = [

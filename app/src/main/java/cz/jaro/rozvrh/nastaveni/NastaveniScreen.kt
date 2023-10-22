@@ -14,11 +14,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -110,7 +110,7 @@ fun NastaveniScreen(
                     IconButton(
                         onClick = navigateBack
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.zpet))
+                        Icon(Icons.Filled.ArrowBack, stringResource(R.string.zpet))
                     }
                 }
             )
@@ -215,7 +215,7 @@ fun NastaveniScreen(
                     }
                 )
             }
-            HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
+            Divider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
             Vybiratko(
                 index = when (nastaveni.prepnoutRozvrhWidget) {
                     is PrepnoutRozvrhWidget.OPulnoci -> 0
@@ -325,7 +325,7 @@ fun NastaveniScreen(
                     ),
                 )
             }
-            HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
+            Divider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline, thickness = Dp.Hairline)
             Vybiratko(
                 value = nastaveni.mojeTrida.jmeno,
                 seznam = remember { tridy.map { it.jmeno }.drop(1) },
