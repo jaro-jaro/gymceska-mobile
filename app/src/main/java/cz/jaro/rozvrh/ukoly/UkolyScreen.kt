@@ -1,12 +1,11 @@
 package cz.jaro.rozvrh.ukoly
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
@@ -15,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -22,8 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -105,28 +105,36 @@ fun UkolyScreen(
             when (state) {
                 UkolyState.Nacitani -> item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 is UkolyState.Nacteno -> {
-                    items(state.ukoly, key = { it.id }) { ukol ->
-                        if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred)
-                            Text(stringResource(R.string.splnene_ukoly), Modifier.animateItemPlacement())
-                        else Row(
-                            Modifier.animateItemPlacement(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = ukol.stav == StavUkolu.Skrtly,
-                                onCheckedChange = {
-                                    (if (ukol.stav == StavUkolu.Skrtly) odskrtnout else skrtnout)(ukol.id)
+                    items(state.ukoly.size, key = { state.ukoly[it].id }) { i ->
+                        val ukol = state.ukoly[i]
+                        if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred) {
+                            val alpha by animateFloatAsState(if (i != state.ukoly.lastIndex) 1F else 0F, label = "alpha")
+                            Text(stringResource(R.string.splnene_ukoly),
+                                Modifier
+                                    .animateItemPlacement()
+                                    .alpha(alpha))
+                        } else
+                            ListItem(
+                                headlineContent = {
+                                    if (ukol.stav == StavUkolu.Skrtly) Text(
+                                        text = ukol.text,
+                                        textDecoration = TextDecoration.LineThrough,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = .38F)
+                                    )
+                                    else Text(
+                                        text = ukol.text,
+                                    )
+                                },
+                                Modifier.animateItemPlacement(),
+                                leadingContent = {
+                                    Checkbox(
+                                        checked = ukol.stav == StavUkolu.Skrtly,
+                                        onCheckedChange = {
+                                            (if (ukol.stav == StavUkolu.Skrtly) odskrtnout else skrtnout)(ukol.id)
+                                        }
+                                    )
                                 }
                             )
-                            if (ukol.stav == StavUkolu.Skrtly) Text(
-                                text = ukol.text,
-                                textDecoration = TextDecoration.LineThrough,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = .38F)
-                            )
-                            else Text(
-                                text = ukol.text,
-                            )
-                        }
                     }
                     if (state.ukoly.isEmpty()) item {
                         Text("Žádné úkoly nejsou! Jupí!!!")

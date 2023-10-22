@@ -1,11 +1,11 @@
 package cz.jaro.rozvrh.ukoly.widget
 
+import android.annotation.SuppressLint
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -40,6 +40,8 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.ukoly.JednoduchyUkol
 import cz.jaro.rozvrh.ukoly.StavUkolu
+import cz.jaro.rozvrh.ukoly.Ukol
+import cz.jaro.rozvrh.ukoly.ciselnaHodnotaDatumu
 import cz.jaro.rozvrh.ukoly.zjednusit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +55,7 @@ import java.util.UUID
 
 class UkolyWidget : GlanceAppWidget() {
 
-    @Suppress("DEPRECATION")
+    @SuppressLint("RestrictedApi")
     @Composable
     fun Content(
         context: Context
@@ -61,9 +63,8 @@ class UkolyWidget : GlanceAppWidget() {
         val prefs = currentState<Preferences>()
         val ukoly = Json.decodeFromString<List<JednoduchyUkol>>(prefs[stringPreferencesKey("ukoly")] ?: "[]")
 
-        val bg = ColorProvider(Color(context.resources.getColor(R.color.background_color)))
-        val onbgColor = Color(context.resources.getColor(R.color.on_background_color))
-        val onbg = ColorProvider(onbgColor)
+        val bg = ColorProvider(R.color.background_color)
+        val onbg = ColorProvider(R.color.on_background_color)
 
         val action = actionStartActivity(Intent(context, MainActivity::class.java).apply {
             putExtra("ukoly", true)
@@ -114,7 +115,7 @@ class UkolyWidget : GlanceAppWidget() {
                         text = ukol.text,
                         GlanceModifier.clickable(action),
                         style = TextStyle(
-                            color = ColorProvider(onbgColor.copy(alpha = .38F)),
+                            color = ColorProvider(onbg.getColor(context).copy(alpha = .38F)),
                             textDecoration = TextDecoration.LineThrough,
                         ),
                     )
@@ -175,13 +176,15 @@ class UkolyWidget : GlanceAppWidget() {
                 CoroutineScope(Dispatchers.IO).launch {
                     val rawUkoly = repo.ukoly.first()
                     val skrtle = repo.skrtleUkoly.first()
-                    val ukoly = rawUkoly?.map {
-                        it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
-                    }
-                        ?.run {
-                            if (any { it.stav == StavUkolu.Skrtly })
-                                plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
-                            else this
+                    val ukoly = rawUkoly
+                        ?.sortedBy(Ukol::ciselnaHodnotaDatumu)
+                        ?.map {
+                            it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
+                        }
+                        ?.let { ukoly ->
+                            if (ukoly.any { it.stav == StavUkolu.Skrtly })
+                                ukoly.plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
+                            else ukoly
                         }
                         ?.sortedBy {
                             when (it.stav) {
@@ -192,7 +195,11 @@ class UkolyWidget : GlanceAppWidget() {
                         } ?: return@launch
 
                     appWidgetIds.forEach {
-                        val id = GlanceAppWidgetManager(context).getGlanceIdBy(it)
+                        val id = try {
+                            GlanceAppWidgetManager(context).getGlanceIdBy(it)
+                        } catch (_: IllegalArgumentException) {
+                            return@forEach
+                        }
 
                         updateAppWidgetState(context, id) { prefs ->
                             prefs[stringPreferencesKey("ukoly")] = Json.encodeToString(ukoly)

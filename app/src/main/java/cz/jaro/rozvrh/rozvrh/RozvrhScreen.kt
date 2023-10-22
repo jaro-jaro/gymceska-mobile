@@ -1,35 +1,24 @@
 package cz.jaro.rozvrh.rozvrh
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,11 +44,26 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun RozvrhScreen(
     vjec: Vjec? = null,
+    mujRozvrh: Boolean? = null,
     stalost: Stalost? = null,
+    horScroll: Int? = null,
+    verScroll: Int? = null,
     navigator: DestinationsNavigator,
 ) {
+    val horScrollState = rememberScrollState(horScroll ?: Int.MAX_VALUE)
+    val verScrollState = rememberScrollState(verScroll ?: Int.MAX_VALUE)
+
     val viewModel = koinViewModel<RozvrhViewModel> {
-        parametersOf(RozvrhViewModel.Parameters(vjec, stalost, navigator.navigate))
+        parametersOf(
+            RozvrhViewModel.Parameters(
+                vjec = vjec,
+                stalost = stalost,
+                mujRozvrh = mujRozvrh,
+                navigovat = navigator.navigate,
+                horScrollState = horScrollState,
+                verScrollState = verScrollState,
+            )
+        )
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
@@ -68,7 +72,7 @@ fun RozvrhScreen(
     val tridy by viewModel.tridy.collectAsStateWithLifecycle()
     val mistnosti by viewModel.mistnosti.collectAsStateWithLifecycle()
     val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
-    val mujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
+    val realMujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
     val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
 
     RozvrhScreen(
@@ -80,16 +84,20 @@ fun RozvrhScreen(
         stahnoutVse = viewModel.stahnoutVse,
         navigate = navigator.navigate,
         najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
+        najdiMiVolnehoUcitele = viewModel::najdiMiVolnehoUcitele,
         rozvrhOfflineWarning = tabulka?.second,
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
-        mujRozvrh = mujRozvrh,
+        mujRozvrh = realMujRozvrh,
         zmenitMujRozvrh = viewModel::zmenitMujRozvrh,
         zobrazitMujRozvrh = zobrazitMujRozvrh,
+        horScrollState = horScrollState,
+        verScrollState = verScrollState,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RozvrhScreen(
     tabulka: Tyden?,
@@ -100,23 +108,29 @@ fun RozvrhScreen(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    najdiMiVolnehoUcitele: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     rozvrhOfflineWarning: String?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
-    mujRozvrh: Boolean,
+    mujRozvrh: Boolean?,
     zmenitMujRozvrh: () -> Unit,
     zobrazitMujRozvrh: Boolean,
+    horScrollState: ScrollState,
+    verScrollState: ScrollState,
 ) = Scaffold(
     topBar = {
         AppBar(
             stahnoutVse = stahnoutVse,
             navigate = navigate,
             najdiMiVolnouTridu = najdiMiVolnouTridu,
+            najdiMiVolnehoUcitele = najdiMiVolnehoUcitele,
+            tabulka = tabulka,
+            vybratRozvrh = vybratRozvrh,
         )
     }
 ) { paddingValues ->
-    if (vjec == null || tridy.size <= 1) LinearProgressIndicator(
+    if (vjec == null || mujRozvrh == null || tridy.size <= 1) LinearProgressIndicator(
         Modifier
             .padding(paddingValues)
             .fillMaxWidth()
@@ -127,66 +141,86 @@ fun RozvrhScreen(
             .fillMaxSize()
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.Bottom
         ) {
-            println(vjec to tridy)
             Vybiratko(
-                seznam = tridy.map { it.jmeno },
-                aktualIndex = if (vjec is Vjec.TridaVjec) tridy.indexOf(vjec) else 0,
-                nulaDisabled = true,
-            ) { i ->
-                if (i == 0) return@Vybiratko
-                vybratRozvrh(tridy[i])
-            }
-            if (zobrazitMujRozvrh) IconButton(
-                onClick = zmenitMujRozvrh
-            ) {
-                Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
-            }
-
-            Spacer(modifier = Modifier.weight(1F))
+                value = if (vjec is Vjec.TridaVjec) vjec else null,
+                seznam = tridy.drop(1),
+                onClick = { i, _ -> vybratRozvrh(tridy[i + 1]) },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
+                label = tridy.first().jmeno,
+                trailingIcon = { hide ->
+                    if (zobrazitMujRozvrh) IconButton(
+                        onClick = {
+                            hide()
+                            zmenitMujRozvrh()
+                        }
+                    ) {
+                        Icon(if (mujRozvrh) Icons.Default.PeopleAlt else Icons.Default.Person, null)
+                    }
+                    else IconButton(
+                        onClick = {
+                            hide()
+                            vybratRozvrh(Vjec.TridaVjec("HOME"))
+                        }
+                    ) {
+                        Icon(Icons.Default.Home, null)
+                    }
+                },
+            )
 
             Vybiratko(
-                seznam = Stalost.values().toList(),
-                value = stalost
-            ) { novaStalost ->
-                zmenitStalost(novaStalost)
-            }
+                value = stalost,
+                seznam = Stalost.dnesniEntries(),
+                onClick = { _, stalost -> zmenitStalost(stalost) },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
+            )
         }
         var napoveda by remember { mutableStateOf(false) }
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.Bottom,
         ) {
             Vybiratko(
-                seznam = mistnosti.map { it.jmeno },
-                aktualIndex = if (vjec is Vjec.MistnostVjec) mistnosti.indexOf(vjec) else 0,
-                nulaDisabled = true,
-            ) { i ->
-                if (i == 0) return@Vybiratko
-                vybratRozvrh(mistnosti[i])
-            }
-            IconButton(
-                onClick = {
-                    napoveda = true
-                }
-            ) {
-                Icon(Icons.Default.Help, null)
-            }
-
-            Spacer(modifier = Modifier.weight(1F))
+                value = if (vjec is Vjec.MistnostVjec) vjec else null,
+                seznam = mistnosti.drop(1),
+                onClick = { i, _ -> vybratRozvrh(mistnosti[i + 1]) },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
+                label = mistnosti.first().jmeno,
+                trailingIcon = { hide ->
+                    IconButton(
+                        onClick = {
+                            hide()
+                            napoveda = true
+                        }
+                    ) {
+                        Icon(Icons.Filled.Help, null)
+                    }
+                },
+            )
 
             Vybiratko(
-                seznam = vyucujici.map { it.jmeno },
-                aktualIndex = if (vjec is Vjec.VyucujiciVjec) vyucujici.indexOf(vjec) else 0,
-                nulaDisabled = true,
-            ) { i ->
-                if (i == 0) return@Vybiratko
-                vybratRozvrh(vyucujici[i])
-            }
+                value = if (vjec is Vjec.VyucujiciVjec) vjec else null,
+                seznam = vyucujici.drop(1),
+                onClick = { i, _ -> vybratRozvrh(vyucujici[i + 1]) },
+                Modifier
+                    .weight(1F)
+                    .padding(horizontal = 4.dp),
+                label = vyucujici.first().jmeno,
+            )
         }
         if (napoveda) AlertDialog(
             onDismissRequest = {
@@ -202,7 +236,7 @@ fun RozvrhScreen(
                 }
             },
             title = {
-                Text("Nápověda k místnostím")
+                Text("Nápověda k místnostem")
             },
             text = {
                 LazyColumn {
@@ -215,6 +249,7 @@ fun RozvrhScreen(
 
         if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
         else Tabulka(
+            vjec = vjec,
             tabulka = tabulka,
             kliklNaNeco = { vjec ->
                 vybratRozvrh(vjec)
@@ -223,216 +258,10 @@ fun RozvrhScreen(
             tridy = tridy,
             mistnosti = mistnosti,
             vyucujici = vyucujici,
+            mujRozvrh = mujRozvrh,
+            horScrollState = horScrollState,
+            verScrollState = verScrollState,
         )
     }
 }
 
-context(ColumnScope)
-@Composable
-private fun Tabulka(
-    tabulka: Tyden,
-    kliklNaNeco: (vjec: Vjec) -> Unit,
-    rozvrhOfflineWarning: String?,
-    tridy: List<Vjec.TridaVjec>,
-    mistnosti: List<Vjec.MistnostVjec>,
-    vyucujici: List<Vjec.VyucujiciVjec>,
-) {
-    Text(
-        rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-    )
-
-    if (tabulka.isEmpty()) return
-
-    val horScrollState = rememberScrollState()
-
-    Row(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-    ) {
-
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
-        ) {
-            Box(
-                modifier = Modifier
-                    .aspectRatio(1F)
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .size(60.dp, 60.dp)
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .horizontalScroll(horScrollState)
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
-        ) {
-            tabulka.first().drop(1).forEach { cisloHodiny ->
-
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1F)
-                        .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .size(120.dp, 60.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize(),
-                        contentAlignment = Alignment.TopCenter,
-                    ) {
-                        Text(
-                            text = cisloHodiny.first().predmet,
-                            modifier = Modifier
-                                .padding(all = 8.dp)
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize(),
-                        contentAlignment = Alignment.BottomCenter,
-                    ) {
-                        Text(
-                            text = cisloHodiny.first().ucitel,
-                            modifier = Modifier
-                                .padding(all = 8.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-    ) {
-        item {
-            Row {
-                val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
-
-                Column(
-                    Modifier.horizontalScroll(rememberScrollState())
-                ) {
-                    tabulka.drop(1).map { it.first() }.forEachIndexed { i, den ->
-                        Column(
-                            modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .aspectRatio(1F)
-                                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                                    .size(60.dp, 120.dp * maxy[i + 1])
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize(),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = den.first().predmet,
-                                        modifier = Modifier
-                                            .padding(all = 8.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Column(
-                    Modifier.horizontalScroll(horScrollState)
-                ) {
-                    tabulka.drop(1).forEachIndexed { i, radek ->
-                        Row {
-                            radek.drop(1).forEach { hodina ->
-                                Column(
-                                    modifier = Modifier
-                                        .border(1.dp, MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    hodina.forEach { bunka ->
-                                        bunka.Compose(
-                                            bunekVHodine = hodina.size,
-                                            maxBunekDne = maxy[i + 1],
-                                            kliklNaNeco = kliklNaNeco,
-                                            tridy = tridy,
-                                            mistnosti = mistnosti,
-                                            vyucujici = vyucujici,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun Vybiratko(
-    seznam: List<Stalost>,
-    value: Stalost,
-    modifier: Modifier = Modifier,
-    poklik: (vjec: Stalost) -> Unit,
-) = Vybiratko(
-    seznam = seznam.map { it.nazev },
-    aktualIndex = seznam.indexOf(value).takeIf { it != -1 } ?: 0,
-    modifier,
-    poklik = {
-        poklik(seznam[it])
-    },
-)
-
-@Composable
-fun Vybiratko(
-    seznam: List<String>,
-    aktualIndex: Int,
-    modifier: Modifier = Modifier,
-    nulaDisabled: Boolean = false,
-    poklik: (i: Int) -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .padding(all = 8.dp)
-    ) {
-        var vidimMenu by remember { mutableStateOf(false) }
-
-        DropdownMenu(
-            expanded = vidimMenu,
-            onDismissRequest = { vidimMenu = false }
-        ) {
-            seznam.forEachIndexed { i, x ->
-
-                DropdownMenuItem(
-                    text = { Text(x) },
-                    onClick = {
-                        vidimMenu = false
-                        poklik(i)
-                    },
-                    enabled = !(nulaDisabled && i == 0)
-                )
-            }
-        }
-
-        OutlinedButton(
-            onClick = {
-                vidimMenu = true
-            }
-        ) {
-            Text(seznam[aktualIndex])
-            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Icon(
-                Icons.Filled.ArrowDropDown,
-                contentDescription = "Vyberte",
-                modifier = Modifier.size(ButtonDefaults.IconSize)
-            )
-        }
-    }
-}

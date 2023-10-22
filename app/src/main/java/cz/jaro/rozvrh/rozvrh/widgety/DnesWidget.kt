@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh.widgety
 
+import android.annotation.SuppressLint
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -60,7 +61,7 @@ import java.time.LocalTime
 
 class DnesWidget : GlanceAppWidget() {
 
-    @Suppress("DEPRECATION")
+    @SuppressLint("RestrictedApi")
     @Composable
     fun Content(
         context: Context
@@ -69,10 +70,10 @@ class DnesWidget : GlanceAppWidget() {
         val bunky = Json.decodeFromString<List<Bunka>>(prefs[stringPreferencesKey("hodiny")] ?: "[]")
         val den = prefs[stringPreferencesKey("den")] ?: "??. ??."
 
-        val bg = ColorProvider(Color(context.resources.getColor(R.color.background_color)))
-        val bg2 = ColorProvider(Color(context.resources.getColor(R.color.background_color_alt)))
-        val onbg = ColorProvider(Color(context.resources.getColor(R.color.on_background_color)))
-        val onbg2 = ColorProvider(Color(context.resources.getColor(R.color.on_background_color_alt)))
+        val bg = ColorProvider(R.color.background_color)
+        val bg2 = ColorProvider(R.color.background_color_alt)
+        val onbg = ColorProvider(R.color.on_background_color)
+        val onbg2 = ColorProvider(R.color.on_background_color_alt)
 
         Column(
             GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),

@@ -15,16 +15,16 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.remoteconfig.ktx.get
-import com.google.firebase.remoteconfig.ktx.remoteConfig
-import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
+import com.google.firebase.database.database
+import com.google.firebase.remoteconfig.get
+import com.google.firebase.remoteconfig.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
@@ -144,6 +144,9 @@ class Repository(
     val vyucujici = configActive.map {
         listOf(Vjec.VyucujiciVjec("Vyučující", "")) + remoteConfig["vyucujici"].asString().fromJson<List<Vjec.VyucujiciVjec>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf(Vjec.VyucujiciVjec("Vyučující", "")))
+    val vyucujici2 = configActive.map {
+        remoteConfig["vyucujici2"].asString().fromJson<List<String>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf())
 
     private val preferences = PreferenceDataStoreFactory.create(
         migrations = listOf(
@@ -177,7 +180,7 @@ class Repository(
         it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
     }
 
-    val fakeUkol = UUID.fromString("00000000-0000-0000-0000-000000000000")
+    private val fakeUkol = UUID.fromString("00000000-0000-0000-0000-000000000000")!!
 
     val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
         if (isOnline) onlineUkoly else offlineUkoly
@@ -189,6 +192,25 @@ class Repository(
 
     val nastaveni = preferences.data.combine(tridy) { it, tridy ->
         it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
+    }
+
+    init {
+        scope.launch {
+            nastaveni.collect {
+                if (it.stahovatHned)
+                    tridy.first().drop(1).forEach { trida ->
+                        launch {
+                            ziskatDocument(trida, Stalost.TentoTyden)
+                        }
+                        launch {
+                            ziskatDocument(trida, Stalost.PristiTyden)
+                        }
+                        launch {
+                            ziskatDocument(trida, Stalost.Staly)
+                        }
+                    }
+            }
+        }
     }
 
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
@@ -228,7 +250,6 @@ class Repository(
         return TvorbaRozvrhu.vytvoritTabulku(result.document)
             .asSequence()
             .flatten()
-            .filter { it.size > 1 }
             .flatten()
             .map { it.tridaSkupina }
             .filter { it.isNotEmpty() }
@@ -237,10 +258,10 @@ class Repository(
     }
 
     private suspend fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
-
+        val limit = if (stalost == Stalost.Staly) 168 * 2 else 1
         val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) } ?: return false
         val staryHodin = posledni.until(LocalDateTime.now(), ChronoUnit.HOURS)
-        return staryHodin < 1
+        return staryHodin < limit
     }
 
     suspend fun ziskatDocument(trida: Vjec.TridaVjec, stalost: Stalost): Result = withContext(Dispatchers.IO) {

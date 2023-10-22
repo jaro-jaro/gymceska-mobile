@@ -8,7 +8,7 @@ object Seznamy {
         "Čtvrtek",
         "Pátek",
     )
-    val dny6Pad = listOf(
+    val dny4Pad = listOf(
         "v pondělí",
         "v úterý",
         "ve středu",

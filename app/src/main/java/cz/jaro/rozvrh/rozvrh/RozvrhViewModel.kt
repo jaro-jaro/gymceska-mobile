@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
+import androidx.compose.foundation.ScrollState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
@@ -9,11 +10,11 @@ import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
 import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -31,39 +32,71 @@ class RozvrhViewModel(
     data class Parameters(
         val vjec: Vjec?,
         val stalost: Stalost?,
+        val mujRozvrh: Boolean?,
         val navigovat: (Direction) -> Unit,
+        val horScrollState: ScrollState,
+        val verScrollState: ScrollState,
     )
 
     val tridy = repo.tridy
     val mistnosti = repo.mistnosti
     val vyucujici = repo.vyucujici
+    private val vyucujici2 = repo.vyucujici2
 
     val vjec = repo.nastaveni.map {
         params.vjec ?: it.mojeTrida
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), params.vjec)
 
-    val stalost = params.stalost ?: Stalost.TentoTyden
+    val stalost = params.stalost ?: Stalost.dnesniEntries().first()
+
+    private val _mujRozvrh = repo.nastaveni.map { nastaveni ->
+        params.mujRozvrh ?: nastaveni.defaultMujRozvrh
+    }
+
+    val mujRozvrh = combine(_mujRozvrh, repo.nastaveni, vjec) { mujRozvrh, nastaveni, vjec ->
+        if (vjec == null) null
+        else mujRozvrh && vjec == nastaveni.mojeTrida
+    }
+        .filterNotNull()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
 
     fun vybratRozvrh(vjec: Vjec) {
-        params.navigovat(RozvrhScreenDestination(vjec, stalost))
+        viewModelScope.launch {
+            params.navigovat(
+                RozvrhScreenDestination(
+                    vjec = if (vjec.jmeno == "HOME") repo.nastaveni.first().mojeTrida else vjec,
+                    mujRozvrh = _mujRozvrh.first(),
+                    stalost = stalost,
+                )
+            )
+        }
     }
 
     fun zmenitStalost(stalost: Stalost) {
-        params.navigovat(RozvrhScreenDestination(vjec.value, stalost))
+        viewModelScope.launch {
+            params.navigovat(
+                RozvrhScreenDestination(
+                    vjec = vjec.value,
+                    mujRozvrh = _mujRozvrh.first(),
+                    stalost = stalost,
+                    horScroll = params.horScrollState.value,
+                    verScroll = params.verScrollState.value,
+                )
+            )
+        }
     }
-
-    private val _mujRozvrh = MutableStateFlow(false)
-    val mujRozvrh = _mujRozvrh.asStateFlow()
 
     fun zmenitMujRozvrh() {
-        _mujRozvrh.value = !_mujRozvrh.value
-    }
-
-    init {
         viewModelScope.launch {
-            repo.nastaveni.collect {
-                _mujRozvrh.value = it.defaultMujRozvrh
-            }
+            params.navigovat(
+                RozvrhScreenDestination(
+                    vjec = vjec.value,
+                    mujRozvrh = !_mujRozvrh.first(),
+                    stalost = stalost,
+                    horScroll = params.horScrollState.value,
+                    verScroll = params.verScrollState.value,
+                )
+            )
         }
     }
 
@@ -122,7 +155,27 @@ class RozvrhViewModel(
         }
     }
 
-    suspend fun vytvoritRozvrhPodleJinych(
+    fun najdiMiVolnehoUcitele(stalost: Stalost, den: Int, hodina: Int, progress: (String) -> Unit, onComplete: (List<Vjec.VyucujiciVjec>?) -> Unit) {
+        viewModelScope.launch {
+            val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
+                progress("Prohledávám třídu\n${trida.zkratka}")
+                TvorbaRozvrhu.vytvoritTabulku(repo.ziskatDocument(trida, stalost).let { result ->
+                    if (result !is Uspech) {
+                        onComplete(null)
+                        return@launch
+                    }
+                    result.document
+                }).drop(1)[den].drop(1)[hodina].map { bunka ->
+                    bunka.ucitel
+                }
+            }
+            progress("Už to skoro je")
+
+            onComplete(vyucujici.value.drop(1).filter { it.zkratka !in zaneprazdneniUcitele && it.zkratka in vyucujici2.value })
+        }
+    }
+
+    private suspend fun vytvoritRozvrhPodleJinych(
         vjec: Vjec,
         stalost: Stalost,
         repo: Repository,
@@ -141,15 +194,15 @@ class RozvrhViewModel(
 
             val rozvrhTridy = TvorbaRozvrhu.vytvoritTabulku(result.document)
 
-            rozvrhTridy.forEachIndexed { i, den ->
-                den.forEachIndexed { j, hodina ->
-                    hodina.forEach { bunka ->
-                        if (bunka.ucitel.isEmpty() || bunka.predmet.isEmpty()) {
-                            return@forEach
-                        }
+            rozvrhTridy.forEachIndexed trida@{ i, den ->
+                den.forEachIndexed den@{ j, hodina ->
+                    hodina.forEach hodina@{ bunka ->
                         if (i == 0 || j == 0) {
-                            novaTabulka[i][j] += bunka
-                            return@forEach
+                            if (novaTabulka[i][j].isEmpty()) novaTabulka[i][j] += bunka
+                            return@hodina
+                        }
+                        if (bunka.ucitel.isEmpty() || bunka.predmet.isEmpty()) {
+                            return@hodina
                         }
                         val zajimavaVec = when (vjec) {
                             is Vjec.VyucujiciVjec -> bunka.ucitel.split(",").first()
@@ -157,8 +210,13 @@ class RozvrhViewModel(
                             else -> throw IllegalArgumentException()
                         }
                         if (zajimavaVec == vjec.zkratka) {
-                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim())
-                            return@forEach
+                            novaTabulka[i][j] += bunka.copy(tridaSkupina = "${trida.zkratka} ${bunka.tridaSkupina}".trim()).let {
+                                when (vjec) {
+                                    is Vjec.VyucujiciVjec -> it.copy(ucitel = "")
+                                    is Vjec.MistnostVjec -> it.copy(ucebna = "")
+                                    else -> throw IllegalArgumentException()
+                                }
+                            }
                         }
                     }
                 }

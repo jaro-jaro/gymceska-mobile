@@ -32,8 +32,8 @@
     <string name="hledani">Hledání</string>
     <string name="by_ro_studios">by RO studios</string>
     <string name="tmavy_rezim">Tmavý režim</string>
-    <string name="zvolte_svou_tridu">Zvolte svou třídu:</string>
-    <string name="zvolte_sve_skupiny">Zvolte své skupiny:</string>
+    <string name="zvolte_svou_tridu">Vaše třída</string>
+    <string name="zvolte_sve_skupiny">Vaše skupiny</string>
     <string name="vice_moznosti">Více možností</string>
     <string name="title_activity_main2">MainActivity2</string>
     <string name="pouzivat_dynamicke_barvy">Používat dynamické barvy</string>
