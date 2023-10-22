@@ -17,9 +17,6 @@ import kotlinx.coroutines.flow.combine as kombajn
 class UkolyViewModel(
     private val repo: Repository
 ) : ViewModel() {
-    companion object {
-        const val PRVNI_MESIC_VE_SKOLNIM_ROCE = 8
-    }
 
     private val idTTBVU = UUID.randomUUID()
 
@@ -29,13 +26,7 @@ class UkolyViewModel(
     val inteligentni = repo.jeZarizeniPovoleno
 
     val ukoly = repo.ukoly.map { ukoly ->
-        ukoly?.sortedBy { ukol ->
-            val datum = ukol.datum.replace(" ", "").split(".")
-            val den = datum.getOrNull(0)?.toIntOrNull() ?: return@sortedBy 0
-            val mesic = datum.getOrNull(1)?.toIntOrNull() ?: return@sortedBy 0
-
-            ((den - 1) + 31 * ((mesic - 1) + (12 - (PRVNI_MESIC_VE_SKOLNIM_ROCE - 1)))) % (12 * 31)
-        }
+        ukoly?.sortedBy(Ukol::ciselnaHodnotaDatumu)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val state = ukoly.kombajn(repo.skrtleUkoly) { ukoly, skrtle ->
@@ -44,11 +35,7 @@ class UkolyViewModel(
             ukoly = ukoly.map {
                 it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
             }
-                .run {
-                    if (any { it.stav == StavUkolu.Skrtly })
-                        plus(JednoduchyUkol(id = idTTBVU, "", stav = StavUkolu.TakovaTaBlboVecUprostred))
-                    else this
-                }
+                .plus(JednoduchyUkol(id = idTTBVU, "", stav = StavUkolu.TakovaTaBlboVecUprostred))
                 .sortedBy {
                     when (it.stav) {
                         StavUkolu.Neskrtly -> -1
@@ -77,7 +64,7 @@ class UkolyViewModel(
 
     fun pridatUkol(callback: (UUID) -> Unit) {
         viewModelScope.launch {
-            val novyUkol = Ukol.new()
+            val novyUkol = Ukol()
             repo.upravitUkoly(ukoly.value!! + novyUkol)
             callback(novyUkol.id)
         }
