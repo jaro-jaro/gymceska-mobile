@@ -4,7 +4,7 @@
     android:minHeight="40dp"
     android:description="@string/dnes_widget_popis"
     android:targetCellWidth="1"
-    android:updatePeriodMillis="300000"
+    android:updatePeriodMillis="3600000"
     android:targetCellHeight="4"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:resizeMode="horizontal|vertical"
