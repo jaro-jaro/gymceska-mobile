@@ -25,6 +25,7 @@ import com.google.firebase.database.database
 import com.google.firebase.remoteconfig.get
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
+import cz.jaro.rozvrh.rozvrh.Seznamy
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Vjec
@@ -147,6 +148,20 @@ class Repository(
     val vyucujici2 = configActive.map {
         remoteConfig["vyucujici2"].asString().fromJson<List<String>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf())
+    val dny = Seznamy.dny1Pad.mapIndexed { index, it ->
+        Vjec.DenVjec(
+            jmeno = it,
+            zkratka = it.take(2),
+            index = index + 1,
+        )
+    }
+    val hodiny = Seznamy.hodiny1Pad.mapIndexed { index, it ->
+        Vjec.HodinaVjec(
+            jmeno = it,
+            zkratka = it.split(".")[0],
+            index = index + 1,
+        )
+    }
 
     private val preferences = PreferenceDataStoreFactory.create(
         migrations = listOf(
@@ -247,7 +262,7 @@ class Repository(
 
         if (result !is Uspech) return emptySequence()
 
-        return TvorbaRozvrhu.vytvoritTabulku(result.document)
+        return TvorbaRozvrhu.vytvoritTabulku(trida, result.document)
             .asSequence()
             .flatten()
             .flatten()

@@ -112,7 +112,7 @@ class RozvrhViewModel(
                     stalost = stalost
                 ).let { result ->
                     if (result !is Uspech) return@Nacitani null
-                    TvorbaRozvrhu.vytvoritTabulku(result.document, mujRozvrh && zobrazitMujRozvrh, nastaveni.mojeSkupiny) to result.zdroj.let { zdroj ->
+                    TvorbaRozvrhu.vytvoritTabulku(vjec, result.document, mujRozvrh && zobrazitMujRozvrh, nastaveni.mojeSkupiny) to result.zdroj.let { zdroj ->
                         if (zdroj is Offline)
                             "Prohlížíte si verzi rozvrhu z ${zdroj.ziskano.dayOfMonth}. ${zdroj.ziskano.monthValue}. ${zdroj.ziskano.hour}:${zdroj.ziskano.minute.nula()}."
                         else null
@@ -120,7 +120,15 @@ class RozvrhViewModel(
                 }
             }
 
-            else -> TvorbaRozvrhu.vytvoritRozvrhPodleJinych(
+            is Vjec.VyucujiciVjec,
+            is Vjec.MistnostVjec -> TvorbaRozvrhu.vytvoritRozvrhPodleJinych(
+                vjec = vjec,
+                stalost = stalost,
+                repo = repo
+            )
+
+            is Vjec.DenVjec,
+            is Vjec.HodinaVjec -> TvorbaRozvrhu.vytvoritSpecialniRozvrh(
                 vjec = vjec,
                 stalost = stalost,
                 repo = repo
@@ -138,7 +146,7 @@ class RozvrhViewModel(
         viewModelScope.launch {
             val plneTridy = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
-                TvorbaRozvrhu.vytvoritTabulku(repo.ziskatDocument(trida, stalost).let { result ->
+                TvorbaRozvrhu.vytvoritTabulku(trida, repo.ziskatDocument(trida, stalost).let { result ->
                     if (result !is Uspech) {
                         onComplete(null)
                         return@launch
@@ -158,7 +166,7 @@ class RozvrhViewModel(
         viewModelScope.launch {
             val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
-                TvorbaRozvrhu.vytvoritTabulku(repo.ziskatDocument(trida, stalost).let { result ->
+                TvorbaRozvrhu.vytvoritTabulku(trida, repo.ziskatDocument(trida, stalost).let { result ->
                     if (result !is Uspech) {
                         onComplete(null)
                         return@launch

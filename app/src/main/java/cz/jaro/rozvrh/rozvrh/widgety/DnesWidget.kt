@@ -249,7 +249,7 @@ class DnesWidget : GlanceAppWidget() {
                     val hodiny = repo.ziskatDocument(stalost).let { result ->
                         if (result !is Uspech) return@let listOf(Bunka("", "Žádná data!", ""))
 
-                        val tabulka = vytvoritTabulku(result.document)
+                        val tabulka = vytvoritTabulku(nastaveni.mojeTrida, result.document)
 
                         tabulka
                             .getOrNull(cisloDne)
@@ -307,7 +307,7 @@ class DnesWidget : GlanceAppWidget() {
 
                 if (result !is Uspech) return LocalTime.MIDNIGHT
 
-                val tabulka = vytvoritTabulku(result.document)
+                val tabulka = vytvoritTabulku(nastaveni.mojeTrida, result.document)
 
                 val denTydne = LocalDate.now().dayOfWeek.value /* 1-5 (6-7) */
 
