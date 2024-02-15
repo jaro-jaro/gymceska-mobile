@@ -42,7 +42,7 @@ class NastaveniViewModel(
                     finish(null)
                     return@mapNotNull null
                 }
-                it.jmeno to TvorbaRozvrhu.vytvoritTabulku(res.document)
+                it.jmeno to TvorbaRozvrhu.vytvoritTabulku(it, res.document)
             }.toMap()
             update("Už to skoro je!")
             finish(Json.encodeToString(vse))

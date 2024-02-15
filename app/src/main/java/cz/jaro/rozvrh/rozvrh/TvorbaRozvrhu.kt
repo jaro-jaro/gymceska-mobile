@@ -12,12 +12,17 @@ import java.time.LocalDateTime
 object TvorbaRozvrhu {
 
     private val dny = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne", "Rden", "Pi")
-    fun vytvoritTabulku(doc: Document, mujRozvrh: Boolean = false, mojeSkupiny: Set<String> = emptySet()): Tyden = listOf(
+    fun vytvoritTabulku(
+        vjec: Vjec,
+        doc: Document,
+        mujRozvrh: Boolean = false,
+        mojeSkupiny: Set<String> = emptySet()
+    ): Tyden = listOf(
         listOf(
             listOf(
                 Bunka(
                     ucebna = "",
-                    predmet = "",
+                    predmet = vjec.zkratka,
                     ucitel = "",
                     tridaSkupina = ""
                 )
@@ -113,7 +118,7 @@ object TvorbaRozvrhu {
         stalost: Stalost,
         repo: Repository,
     ): Pair<Tyden, String?> = withContext(Dispatchers.IO) {
-        if (vjec is Vjec.TridaVjec) return@withContext emptyList<Den>() to ""
+        require(vjec is Vjec.MistnostVjec || vjec is Vjec.VyucujiciVjec)
 
         val seznamNazvu = repo.tridy.value.drop(1)
 
@@ -125,7 +130,7 @@ object TvorbaRozvrhu {
 
             if (result !is Uspech) return@withContext emptyList<Den>() to ""
 
-            val rozvrhTridy = vytvoritTabulku(result.document)
+            val rozvrhTridy = vytvoritTabulku(vjec, result.document)
 
             rozvrhTridy.forEachIndexed trida@{ i, den ->
                 den.forEachIndexed den@{ j, hodina ->
@@ -154,6 +159,77 @@ object TvorbaRozvrhu {
                     }
                 }
             }
+
+            if (result.zdroj !is Offline) zatimNejstarsi
+            else if (result.zdroj.ziskano < zatimNejstarsi!!) result.zdroj.ziskano
+            else zatimNejstarsi
+        }
+        novaTabulka.forEachIndexed { i, den ->
+            den.forEachIndexed { j, hodina ->
+                hodina.ifEmpty {
+                    novaTabulka[i][j] += Bunka.prazdna
+                }
+            }
+        }
+        if (nejstarsi == LocalDateTime.MAX) novaTabulka to null
+        else novaTabulka to "Nejstarší část tohoto rozvrhu pochází z ${nejstarsi.dayOfMonth}. ${nejstarsi.monthValue}. ${nejstarsi.hour}:${nejstarsi.minute.nula()}."
+    }
+
+    suspend fun vytvoritSpecialniRozvrh(
+        vjec: Vjec,
+        stalost: Stalost,
+        repo: Repository,
+    ): Pair<Tyden, String?> = withContext(Dispatchers.IO) {
+        require(vjec is Vjec.DenVjec || vjec is Vjec.HodinaVjec)
+
+        val seznamNazvu = repo.tridy.value.drop(1)
+
+        val vyska = when (vjec) {
+            is Vjec.DenVjec -> seznamNazvu.count()
+            is Vjec.HodinaVjec -> 5
+            else -> throw IllegalArgumentException()
+        }
+        val sirka = when (vjec) {
+            is Vjec.DenVjec -> 10
+            is Vjec.HodinaVjec -> seznamNazvu.count()
+            else -> throw IllegalArgumentException()
+        }
+
+        val novaTabulka = MutableList(vyska + 1) { MutableList(sirka + 1) { mutableListOf<Bunka>() } }
+
+        val nejstarsi = seznamNazvu.fold(LocalDateTime.MAX) { zatimNejstarsi, trida ->
+
+            val result = repo.ziskatDocument(trida, stalost)
+
+            if (result !is Uspech) return@withContext emptyList<Den>() to ""
+
+            val rozvrhTridy = vytvoritTabulku(vjec, result.document)
+
+            if (vjec is Vjec.DenVjec) {
+                novaTabulka[seznamNazvu.indexOf(trida) + 1][0] = mutableListOf(Bunka.prazdna.copy(predmet = trida.zkratka))
+                rozvrhTridy[vjec.index].forEachIndexed den@{ j, hodina ->
+                    novaTabulka[0][j] = rozvrhTridy[0][j].toMutableList()
+                    hodina.forEach hodina@{ bunka ->
+                        if (j == 0) return@hodina
+
+                        novaTabulka[seznamNazvu.indexOf(trida) + 1][j] += bunka
+                    }
+                }
+            }
+
+            if (vjec is Vjec.HodinaVjec) {
+                novaTabulka[0][seznamNazvu.indexOf(trida) + 1] = mutableListOf(Bunka.prazdna.copy(predmet = trida.zkratka))
+                rozvrhTridy.forEachIndexed trida@{ i, den ->
+                    novaTabulka[i][0] = rozvrhTridy[i][0].toMutableList()
+                    den[vjec.index].forEach hodina@{ bunka ->
+                        if (i == 0) return@hodina
+
+                        novaTabulka[i][seznamNazvu.indexOf(trida) + 1] += bunka
+                    }
+                }
+            }
+
+            novaTabulka[0][0] = rozvrhTridy[0][0].toMutableList()
 
             if (result.zdroj !is Offline) zatimNejstarsi
             else if (result.zdroj.ziskano < zatimNejstarsi!!) result.zdroj.ziskano

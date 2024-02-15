@@ -2,6 +2,7 @@ package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -75,8 +76,15 @@ fun Tabulka(
                     modifier = Modifier
                         .aspectRatio(1F)
                         .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2)
-                )
+                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ResponsiveText(
+                        text = tabulka[0][0][0].predmet,
+                        modifier = Modifier
+                            .padding(all = 8.dp),
+                    )
+                }
             }
 
             Row(
@@ -84,7 +92,7 @@ fun Tabulka(
                     .horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
-                tabulka.first().drop(1).map { it.first() }.forEach { bunka ->
+                tabulka.first().drop(1).map { it.first() }.forEachIndexed { i, bunka ->
                     Box(
                         modifier = Modifier
                             .aspectRatio(2F / 1)
@@ -94,12 +102,22 @@ fun Tabulka(
                     ) {
                         Box(
                             Modifier.matchParentSize(),
-                            contentAlignment = Alignment.TopCenter,
+                            contentAlignment = if (bunka.ucitel.isBlank()) Alignment.Center else Alignment.TopCenter,
                         ) {
                             ResponsiveText(
                                 text = bunka.predmet,
                                 modifier = Modifier
-                                    .padding(all = 8.dp),
+                                    .padding(all = 8.dp)
+                                    .clickable {
+                                        if (bunka.predmet.isEmpty()) return@clickable
+                                        kliklNaNeco(if (vjec is Vjec.HodinaVjec) tridy.find {
+                                            bunka.predmet == it.zkratka
+                                        } ?: return@clickable else Vjec.HodinaVjec(
+                                            zkratka = bunka.predmet.split(".")[0],
+                                            jmeno = "${bunka.predmet} hodina",
+                                            index = i + 1
+                                        ))
+                                    },
                             )
                         }
                         Box(
@@ -146,7 +164,18 @@ fun Tabulka(
                                     ResponsiveText(
                                         text = bunka.predmet,
                                         modifier = Modifier
-                                            .padding(all = 8.dp),
+                                            .padding(all = 8.dp)
+                                            .clickable {
+                                                if (bunka.predmet.isEmpty()) return@clickable
+                                                kliklNaNeco(if (vjec is Vjec.DenVjec) tridy.find {
+                                                    bunka.predmet == it.zkratka
+                                                } ?: return@clickable else Vjec.DenVjec(
+                                                    zkratka = bunka.predmet,
+                                                    jmeno = Seznamy.dny1Pad.find { it.startsWith(bunka.predmet) }!!,
+                                                    index = i + 1
+                                                )
+                                                )
+                                            },
                                     )
                                 }
                             }
