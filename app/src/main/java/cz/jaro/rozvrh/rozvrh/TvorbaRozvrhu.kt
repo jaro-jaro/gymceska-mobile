@@ -1,9 +1,11 @@
 package cz.jaro.rozvrh.rozvrh
 
 import cz.jaro.rozvrh.Offline
+import cz.jaro.rozvrh.OfflineRuzneCasti
+import cz.jaro.rozvrh.Online
 import cz.jaro.rozvrh.Repository
+import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.Uspech
-import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.nodes.Document
@@ -15,8 +17,6 @@ object TvorbaRozvrhu {
     fun vytvoritTabulku(
         vjec: Vjec,
         doc: Document,
-        mujRozvrh: Boolean = false,
-        mojeSkupiny: Set<String> = emptySet()
     ): Tyden = listOf(
         listOf(
             listOf(
@@ -86,12 +86,13 @@ object TvorbaRozvrhu {
                                         .getElementsByClass("left").first()
                                         ?.text()
                                         ?: "",
-                                    zbarvit = dayItemHover.hasClass("pink") || dayItemHover.hasClass("green")
+                                    typ = when {
+                                        dayItemHover.hasClass("pink") -> TypBunky.Suplovani
+                                        dayItemHover.hasClass("green") -> TypBunky.Trid
+                                        else -> TypBunky.Normalni
+                                    }
                                 )
                             } ?: Bunka.prazdna
-                        }
-                        ?.filterNot {
-                            mujRozvrh && it.tridaSkupina.isNotBlank() && it.tridaSkupina !in mojeSkupiny
                         }
                         ?.ifEmpty {
                             listOf(Bunka.prazdna)
@@ -105,7 +106,7 @@ object TvorbaRozvrhu {
                                         predmet = it.text(),
                                         ucitel = "",
                                         tridaSkupina = "",
-                                        zbarvit = true
+                                        typ = TypBunky.Volno
                                     )
                                 )
                             }
@@ -117,7 +118,7 @@ object TvorbaRozvrhu {
         vjec: Vjec,
         stalost: Stalost,
         repo: Repository,
-    ): Pair<Tyden, String?> = withContext(Dispatchers.IO) {
+    ): Result = withContext(Dispatchers.IO) {
         require(vjec is Vjec.MistnostVjec || vjec is Vjec.VyucujiciVjec)
 
         val seznamNazvu = repo.tridy.value.drop(1)
@@ -126,13 +127,11 @@ object TvorbaRozvrhu {
 
         val nejstarsi = seznamNazvu.fold(LocalDateTime.MAX) { zatimNejstarsi, trida ->
 
-            val result = repo.ziskatDocument(trida, stalost)
+            val result = repo.ziskatRozvrh(trida, stalost)
 
-            if (result !is Uspech) return@withContext emptyList<Den>() to ""
+            if (result !is Uspech) return@withContext result
 
-            val rozvrhTridy = vytvoritTabulku(vjec, result.document)
-
-            rozvrhTridy.forEachIndexed trida@{ i, den ->
+            result.rozvrh.forEachIndexed trida@{ i, den ->
                 den.forEachIndexed den@{ j, hodina ->
                     hodina.forEach hodina@{ bunka ->
                         if (i == 0 || j == 0) {
@@ -165,21 +164,23 @@ object TvorbaRozvrhu {
             else zatimNejstarsi
         }
         novaTabulka.forEachIndexed { i, den ->
+            if (den.getOrNull(1)?.singleOrNull()?.typ == TypBunky.Volno) return@forEachIndexed
             den.forEachIndexed { j, hodina ->
                 hodina.ifEmpty {
                     novaTabulka[i][j] += Bunka.prazdna
                 }
             }
         }
-        if (nejstarsi == LocalDateTime.MAX) novaTabulka to null
-        else novaTabulka to "Nejstarší část tohoto rozvrhu pochází z ${nejstarsi.dayOfMonth}. ${nejstarsi.monthValue}. ${nejstarsi.hour}:${nejstarsi.minute.nula()}."
+        novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
+        if (nejstarsi == LocalDateTime.MAX) Uspech(novaTabulka, Online)
+        else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
     }
 
     suspend fun vytvoritSpecialniRozvrh(
         vjec: Vjec,
         stalost: Stalost,
         repo: Repository,
-    ): Pair<Tyden, String?> = withContext(Dispatchers.IO) {
+    ): Result = withContext(Dispatchers.IO) {
         require(vjec is Vjec.DenVjec || vjec is Vjec.HodinaVjec)
 
         val seznamNazvu = repo.tridy.value.drop(1)
@@ -199,11 +200,11 @@ object TvorbaRozvrhu {
 
         val nejstarsi = seznamNazvu.fold(LocalDateTime.MAX) { zatimNejstarsi, trida ->
 
-            val result = repo.ziskatDocument(trida, stalost)
+            val result = repo.ziskatRozvrh(trida, stalost)
 
-            if (result !is Uspech) return@withContext emptyList<Den>() to ""
+            if (result !is Uspech) return@withContext result
 
-            val rozvrhTridy = vytvoritTabulku(vjec, result.document)
+            val rozvrhTridy = result.rozvrh
 
             if (vjec is Vjec.DenVjec) {
                 novaTabulka[seznamNazvu.indexOf(trida) + 1][0] = mutableListOf(Bunka.prazdna.copy(predmet = trida.zkratka))
@@ -221,7 +222,7 @@ object TvorbaRozvrhu {
                 novaTabulka[0][seznamNazvu.indexOf(trida) + 1] = mutableListOf(Bunka.prazdna.copy(predmet = trida.zkratka))
                 rozvrhTridy.forEachIndexed trida@{ i, den ->
                     novaTabulka[i][0] = rozvrhTridy[i][0].toMutableList()
-                    den[vjec.index].forEach hodina@{ bunka ->
+                    den.drop(1).singleOrGet(vjec.index - 1).forEach hodina@{ bunka ->
                         if (i == 0) return@hodina
 
                         novaTabulka[i][seznamNazvu.indexOf(trida) + 1] += bunka
@@ -236,13 +237,55 @@ object TvorbaRozvrhu {
             else zatimNejstarsi
         }
         novaTabulka.forEachIndexed { i, den ->
+            if (den.getOrNull(1)?.singleOrNull()?.typ == TypBunky.Volno) return@forEachIndexed
             den.forEachIndexed { j, hodina ->
                 hodina.ifEmpty {
                     novaTabulka[i][j] += Bunka.prazdna
                 }
             }
         }
-        if (nejstarsi == LocalDateTime.MAX) novaTabulka to null
-        else novaTabulka to "Nejstarší část tohoto rozvrhu pochází z ${nejstarsi.dayOfMonth}. ${nejstarsi.monthValue}. ${nejstarsi.hour}:${nejstarsi.minute.nula()}."
+        novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
+        if (nejstarsi == LocalDateTime.MAX) Uspech(novaTabulka, Online)
+        else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
     }
+}
+
+private fun <E> MutableList<E>.takeInPlace(n: Int) = retainAll(take(n))
+
+private fun <E> List<E>.singleOrGet(index: Int) = singleOrNull() ?: get(index)
+
+fun Result.upravitTabulku(edit: (Tyden) -> Tyden) = when (this) {
+    is Uspech -> copy(rozvrh = edit(rozvrh))
+    else -> this
+}
+
+fun Tyden.filtrovatTabulku(
+    mujRozvrh: Boolean = false,
+    mojeSkupiny: Set<String> = emptySet(),
+) = map { den ->
+    den.filtrovatDen(mujRozvrh, mojeSkupiny)
+}
+
+fun Den.filtrovatDen(
+    mujRozvrh: Boolean = false,
+    mojeSkupiny: Set<String> = emptySet(),
+) = map { hodina ->
+    hodina.filtrovatHodinu(mujRozvrh, mojeSkupiny)
+}
+
+fun Hodina.filtrovatHodinu(
+    mujRozvrh: Boolean = false,
+    mojeSkupiny: Set<String> = emptySet(),
+): Hodina {
+    return if (!mujRozvrh) this
+    else filter {
+        it.tridaSkupina.isBlank() || it.tridaSkupina in mojeSkupiny
+    }.map { mojeBunka ->
+        val spojene = filter { bunka ->
+            mojeBunka.ucitel == bunka.ucitel && mojeBunka.ucebna == bunka.ucebna && mojeBunka.predmet == bunka.predmet
+        }
+        mojeBunka.copy(
+            tridaSkupina = spojene.map { it.tridaSkupina }.distinct().joinToString(", ")
+        )
+    }.ifEmpty { listOf(Bunka.prazdna) }
 }
