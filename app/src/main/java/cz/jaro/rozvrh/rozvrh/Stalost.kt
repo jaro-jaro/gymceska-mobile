@@ -26,8 +26,10 @@ enum class Stalost(
     companion object
 }
 
-fun Stalost.Companion.dnesniEntries() = buildList {
-    if (LocalDate.now().dayOfWeek.value in 1..5) add(Stalost.TentoTyden)
+fun Stalost.Companion.dnesniEntries() = denniEntries(LocalDate.now().dayOfWeek.value)
+
+fun Stalost.Companion.denniEntries(den: Int) = buildList {
+    if (den in 1..5) add(Stalost.TentoTyden)
     add(Stalost.PristiTyden)
     add(Stalost.Staly)
 }

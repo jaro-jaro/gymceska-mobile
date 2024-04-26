@@ -87,13 +87,23 @@ fun AppBar(
                 Icon(Icons.Default.Settings, stringResource(R.string.nastaveni))
             }
 
-            var volnaTridaNastaveniDialog by remember { mutableStateOf(false) }
-            var volnaTridaDialog by remember { mutableStateOf(false) }
+            var najdiMiNastaveniDialog by remember { mutableStateOf(false) }
+            var najdiMiDialog by remember { mutableStateOf(false) }
             var volneTridy by remember { mutableStateOf(emptyList<Vjec.MistnostVjec>()) }
             var volniUcitele by remember { mutableStateOf(emptyList<Vjec.VyucujiciVjec>()) }
             var ucebna by remember { mutableStateOf(true) }
-            var stalost by remember { mutableStateOf(Stalost.dnesniEntries().first()) }
-            var denIndex by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value.coerceAtMost(5) - 1) }
+            var stalost by remember {
+                mutableStateOf(Stalost.denniEntries(
+                    LocalDate.now().dayOfWeek.value.let { if (LocalTime.now() > LocalTime.of(15, 45)) it + 1 else it }
+                ).first())
+            }
+            var denIndex by remember {
+                mutableIntStateOf(
+                    LocalDate.now().dayOfWeek.value
+                        .let { if (LocalTime.now() > LocalTime.of(15, 45)) it + 1 else it }
+                        .let { if (it > 5) 1 else it } - 1
+                )
+            }
             var hodinaIndex by remember(tabulka) {
                 mutableIntStateOf(
                     tabulka
@@ -113,14 +123,14 @@ fun AppBar(
                 )
             }
 
-            if (volnaTridaDialog) AlertDialog(
+            if (najdiMiDialog) AlertDialog(
                 onDismissRequest = {
-                    volnaTridaDialog = false
+                    najdiMiDialog = false
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            volnaTridaDialog = false
+                            najdiMiDialog = false
                         }
                     ) {
                         Text(text = stringResource(android.R.string.ok))
@@ -137,7 +147,7 @@ fun AppBar(
                         }
                         if (ucebna) items(volneTridy.toList()) {
                             Text("${it.jmeno}, to je${it.napoveda}", Modifier.clickable {
-                                volnaTridaDialog = false
+                                najdiMiDialog = false
                                 vybratRozvrh(it)
                             })
                         }
@@ -146,7 +156,7 @@ fun AppBar(
                         }
                         if (!ucebna) items(volniUcitele.toList()) {
                             Text(it.jmeno, Modifier.clickable {
-                                volnaTridaDialog = false
+                                najdiMiDialog = false
                                 vybratRozvrh(it)
                             })
                         }
@@ -154,15 +164,15 @@ fun AppBar(
                 }
             )
 
-            if (volnaTridaNastaveniDialog) AlertDialog(
+            if (najdiMiNastaveniDialog) AlertDialog(
                 onDismissRequest = {
-                    volnaTridaNastaveniDialog = false
+                    najdiMiNastaveniDialog = false
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             nacitame = true
-                            volnaTridaNastaveniDialog = false
+                            najdiMiNastaveniDialog = false
                             podrobnostiNacitani = "Hledám..."
 
                             if (ucebna) najdiMiVolnouTridu(
@@ -176,7 +186,7 @@ fun AppBar(
                                         return@najdiMiVolnouTridu
                                     }
                                     volneTridy = it
-                                    volnaTridaDialog = true
+                                    najdiMiDialog = true
                                     nacitame = false
                                 }
                             )
@@ -191,7 +201,7 @@ fun AppBar(
                                         return@najdiMiVolnehoUcitele
                                     }
                                     volniUcitele = it
-                                    volnaTridaDialog = true
+                                    najdiMiDialog = true
                                     nacitame = false
                                 }
                             )
@@ -203,7 +213,7 @@ fun AppBar(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            volnaTridaNastaveniDialog = false
+                            najdiMiNastaveniDialog = false
                         }
                     ) {
                         Text(text = "Zrušit")
@@ -252,7 +262,7 @@ fun AppBar(
             )
             IconButton(
                 onClick = {
-                    volnaTridaNastaveniDialog = true
+                    najdiMiNastaveniDialog = true
                 }
             ) {
                 Icon(Icons.Default.Search, "Najdi mi")
