@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.DialogProperties
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
@@ -38,8 +39,8 @@ import kotlin.time.toJavaDuration
 fun AppBar(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
-    najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
-    najdiMiVolnehoUcitele: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
+    najdiMiVolnouTridu: (Stalost, Int, List<Int>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     tabulka: Tyden?,
     vybratRozvrh: (Vjec) -> Unit,
 ) {
@@ -104,22 +105,24 @@ fun AppBar(
                         .let { if (it > 5) 1 else it } - 1
                 )
             }
-            var hodinaIndex by remember(tabulka) {
-                mutableIntStateOf(
-                    tabulka
-                        ?.get(0)
-                        ?.drop(1)
-                        ?.indexOfFirst {
-                            try {
-                                val cas = it.first().ucitel.split(" - ").first()
-                                val hm = cas.split(":")
-                                LocalTime.now() < LocalTime.of(hm[0].toInt(), hm[1].toInt()) + 10.minutes.toJavaDuration()
-                            } catch (e: Exception) {
-                                false
+            var hodinaIndexy by remember(tabulka) {
+                mutableStateOf(
+                    listOf(
+                        tabulka
+                            ?.get(0)
+                            ?.drop(1)
+                            ?.indexOfFirst {
+                                try {
+                                    val cas = it.first().ucitel.split(" - ").first()
+                                    val hm = cas.split(":")
+                                    LocalTime.now() < LocalTime.of(hm[0].toInt(), hm[1].toInt()) + 10.minutes.toJavaDuration()
+                                } catch (e: Exception) {
+                                    false
+                                }
                             }
-                        }
-                        ?.coerceAtLeast(0)
-                        ?: 0
+                            ?.coerceAtLeast(0)
+                            ?: 0
+                    )
                 )
             }
 
@@ -143,7 +146,7 @@ fun AppBar(
                 text = {
                     LazyColumn {
                         if (ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volné tyto učebny:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volné tyto učebny:")
                         }
                         if (ucebna) items(volneTridy.toList()) {
                             Text("${it.jmeno}, to je${it.napoveda}", Modifier.clickable {
@@ -152,7 +155,7 @@ fun AppBar(
                             })
                         }
                         if (!ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volní tito učitelé:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volní tito učitelé:")
                         }
                         if (!ucebna) items(volniUcitele.toList()) {
                             Text(it.jmeno, Modifier.clickable {
@@ -176,7 +179,7 @@ fun AppBar(
                             podrobnostiNacitani = "Hledám..."
 
                             if (ucebna) najdiMiVolnouTridu(
-                                stalost, denIndex, hodinaIndex,
+                                stalost, denIndex, hodinaIndexy,
                                 {
                                     podrobnostiNacitani = it
                                 },
@@ -191,7 +194,7 @@ fun AppBar(
                                 }
                             )
                             else najdiMiVolnehoUcitele(
-                                stalost, denIndex, hodinaIndex,
+                                stalost, denIndex, hodinaIndexy,
                                 {
                                     podrobnostiNacitani = it
                                 },
@@ -250,15 +253,23 @@ fun AppBar(
                             zaskrtavatko = { false },
                         )
                         Vybiratko(
+                            value = "${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu",
                             seznam = Seznamy.hodiny4Pad,
-                            index = hodinaIndex,
                             onClick = { i, _ ->
-                                hodinaIndex = i
+                                if (i in hodinaIndexy) hodinaIndexy -= i
+                                else if (i !in hodinaIndexy) hodinaIndexy += i
                             },
-                            zaskrtavatko = { false },
+                            zaskrtavatko = {
+                                Seznamy.hodiny4Pad.indexOf(it) in hodinaIndexy
+                            },
+                            zavirat = false
                         )
                     }
-                }
+                },
+                properties = DialogProperties(
+                    dismissOnClickOutside = false,
+                    dismissOnBackPress = false,
+                )
             )
             IconButton(
                 onClick = {
