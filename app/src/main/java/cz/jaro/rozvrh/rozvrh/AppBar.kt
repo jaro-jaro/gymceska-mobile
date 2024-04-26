@@ -2,6 +2,8 @@ package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -13,6 +15,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -22,6 +25,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
@@ -39,8 +43,8 @@ import kotlin.time.toJavaDuration
 fun AppBar(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
-    najdiMiVolnouTridu: (Stalost, Int, List<Int>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
-    najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
+    najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     tabulka: Tyden?,
     vybratRozvrh: (Vjec) -> Unit,
 ) {
@@ -125,6 +129,9 @@ fun AppBar(
                     )
                 )
             }
+            var filtry by remember {
+                mutableStateOf(listOf<FiltrNajdiMi>())
+            }
 
             if (najdiMiDialog) AlertDialog(
                 onDismissRequest = {
@@ -146,7 +153,7 @@ fun AppBar(
                 text = {
                     LazyColumn {
                         if (ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volné tyto učebny:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volné tyto ${filtry.text()}učebny:")
                         }
                         if (ucebna) items(volneTridy.toList()) {
                             Text("${it.jmeno}, to je${it.napoveda}", Modifier.clickable {
@@ -155,7 +162,7 @@ fun AppBar(
                             })
                         }
                         if (!ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volní tito učitelé:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volní tito ${filtry.text()}učitelé:")
                         }
                         if (!ucebna) items(volniUcitele.toList()) {
                             Text(it.jmeno, Modifier.clickable {
@@ -179,7 +186,7 @@ fun AppBar(
                             podrobnostiNacitani = "Hledám..."
 
                             if (ucebna) najdiMiVolnouTridu(
-                                stalost, denIndex, hodinaIndexy,
+                                stalost, denIndex, hodinaIndexy, filtry,
                                 {
                                     podrobnostiNacitani = it
                                 },
@@ -194,7 +201,7 @@ fun AppBar(
                                 }
                             )
                             else najdiMiVolnehoUcitele(
-                                stalost, denIndex, hodinaIndexy,
+                                stalost, denIndex, hodinaIndexy, filtry,
                                 {
                                     podrobnostiNacitani = it
                                 },
@@ -264,6 +271,48 @@ fun AppBar(
                             },
                             zavirat = false
                         )
+                        if (ucebna) Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "Pouze odemčené učebny", Modifier.weight(1F))
+                            Switch(
+                                checked = FiltrNajdiMi.JenOdemcene in filtry,
+                                onCheckedChange = {
+                                    if (FiltrNajdiMi.JenOdemcene in filtry) filtry -= FiltrNajdiMi.JenOdemcene
+                                    else if (FiltrNajdiMi.JenOdemcene !in filtry) filtry += FiltrNajdiMi.JenOdemcene
+                                },
+                            )
+                        }
+                        if (ucebna) Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "Pouze celé učebny", Modifier.weight(1F))
+                            Switch(
+                                checked = FiltrNajdiMi.JenCele in filtry,
+                                onCheckedChange = {
+                                    if (FiltrNajdiMi.JenCele in filtry) filtry -= FiltrNajdiMi.JenCele
+                                    else if (FiltrNajdiMi.JenCele !in filtry) filtry += FiltrNajdiMi.JenCele
+                                },
+                            )
+                        }
+                        if (!ucebna) Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "Pouze moji vyučující", Modifier.weight(1F))
+                            Switch(
+                                checked = FiltrNajdiMi.JenSvi in filtry,
+                                onCheckedChange = {
+                                    if (FiltrNajdiMi.JenSvi in filtry) filtry -= FiltrNajdiMi.JenSvi
+                                    else if (FiltrNajdiMi.JenSvi !in filtry) filtry += FiltrNajdiMi.JenSvi
+                                },
+                            )
+                        }
                     }
                 },
                 properties = DialogProperties(
@@ -281,3 +330,4 @@ fun AppBar(
         }
     )
 }
+

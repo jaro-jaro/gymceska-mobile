@@ -38,6 +38,8 @@ class RozvrhViewModel(
     val mistnosti = repo.mistnosti
     val vyucujici = repo.vyucujici
     private val vyucujici2 = repo.vyucujici2
+    private val odemkleMistnosti = repo.odemkleMistnosti
+    private val velkeMistnosti = repo.velkeMistnosti
 
     val vjec = repo.nastaveni.map {
         params.vjec ?: it.mojeTrida
@@ -135,7 +137,14 @@ class RozvrhViewModel(
         }
     }
 
-    fun najdiMivolnouTridu(stalost: Stalost, den: Int, hodiny: List<Int>, progress: (String) -> Unit, onComplete: (List<Vjec.MistnostVjec>?) -> Unit) {
+    fun najdiMivolnouTridu(
+        stalost: Stalost,
+        den: Int,
+        hodiny: List<Int>,
+        filtry: List<FiltrNajdiMi>,
+        progress: (String) -> Unit,
+        onComplete: (List<Vjec.MistnostVjec>?) -> Unit
+    ) {
         viewModelScope.launch {
             val plneTridy = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
@@ -153,11 +162,27 @@ class RozvrhViewModel(
             }
             progress("Už to skoro je")
 
-            onComplete(mistnosti.value.drop(1).filter { it.zkratka !in plneTridy })
+            val vysledek = mistnosti.value.drop(1).filter { it.zkratka !in plneTridy }.toMutableList()
+
+            if (FiltrNajdiMi.JenOdemcene in filtry) vysledek.retainAll {
+                it.zkratka in odemkleMistnosti.value
+            }
+            if (FiltrNajdiMi.JenCele in filtry) vysledek.retainAll {
+                it.zkratka in velkeMistnosti.value
+            }
+
+            onComplete(vysledek)
         }
     }
 
-    fun najdiMiVolnehoUcitele(stalost: Stalost, den: Int, hodiny: List<Int>, progress: (String) -> Unit, onComplete: (List<Vjec.VyucujiciVjec>?) -> Unit) {
+    fun najdiMiVolnehoUcitele(
+        stalost: Stalost,
+        den: Int,
+        hodiny: List<Int>,
+        filtry: List<FiltrNajdiMi>,
+        progress: (String) -> Unit,
+        onComplete: (List<Vjec.VyucujiciVjec>?) -> Unit
+    ) {
         viewModelScope.launch {
             val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
@@ -175,7 +200,14 @@ class RozvrhViewModel(
             }
             progress("Už to skoro je")
 
-            onComplete(vyucujici.value.drop(1).filter { it.zkratka !in zaneprazdneniUcitele && it.zkratka in vyucujici2.value })
+            val vysledek = vyucujici.value.drop(1).filter { it.zkratka !in zaneprazdneniUcitele && it.zkratka in vyucujici2.value }.toMutableList()
+
+            val ucitele = repo.ziskaUcitele(repo.nastaveni.first().mojeTrida)
+            if (FiltrNajdiMi.JenSvi in filtry) vysledek.retainAll {
+                it.zkratka in ucitele
+            }
+
+            onComplete(vysledek)
         }
     }
 
