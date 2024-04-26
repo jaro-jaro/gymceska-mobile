@@ -4,13 +4,11 @@ import androidx.compose.foundation.ScrollState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
-import cz.jaro.rozvrh.Offline
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
-import cz.jaro.rozvrh.nastaveni.nula
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
@@ -18,7 +16,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.seconds
@@ -103,21 +100,17 @@ class RozvrhViewModel(
         vjec == nastaveni.mojeTrida
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
 
-    val tabulka = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
+    val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
         if (vjec == null) null
         else when (vjec) {
-            is Vjec.TridaVjec -> withContext(Dispatchers.IO) Nacitani@{
-                repo.ziskatDocument(
-                    trida = vjec,
-                    stalost = stalost
-                ).let { result ->
-                    if (result !is Uspech) return@Nacitani null
-                    TvorbaRozvrhu.vytvoritTabulku(vjec, result.document, mujRozvrh && zobrazitMujRozvrh, nastaveni.mojeSkupiny) to result.zdroj.let { zdroj ->
-                        if (zdroj is Offline)
-                            "Prohlížíte si verzi rozvrhu z ${zdroj.ziskano.dayOfMonth}. ${zdroj.ziskano.monthValue}. ${zdroj.ziskano.hour}:${zdroj.ziskano.minute.nula()}."
-                        else null
-                    }
-                }
+            is Vjec.TridaVjec -> repo.ziskatRozvrh(
+                trida = vjec,
+                stalost = stalost,
+            ).upravitTabulku {
+                it.filtrovatTabulku(
+                    mujRozvrh = mujRozvrh && zobrazitMujRozvrh,
+                    mojeSkupiny = nastaveni.mojeSkupiny,
+                )
             }
 
             is Vjec.VyucujiciVjec,
@@ -133,7 +126,7 @@ class RozvrhViewModel(
                 stalost = stalost,
                 repo = repo
             )
-        }
+        }.takeIf { it is Uspech } as Uspech?
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit = { a, b ->
@@ -146,13 +139,13 @@ class RozvrhViewModel(
         viewModelScope.launch {
             val plneTridy = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
-                TvorbaRozvrhu.vytvoritTabulku(trida, repo.ziskatDocument(trida, stalost).let { result ->
+                repo.ziskatRozvrh(trida, stalost).let { result ->
                     if (result !is Uspech) {
                         onComplete(null)
                         return@launch
                     }
-                    result.document
-                }).drop(1)[den].drop(1)[hodina].map { bunka ->
+                    result.rozvrh
+                }.drop(1)[den].drop(1)[hodina].map { bunka ->
                     bunka.ucebna
                 }
             }
@@ -166,13 +159,13 @@ class RozvrhViewModel(
         viewModelScope.launch {
             val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
-                TvorbaRozvrhu.vytvoritTabulku(trida, repo.ziskatDocument(trida, stalost).let { result ->
+                repo.ziskatRozvrh(trida, stalost).let { result ->
                     if (result !is Uspech) {
                         onComplete(null)
                         return@launch
                     }
-                    result.document
-                }).drop(1)[den].drop(1)[hodina].map { bunka ->
+                    result.rozvrh
+                }.drop(1)[den].drop(1)[hodina].map { bunka ->
                     bunka.ucitel
                 }
             }

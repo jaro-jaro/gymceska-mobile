@@ -33,7 +33,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.unit.dp
+import cz.jaro.rozvrh.Offline
+import cz.jaro.rozvrh.OfflineRuzneCasti
+import cz.jaro.rozvrh.Online
 import cz.jaro.rozvrh.ResponsiveText
+import cz.jaro.rozvrh.ZdrojRozvrhu
+import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.launch
 
 context(ColumnScope)
@@ -42,7 +47,7 @@ fun Tabulka(
     vjec: Vjec,
     tabulka: Tyden,
     kliklNaNeco: (vjec: Vjec) -> Unit,
-    rozvrhOfflineWarning: String?,
+    rozvrhOfflineWarning: ZdrojRozvrhu?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
@@ -167,13 +172,10 @@ fun Tabulka(
                                             .padding(all = 8.dp)
                                             .clickable {
                                                 if (bunka.predmet.isEmpty()) return@clickable
-                                                kliklNaNeco(if (vjec is Vjec.DenVjec) tridy.find {
-                                                    bunka.predmet == it.zkratka
-                                                } ?: return@clickable else Vjec.DenVjec(
-                                                    zkratka = bunka.predmet,
-                                                    jmeno = Seznamy.dny1Pad.find { it.startsWith(bunka.predmet) }!!,
-                                                    index = i + 1
-                                                )
+                                                kliklNaNeco(
+                                                    if (vjec is Vjec.DenVjec) tridy.find {
+                                                        bunka.predmet == it.zkratka
+                                                    } ?: return@clickable else Seznamy.dny.find { it.zkratka == bunka.predmet }!!
                                                 )
                                             },
                                     )
@@ -202,19 +204,22 @@ fun Tabulka(
                                             !mujRozvrh && vjec is Vjec.TridaVjec && hodina.size == 1 && bunka.tridaSkupina.isNotBlank() -> 4F / 5F
                                             else -> 1F
                                         }
-                                        bunka.Compose(
+                                        Bunka(
+                                            bunka = bunka,
                                             aspectRatio = hodina.size / (maxy[i + 1] * nasobitelVyskyTetoBunky * nasobitelVyskyCeleRadky),
+                                            tridy = tridy,
+                                            mistnosti = mistnosti,
+                                            vyucujici = vyucujici,
                                             kliklNaNeco = kliklNaNeco,
-                                            tridy = tridy,
-                                            mistnosti = mistnosti,
-                                            vyucujici = vyucujici,
+                                            forceOneColumnCells = vjec is Vjec.HodinaVjec,
                                         )
-                                        if (nasobitelVyskyTetoBunky < 1F) Bunka.prazdna.Compose(
+                                        if (nasobitelVyskyTetoBunky < 1F) Bunka(
+                                            bunka = Bunka.prazdna,
                                             aspectRatio = hodina.size / (maxy[i + 1] * (1F - nasobitelVyskyTetoBunky) * nasobitelVyskyCeleRadky),
-                                            kliklNaNeco = {},
                                             tridy = tridy,
                                             mistnosti = mistnosti,
                                             vyucujici = vyucujici,
+                                            kliklNaNeco = {},
                                         )
                                     }
                                 }
@@ -225,7 +230,13 @@ fun Tabulka(
             }
 
             Text(
-                rozvrhOfflineWarning?.plus(" Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
+                rozvrhOfflineWarning?.let {
+                    when (it) {
+                        is Offline -> "Prohlížíte si verzi rozvrhu z ${it.ziskano.dayOfMonth}. ${it.ziskano.monthValue}. ${it.ziskano.hour}:${it.ziskano.minute.nula()}. "
+                        is OfflineRuzneCasti -> "Nejstarší část tohoto rozvrhu pochází z ${it.nejstarsi.dayOfMonth}. ${it.nejstarsi.monthValue}. ${it.nejstarsi.hour}:${it.nejstarsi.minute.nula()}. "
+                        Online -> ""
+                    }
+                }?.plus("Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)

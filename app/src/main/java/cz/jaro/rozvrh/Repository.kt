@@ -25,9 +25,9 @@ import com.google.firebase.database.database
 import com.google.firebase.remoteconfig.get
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
-import cz.jaro.rozvrh.rozvrh.Seznamy
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
+import cz.jaro.rozvrh.rozvrh.Tyden
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ukoly.Ukol
 import io.github.z4kn4fein.semver.toVersion
@@ -51,7 +51,6 @@ import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.koin.core.annotation.Single
 import java.io.IOException
-import java.net.SocketTimeoutException
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -66,8 +65,8 @@ class Repository(
 
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
-        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}")
-        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh_${trida.jmeno}_${stalost.nazev}_posledni")
+        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}")
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}_posledni")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
         val VERZE = intPreferencesKey("verze")
@@ -148,20 +147,6 @@ class Repository(
     val vyucujici2 = configActive.map {
         remoteConfig["vyucujici2"].asString().fromJson<List<String>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf())
-    val dny = Seznamy.dny1Pad.mapIndexed { index, it ->
-        Vjec.DenVjec(
-            jmeno = it,
-            zkratka = it.take(2),
-            index = index + 1,
-        )
-    }
-    val hodiny = Seznamy.hodiny1Pad.mapIndexed { index, it ->
-        Vjec.HodinaVjec(
-            jmeno = it,
-            zkratka = it.split(".")[0],
-            index = index + 1,
-        )
-    }
 
     private val preferences = PreferenceDataStoreFactory.create(
         migrations = listOf(
@@ -211,17 +196,17 @@ class Repository(
 
     init {
         scope.launch {
-            nastaveni.collect {
-                if (it.stahovatHned)
+            nastaveni.collect { nastaveni ->
+                if (nastaveni.stahovatHned)
                     tridy.first().drop(1).forEach { trida ->
-                        launch {
-                            ziskatDocument(trida, Stalost.TentoTyden)
+                        launch(Dispatchers.IO) {
+                            ziskatRozvrh(trida, Stalost.TentoTyden)
                         }
-                        launch {
-                            ziskatDocument(trida, Stalost.PristiTyden)
+                        launch(Dispatchers.IO) {
+                            ziskatRozvrh(trida, Stalost.PristiTyden)
                         }
-                        launch {
-                            ziskatDocument(trida, Stalost.Staly)
+                        launch(Dispatchers.IO) {
+                            ziskatRozvrh(trida, Stalost.Staly)
                         }
                     }
             }
@@ -247,8 +232,13 @@ class Repository(
                         return@withContext
                     }).get()
 
+                    val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
+                        vjec = trida,
+                        doc = doc,
+                    )
+
                     preferences.edit {
-                        it[Keys.rozvrh(trida, stalost)] = doc.toString()
+                        it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
                         it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
                     }
                 }
@@ -258,11 +248,11 @@ class Repository(
     }
 
     suspend fun ziskatSkupiny(trida: Vjec.TridaVjec): Sequence<String> {
-        val result = ziskatDocument(trida, Stalost.Staly)
+        val result = ziskatRozvrh(trida, Stalost.Staly)
 
         if (result !is Uspech) return emptySequence()
 
-        return TvorbaRozvrhu.vytvoritTabulku(trida, result.document)
+        return result.rozvrh
             .asSequence()
             .flatten()
             .flatten()
@@ -279,22 +269,28 @@ class Repository(
         return staryHodin < limit
     }
 
-    suspend fun ziskatDocument(trida: Vjec.TridaVjec, stalost: Stalost): Result = withContext(Dispatchers.IO) {
+    suspend fun ziskatRozvrh(
+        trida: Vjec.TridaVjec,
+        stalost: Stalost,
+    ): Result = withContext(Dispatchers.IO) {
         if (trida.odkaz == null) return@withContext TridaNeexistuje
 
-        if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) {
-            try {
-                val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get().also { doc ->
-                    preferences.edit {
-                        it[Keys.rozvrh(trida, stalost)] = doc.toString()
-                        it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
-                    }
-                }
+        if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) try {
+            val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get()
 
-                return@withContext Uspech(doc, Online)
-            } catch (e: IOException) {
-                e.printStackTrace()
+            val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
+                vjec = trida,
+                doc = doc,
+            )
+
+            preferences.edit {
+                it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
+                it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
             }
+
+            return@withContext Uspech(rozvrh, Online)
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
 
         val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) }
@@ -305,7 +301,7 @@ class Repository(
                 return@withContext ZadnaData
             }
 
-        val html = preferences.data.first()[Keys.rozvrh(trida, stalost)]
+        val rozvrh = preferences.data.first()[Keys.rozvrh(trida, stalost)]?.let { Json.decodeFromString<Tyden>(it) }
             ?: run {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
@@ -313,12 +309,20 @@ class Repository(
                 return@withContext ZadnaData
             }
 
-        Uspech(Jsoup.parse(html), Offline(kdy))
+        try {
+            Uspech(rozvrh, Offline(kdy))
+        } catch (e: OutOfMemoryError) {
+            e.printStackTrace()
+            Firebase.crashlytics.recordException(e)
+            Error
+        }
     }
 
-    suspend fun ziskatDocument(stalost: Stalost): Result = ziskatDocument(nastaveni.first().mojeTrida, stalost)
+    suspend fun ziskatRozvrh(
+        stalost: Stalost,
+    ): Result = ziskatRozvrh(nastaveni.first().mojeTrida, stalost)
 
-    fun isOnline(): Boolean = ctx.isOnline()
+    private fun isOnline(): Boolean = ctx.isOnline()
 
     companion object {
         fun Context.isOnline(): Boolean {
@@ -379,7 +383,7 @@ class Repository(
                     .maxBodySize(0)
                     .execute()
             }
-        } catch (e: SocketTimeoutException) {
+        } catch (e: IOException) {
             Firebase.crashlytics.recordException(e)
             return false
         }
