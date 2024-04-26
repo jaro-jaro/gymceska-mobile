@@ -147,6 +147,12 @@ class Repository(
     val vyucujici2 = configActive.map {
         remoteConfig["vyucujici2"].asString().fromJson<List<String>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf())
+    val odemkleMistnosti = configActive.map {
+        remoteConfig["odemkleMistnosti"].asString().fromJson<List<String>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf())
+    val velkeMistnosti = configActive.map {
+        remoteConfig["velkeMistnosti"].asString().fromJson<List<String>>()
+    }.stateIn(scope, SharingStarted.Eagerly, listOf())
 
     private val preferences = PreferenceDataStoreFactory.create(
         migrations = listOf(
@@ -257,6 +263,21 @@ class Repository(
             .flatten()
             .flatten()
             .map { it.tridaSkupina }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sorted()
+    }
+
+    suspend fun ziskaUcitele(trida: Vjec.TridaVjec): Sequence<String> {
+        val result = ziskatRozvrh(trida, Stalost.Staly)
+
+        if (result !is Uspech) return emptySequence()
+
+        return result.rozvrh
+            .asSequence()
+            .flatten()
+            .flatten()
+            .map { it.ucitel }
             .filter { it.isNotEmpty() }
             .distinct()
             .sorted()
