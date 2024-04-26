@@ -135,7 +135,7 @@ class RozvrhViewModel(
         }
     }
 
-    fun najdiMivolnouTridu(stalost: Stalost, den: Int, hodina: Int, progress: (String) -> Unit, onComplete: (List<Vjec.MistnostVjec>?) -> Unit) {
+    fun najdiMivolnouTridu(stalost: Stalost, den: Int, hodiny: List<Int>, progress: (String) -> Unit, onComplete: (List<Vjec.MistnostVjec>?) -> Unit) {
         viewModelScope.launch {
             val plneTridy = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
@@ -145,8 +145,10 @@ class RozvrhViewModel(
                         return@launch
                     }
                     result.rozvrh
-                }.drop(1)[den].drop(1)[hodina].map { bunka ->
-                    bunka.ucebna
+                }.drop(1)[den].drop(1).slice(hodiny).flatMap { hodina ->
+                    hodina.map { bunka ->
+                        bunka.ucebna
+                    }
                 }
             }
             progress("Už to skoro je")
@@ -155,7 +157,7 @@ class RozvrhViewModel(
         }
     }
 
-    fun najdiMiVolnehoUcitele(stalost: Stalost, den: Int, hodina: Int, progress: (String) -> Unit, onComplete: (List<Vjec.VyucujiciVjec>?) -> Unit) {
+    fun najdiMiVolnehoUcitele(stalost: Stalost, den: Int, hodiny: List<Int>, progress: (String) -> Unit, onComplete: (List<Vjec.VyucujiciVjec>?) -> Unit) {
         viewModelScope.launch {
             val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
@@ -165,8 +167,10 @@ class RozvrhViewModel(
                         return@launch
                     }
                     result.rozvrh
-                }.drop(1)[den].drop(1)[hodina].map { bunka ->
-                    bunka.ucitel
+                }.drop(1)[den].drop(1).slice(hodiny).flatMap { hodina ->
+                    hodina.map { bunka ->
+                        bunka.ucitel
+                    }
                 }
             }
             progress("Už to skoro je")
