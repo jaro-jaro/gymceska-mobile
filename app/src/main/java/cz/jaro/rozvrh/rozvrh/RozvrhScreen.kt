@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
@@ -36,6 +36,7 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.ZdrojRozvrhu
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -76,7 +77,7 @@ fun RozvrhScreen(
     val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
 
     RozvrhScreen(
-        tabulka = tabulka?.first,
+        tabulka = tabulka?.rozvrh,
         vjec = realVjec,
         stalost = viewModel.stalost,
         vybratRozvrh = viewModel::vybratRozvrh,
@@ -85,7 +86,7 @@ fun RozvrhScreen(
         navigate = navigator.navigate,
         najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
         najdiMiVolnehoUcitele = viewModel::najdiMiVolnehoUcitele,
-        rozvrhOfflineWarning = tabulka?.second,
+        rozvrhOfflineWarning = tabulka?.zdroj,
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
@@ -107,9 +108,9 @@ fun RozvrhScreen(
     zmenitStalost: (Stalost) -> Unit,
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
-    najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
-    najdiMiVolnehoUcitele: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
-    rozvrhOfflineWarning: String?,
+    najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
+    rozvrhOfflineWarning: ZdrojRozvrhu?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
@@ -207,7 +208,7 @@ fun RozvrhScreen(
                             napoveda = true
                         }
                     ) {
-                        Icon(Icons.Filled.Help, null)
+                        Icon(Icons.AutoMirrored.Filled.Help, null)
                     }
                 },
             )

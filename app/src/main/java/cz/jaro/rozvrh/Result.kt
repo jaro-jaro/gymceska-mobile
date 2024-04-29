@@ -1,14 +1,16 @@
 package cz.jaro.rozvrh
 
-import org.jsoup.nodes.Document
+import cz.jaro.rozvrh.rozvrh.Tyden
 
 sealed interface Result
 
-object TridaNeexistuje : Result
+data object TridaNeexistuje : Result
 
-object ZadnaData : Result
+data object ZadnaData : Result
+
+data object Error : Result
 
 data class Uspech(
-    val document: Document,
+    val rozvrh: Tyden,
     val zdroj: ZdrojRozvrhu,
 ) : Result

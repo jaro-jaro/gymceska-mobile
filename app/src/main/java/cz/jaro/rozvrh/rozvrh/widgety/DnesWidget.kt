@@ -46,7 +46,8 @@ import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.rozvrh.Bunka
 import cz.jaro.rozvrh.rozvrh.Stalost
-import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu.vytvoritTabulku
+import cz.jaro.rozvrh.rozvrh.TypBunky
+import cz.jaro.rozvrh.rozvrh.filtrovatDen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -71,9 +72,11 @@ class DnesWidget : GlanceAppWidget() {
         val den = prefs[stringPreferencesKey("den")] ?: "??. ??."
 
         val bg = ColorProvider(R.color.background_color)
-        val bg2 = ColorProvider(R.color.background_color_alt)
         val onbg = ColorProvider(R.color.on_background_color)
+        val bg2 = ColorProvider(R.color.background_color_alt)
         val onbg2 = ColorProvider(R.color.on_background_color_alt)
+        val bg3 = ColorProvider(R.color.background_color_alt2)
+        val onbg3 = ColorProvider(R.color.on_background_color_alt2)
 
         Column(
             GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
@@ -123,7 +126,13 @@ class DnesWidget : GlanceAppWidget() {
                                             .clickable(actionStartActivity<MainActivity>())
                                             .fillMaxWidth()
                                             .defaultWeight()
-                                            .background(if (zbarvit) bg2 else bg),
+                                            .background(
+                                                when (typ) {
+                                                    TypBunky.Normalni -> bg
+                                                    TypBunky.Suplovani -> bg2
+                                                    TypBunky.Volno, TypBunky.Trid -> bg3
+                                                }
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Box(
@@ -138,7 +147,11 @@ class DnesWidget : GlanceAppWidget() {
                                                     .clickable(actionStartActivity<MainActivity>())
                                                     .padding(all = 8.dp),
                                                 style = TextStyle(
-                                                    color = if (zbarvit) onbg2 else onbg
+                                                    color = when (typ) {
+                                                        TypBunky.Normalni -> onbg
+                                                        TypBunky.Suplovani -> onbg2
+                                                        TypBunky.Volno, TypBunky.Trid -> onbg3
+                                                    }
                                                 ),
                                             )
                                         }
@@ -154,7 +167,11 @@ class DnesWidget : GlanceAppWidget() {
                                                     .clickable(actionStartActivity<MainActivity>())
                                                     .padding(all = 8.dp),
                                                 style = TextStyle(
-                                                    color = if (zbarvit) onbg2 else onbg
+                                                    color = when (typ) {
+                                                        TypBunky.Normalni -> onbg
+                                                        TypBunky.Suplovani -> onbg2
+                                                        TypBunky.Volno, TypBunky.Trid -> onbg3
+                                                    }
                                                 ),
                                             )
                                         }
@@ -175,7 +192,11 @@ class DnesWidget : GlanceAppWidget() {
                                                     .fillMaxWidth()
                                                     .padding(horizontal = 4.dp),
                                                 style = TextStyle(
-                                                    color = if (zbarvit) onbg2 else onbg,
+                                                    color = when (typ) {
+                                                        TypBunky.Normalni -> onbg
+                                                        TypBunky.Suplovani -> onbg2
+                                                        TypBunky.Volno, TypBunky.Trid -> onbg3
+                                                    },
                                                     textAlign = TextAlign.Center
                                                 ),
                                             )
@@ -186,7 +207,11 @@ class DnesWidget : GlanceAppWidget() {
                                                     .clickable(actionStartActivity<MainActivity>())
                                                     .padding(bottom = 8.dp),
                                                 style = TextStyle(
-                                                    color = if (zbarvit) onbg2 else onbg
+                                                    color = when (typ) {
+                                                        TypBunky.Normalni -> onbg
+                                                        TypBunky.Suplovani -> onbg2
+                                                        TypBunky.Volno, TypBunky.Trid -> onbg3
+                                                    }
                                                 ),
                                             )
                                         }
@@ -246,10 +271,10 @@ class DnesWidget : GlanceAppWidget() {
 
                     val stalost = if (cisloDne == 1 && !dnes) Stalost.PristiTyden else Stalost.TentoTyden
 
-                    val hodiny = repo.ziskatDocument(stalost).let { result ->
+                    val hodiny = repo.ziskatRozvrh(stalost).let { result ->
                         if (result !is Uspech) return@let listOf(Bunka("", "Žádná data!", ""))
 
-                        val tabulka = vytvoritTabulku(result.document)
+                        val tabulka = result.rozvrh
 
                         tabulka
                             .getOrNull(cisloDne)
@@ -258,12 +283,9 @@ class DnesWidget : GlanceAppWidget() {
                             ?.mapIndexed { i, hodina -> i to hodina }
                             ?.filter { (_, hodina) -> hodina.first().predmet.isNotBlank() }
                             ?.map { (i, hodina) -> hodina.map { bunka -> bunka.copy(predmet = "$i. ${bunka.predmet}") } }
-                            ?.mapNotNull { hodina ->
-                                hodina.find { bunka ->
-                                    bunka.tridaSkupina.isEmpty() || bunka.tridaSkupina in nastaveni.mojeSkupiny
-                                }
-                            }
                             ?.toList()
+                            ?.filtrovatDen(true, nastaveni.mojeSkupiny)
+                            ?.mapNotNull { it.firstOrNull() }
                             ?.ifEmpty {
                                 listOf(
                                     Bunka("", "Žádné hodiny!", ""),
@@ -303,11 +325,11 @@ class DnesWidget : GlanceAppWidget() {
             private suspend fun zjistitKonecVyucovani(): LocalTime {
                 val nastaveni = repo.nastaveni.first()
 
-                val result = repo.ziskatDocument(Stalost.TentoTyden)
+                val result = repo.ziskatRozvrh(Stalost.TentoTyden)
 
                 if (result !is Uspech) return LocalTime.MIDNIGHT
 
-                val tabulka = vytvoritTabulku(result.document)
+                val tabulka = result.rozvrh
 
                 val denTydne = LocalDate.now().dayOfWeek.value /* 1-5 (6-7) */
 

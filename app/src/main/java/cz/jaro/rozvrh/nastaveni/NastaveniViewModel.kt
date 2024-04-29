@@ -6,7 +6,6 @@ import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.rozvrh.Stalost
-import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
@@ -37,12 +36,12 @@ class NastaveniViewModel(
             val tridy = repo.tridy.value
             val vse = tridy.mapNotNull {
                 update(it.jmeno)
-                val res = repo.ziskatDocument(it, stalost)
+                val res = repo.ziskatRozvrh(it, stalost)
                 if (res !is Uspech) {
                     finish(null)
                     return@mapNotNull null
                 }
-                it.jmeno to TvorbaRozvrhu.vytvoritTabulku(res.document)
+                it.jmeno to res.rozvrh
             }.toMap()
             update("Už to skoro je!")
             finish(Json.encodeToString(vse))

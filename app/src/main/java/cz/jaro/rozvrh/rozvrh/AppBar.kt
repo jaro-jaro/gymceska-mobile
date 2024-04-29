@@ -2,6 +2,8 @@ package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -13,6 +15,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -22,8 +25,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.DialogProperties
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
@@ -38,8 +43,8 @@ import kotlin.time.toJavaDuration
 fun AppBar(
     stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
     navigate: (Direction) -> Unit,
-    najdiMiVolnouTridu: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
-    najdiMiVolnehoUcitele: (Stalost, Int, Int, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
+    najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
+    najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     tabulka: Tyden?,
     vybratRozvrh: (Vjec) -> Unit,
 ) {
@@ -87,40 +92,55 @@ fun AppBar(
                 Icon(Icons.Default.Settings, stringResource(R.string.nastaveni))
             }
 
-            var volnaTridaNastaveniDialog by remember { mutableStateOf(false) }
-            var volnaTridaDialog by remember { mutableStateOf(false) }
+            var najdiMiNastaveniDialog by remember { mutableStateOf(false) }
+            var najdiMiDialog by remember { mutableStateOf(false) }
             var volneTridy by remember { mutableStateOf(emptyList<Vjec.MistnostVjec>()) }
             var volniUcitele by remember { mutableStateOf(emptyList<Vjec.VyucujiciVjec>()) }
             var ucebna by remember { mutableStateOf(true) }
-            var stalost by remember { mutableStateOf(Stalost.dnesniEntries().first()) }
-            var denIndex by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value.coerceAtMost(5) - 1) }
-            var hodinaIndex by remember(tabulka) {
+            var stalost by remember {
+                mutableStateOf(Stalost.denniEntries(
+                    LocalDate.now().dayOfWeek.value.let { if (LocalTime.now() > LocalTime.of(15, 45)) it + 1 else it }
+                ).first())
+            }
+            var denIndex by remember {
                 mutableIntStateOf(
-                    tabulka
-                        ?.get(0)
-                        ?.drop(1)
-                        ?.indexOfFirst {
-                            try {
-                                val cas = it.first().ucitel.split(" - ").first()
-                                val hm = cas.split(":")
-                                LocalTime.now() < LocalTime.of(hm[0].toInt(), hm[1].toInt()) + 10.minutes.toJavaDuration()
-                            } catch (e: Exception) {
-                                false
-                            }
-                        }
-                        ?.coerceAtLeast(0)
-                        ?: 0
+                    LocalDate.now().dayOfWeek.value
+                        .let { if (LocalTime.now() > LocalTime.of(15, 45)) it + 1 else it }
+                        .let { if (it > 5) 1 else it } - 1
                 )
             }
+            var hodinaIndexy by remember(tabulka) {
+                mutableStateOf(
+                    listOf(
+                        tabulka
+                            ?.get(0)
+                            ?.drop(1)
+                            ?.indexOfFirst {
+                                try {
+                                    val cas = it.first().ucitel.split(" - ").first()
+                                    val hm = cas.split(":")
+                                    LocalTime.now() < LocalTime.of(hm[0].toInt(), hm[1].toInt()) + 10.minutes.toJavaDuration()
+                                } catch (e: Exception) {
+                                    false
+                                }
+                            }
+                            ?.coerceAtLeast(0)
+                            ?: 0
+                    )
+                )
+            }
+            var filtry by remember {
+                mutableStateOf(listOf<FiltrNajdiMi>())
+            }
 
-            if (volnaTridaDialog) AlertDialog(
+            if (najdiMiDialog) AlertDialog(
                 onDismissRequest = {
-                    volnaTridaDialog = false
+                    najdiMiDialog = false
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            volnaTridaDialog = false
+                            najdiMiDialog = false
                         }
                     ) {
                         Text(text = stringResource(android.R.string.ok))
@@ -133,20 +153,20 @@ fun AppBar(
                 text = {
                     LazyColumn {
                         if (ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volné tyto učebny:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volné tyto ${filtry.text()}učebny:")
                         }
                         if (ucebna) items(volneTridy.toList()) {
                             Text("${it.jmeno}, to je${it.napoveda}", Modifier.clickable {
-                                volnaTridaDialog = false
+                                najdiMiDialog = false
                                 vybratRozvrh(it)
                             })
                         }
                         if (!ucebna) item {
-                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${Seznamy.hodiny4Pad[hodinaIndex]} volní tito učitelé:")
+                            Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volní tito ${filtry.text()}učitelé:")
                         }
                         if (!ucebna) items(volniUcitele.toList()) {
                             Text(it.jmeno, Modifier.clickable {
-                                volnaTridaDialog = false
+                                najdiMiDialog = false
                                 vybratRozvrh(it)
                             })
                         }
@@ -154,19 +174,19 @@ fun AppBar(
                 }
             )
 
-            if (volnaTridaNastaveniDialog) AlertDialog(
+            if (najdiMiNastaveniDialog) AlertDialog(
                 onDismissRequest = {
-                    volnaTridaNastaveniDialog = false
+                    najdiMiNastaveniDialog = false
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             nacitame = true
-                            volnaTridaNastaveniDialog = false
+                            najdiMiNastaveniDialog = false
                             podrobnostiNacitani = "Hledám..."
 
                             if (ucebna) najdiMiVolnouTridu(
-                                stalost, denIndex, hodinaIndex,
+                                stalost, denIndex, hodinaIndexy, filtry,
                                 {
                                     podrobnostiNacitani = it
                                 },
@@ -176,12 +196,12 @@ fun AppBar(
                                         return@najdiMiVolnouTridu
                                     }
                                     volneTridy = it
-                                    volnaTridaDialog = true
+                                    najdiMiDialog = true
                                     nacitame = false
                                 }
                             )
                             else najdiMiVolnehoUcitele(
-                                stalost, denIndex, hodinaIndex,
+                                stalost, denIndex, hodinaIndexy, filtry,
                                 {
                                     podrobnostiNacitani = it
                                 },
@@ -191,7 +211,7 @@ fun AppBar(
                                         return@najdiMiVolnehoUcitele
                                     }
                                     volniUcitele = it
-                                    volnaTridaDialog = true
+                                    najdiMiDialog = true
                                     nacitame = false
                                 }
                             )
@@ -203,7 +223,7 @@ fun AppBar(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            volnaTridaNastaveniDialog = false
+                            najdiMiNastaveniDialog = false
                         }
                     ) {
                         Text(text = "Zrušit")
@@ -240,19 +260,69 @@ fun AppBar(
                             zaskrtavatko = { false },
                         )
                         Vybiratko(
+                            value = "${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu",
                             seznam = Seznamy.hodiny4Pad,
-                            index = hodinaIndex,
                             onClick = { i, _ ->
-                                hodinaIndex = i
+                                if (i in hodinaIndexy) hodinaIndexy -= i
+                                else if (i !in hodinaIndexy) hodinaIndexy += i
                             },
-                            zaskrtavatko = { false },
+                            zaskrtavatko = {
+                                Seznamy.hodiny4Pad.indexOf(it) in hodinaIndexy
+                            },
+                            zavirat = false
                         )
+                        if (ucebna) Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "Pouze odemčené učebny", Modifier.weight(1F))
+                            Switch(
+                                checked = FiltrNajdiMi.JenOdemcene in filtry,
+                                onCheckedChange = {
+                                    if (FiltrNajdiMi.JenOdemcene in filtry) filtry -= FiltrNajdiMi.JenOdemcene
+                                    else if (FiltrNajdiMi.JenOdemcene !in filtry) filtry += FiltrNajdiMi.JenOdemcene
+                                },
+                            )
+                        }
+                        if (ucebna) Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "Pouze celé učebny", Modifier.weight(1F))
+                            Switch(
+                                checked = FiltrNajdiMi.JenCele in filtry,
+                                onCheckedChange = {
+                                    if (FiltrNajdiMi.JenCele in filtry) filtry -= FiltrNajdiMi.JenCele
+                                    else if (FiltrNajdiMi.JenCele !in filtry) filtry += FiltrNajdiMi.JenCele
+                                },
+                            )
+                        }
+                        if (!ucebna) Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "Pouze moji vyučující", Modifier.weight(1F))
+                            Switch(
+                                checked = FiltrNajdiMi.JenSvi in filtry,
+                                onCheckedChange = {
+                                    if (FiltrNajdiMi.JenSvi in filtry) filtry -= FiltrNajdiMi.JenSvi
+                                    else if (FiltrNajdiMi.JenSvi !in filtry) filtry += FiltrNajdiMi.JenSvi
+                                },
+                            )
+                        }
                     }
-                }
+                },
+                properties = DialogProperties(
+                    dismissOnClickOutside = false,
+                    dismissOnBackPress = false,
+                )
             )
             IconButton(
                 onClick = {
-                    volnaTridaNastaveniDialog = true
+                    najdiMiNastaveniDialog = true
                 }
             ) {
                 Icon(Icons.Default.Search, "Najdi mi")
@@ -260,3 +330,4 @@ fun AppBar(
         }
     )
 }
+

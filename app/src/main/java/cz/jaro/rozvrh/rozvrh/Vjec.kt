@@ -28,4 +28,22 @@ sealed interface Vjec {
         override val jmeno: String,
         override val zkratka: String,
     ) : Vjec
+
+    sealed interface Indexed : Vjec {
+        val index: Int
+    }
+
+    @Serializable
+    data class DenVjec(
+        override val jmeno: String,
+        override val zkratka: String,
+        override val index: Int,
+    ) : Indexed
+
+    @Serializable
+    data class HodinaVjec(
+        override val jmeno: String,
+        override val zkratka: String,
+        override val index: Int,
+    ) : Indexed
 }
