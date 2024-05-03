@@ -61,6 +61,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 
+@Suppress("unused")
 class DnesWidget : GlanceAppWidget() {
 
     @SuppressLint("RestrictedApi")

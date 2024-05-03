@@ -250,7 +250,7 @@ object TvorbaRozvrhu {
     }
 }
 
-private fun <E> MutableList<E>.takeInPlace(n: Int) = retainAll(take(n))
+//private fun <E> MutableList<E>.takeInPlace(n: Int) = retainAll(take(n))
 
 private fun <E> List<E>.singleOrGet(index: Int) = singleOrNull() ?: get(index)
 

@@ -232,4 +232,4 @@ fun Bunka(
 
 val zakladniVelikostBunky = 128.dp
 
-fun Boolean.toInt() = if (this) 1 else 0
+//fun Boolean.toInt() = if (this) 1 else 0

@@ -61,11 +61,11 @@ val Seznamy.dny
             index = index + 1,
         )
     }
-val Seznamy.hodiny
+/*val Seznamy.hodiny
     get() = hodiny1Pad.mapIndexed { index, it ->
         Vjec.HodinaVjec(
             jmeno = it,
             zkratka = it.split(".")[0],
             index = index + 1,
         )
-    }
+    }*/

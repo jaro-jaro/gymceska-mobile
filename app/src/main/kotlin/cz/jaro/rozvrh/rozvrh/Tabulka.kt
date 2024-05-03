@@ -38,7 +38,6 @@ import cz.jaro.rozvrh.OfflineRuzneCasti
 import cz.jaro.rozvrh.Online
 import cz.jaro.rozvrh.ResponsiveText
 import cz.jaro.rozvrh.ZdrojRozvrhu
-import cz.jaro.rozvrh.nastaveni.nula
 import kotlinx.coroutines.launch
 
 context(ColumnScope)
@@ -320,3 +319,5 @@ private fun Modifier.doubleScrollable(
         )
     }
 }
+
+fun Int.nula(): String = if ("$this".length == 1) "0$this" else "$this"

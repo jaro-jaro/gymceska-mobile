@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package cz.jaro.rozvrh.ui.theme
 
 import androidx.compose.ui.graphics.Color

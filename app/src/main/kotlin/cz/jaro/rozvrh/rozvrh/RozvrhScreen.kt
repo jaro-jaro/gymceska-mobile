@@ -43,7 +43,7 @@ import org.koin.core.parameter.parametersOf
 @Destination
 @RootNavGraph(start = true)
 @Composable
-fun RozvrhScreen(
+fun Rozvrh(
     vjec: Vjec? = null,
     mujRozvrh: Boolean? = null,
     stalost: Stalost? = null,
@@ -76,7 +76,7 @@ fun RozvrhScreen(
     val realMujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
     val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
 
-    RozvrhScreen(
+    RozvrhContent(
         tabulka = tabulka?.rozvrh,
         vjec = realVjec,
         stalost = viewModel.stalost,
@@ -100,7 +100,7 @@ fun RozvrhScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RozvrhScreen(
+fun RozvrhContent(
     tabulka: Tyden?,
     vjec: Vjec?,
     stalost: Stalost,

@@ -1,5 +1,3 @@
-@file:Suppress("UnstableApiUsage")
-
 plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
@@ -7,8 +5,8 @@ plugins {
     alias(libs.plugins.gms.google.services)
     alias(libs.plugins.ksp)
     alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.compose.compiler)
 }
-
 
 android {
     namespace = "cz.jaro.rozvrh"
@@ -32,6 +30,10 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        getByName("debug") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -45,9 +47,6 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -60,14 +59,11 @@ android {
             }
         }
     }
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
 }
 
 dependencies {
     //noinspection UseTomlInstead
-    implementation("androidx.core:core-ktx:1.10.1")
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.core)
@@ -83,16 +79,9 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.bundles.koin)
-    testImplementation(libs.junit.jupiter)
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
     implementation(libs.compose.material3.datetime.pickers)
     implementation(libs.semver)
-
-    testImplementation(libs.json)
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
 }

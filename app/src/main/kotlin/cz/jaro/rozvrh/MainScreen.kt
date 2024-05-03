@@ -2,7 +2,7 @@ package cz.jaro.rozvrh
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -26,11 +26,11 @@ import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
-import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
-import cz.jaro.rozvrh.destinations.UkolyScreenDestination
+import cz.jaro.rozvrh.destinations.RozvrhDestination
+import cz.jaro.rozvrh.destinations.UkolyDestination
 
 @Composable
-fun MainSceeen(
+fun MainContent(
     rozvrh: Boolean,
     ukoly: Boolean,
     jePotrebaAktualizovatAplikaci: Boolean,
@@ -75,8 +75,8 @@ fun MainSceeen(
         val destination by navController.appCurrentDestinationAsState()
 
         LaunchedEffect(Unit) {
-            if (rozvrh) navController.navigate(RozvrhScreenDestination())
-            if (ukoly) navController.navigate(UkolyScreenDestination())
+            if (rozvrh) navController.navigate(RozvrhDestination())
+            if (ukoly) navController.navigate(UkolyDestination())
         }
 
         LaunchedEffect(Unit) {
@@ -93,9 +93,9 @@ fun MainSceeen(
             bottomBar = {
                 NavigationBar {
                     NavigationBarItem(
-                        selected = destination is RozvrhScreenDestination,
+                        selected = destination is RozvrhDestination,
                         onClick = {
-                            navController.navigate(RozvrhScreenDestination())
+                            navController.navigate(RozvrhDestination())
                         },
                         icon = {
                             Icon(Icons.Default.TableChart, null)
@@ -105,12 +105,12 @@ fun MainSceeen(
                         }
                     )
                     NavigationBarItem(
-                        selected = destination == UkolyScreenDestination,
+                        selected = destination == UkolyDestination,
                         onClick = {
-                            navController.navigate(UkolyScreenDestination())
+                            navController.navigate(UkolyDestination())
                         },
                         icon = {
-                            Icon(Icons.Default.FormatListBulleted, null)
+                            Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null)
                         },
                         label = {
                             Text(stringResource(R.string.domaci_ukoly))

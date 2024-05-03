@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                     },
                 )
 
-                MainSceeen(
+                MainContent(
                     rozvrh = rozvrh,
                     ukoly = ukoly,
                     jePotrebaAktualizovatAplikaci = jePotrebaAktualizovatAplikaci,
