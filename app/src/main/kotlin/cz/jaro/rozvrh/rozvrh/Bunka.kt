@@ -29,18 +29,20 @@ data class Bunka(
     val tridaSkupina: String = "",
     val typ: TypBunky = TypBunky.Normalni,
 ) {
-    companion object {
 
-        val prazdna = Bunka(
-            ucebna = "",
-            predmet = "",
-            ucitel = "",
-            tridaSkupina = "",
-            typ = TypBunky.Normalni
-        )
-    }
-
+    companion object
 }
+
+val Bunka.Companion.empty
+    get() = Bunka(
+        ucebna = "",
+        predmet = "",
+        ucitel = "",
+        tridaSkupina = "",
+        typ = TypBunky.Normalni
+    )
+
+fun Bunka.isEmpty() = ucebna.isEmpty() && predmet.isEmpty() && ucitel.isEmpty() && tridaSkupina.isEmpty()
 
 @Composable
 fun Bunka(
