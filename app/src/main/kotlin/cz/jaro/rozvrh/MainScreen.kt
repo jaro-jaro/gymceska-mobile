@@ -2,7 +2,6 @@ package cz.jaro.rozvrh
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -110,7 +109,7 @@ fun MainSceeen(
                             navController.navigate(UkolyScreenDestination())
                         },
                         icon = {
-                            Icon(Icons.Default.FormatListBulleted, null)
+                            Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null)
                         },
                         label = {
                             Text(stringResource(R.string.domaci_ukoly))

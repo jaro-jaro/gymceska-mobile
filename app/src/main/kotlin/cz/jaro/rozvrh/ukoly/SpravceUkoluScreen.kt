@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
@@ -256,7 +255,7 @@ fun SpravceUkoluScreen(
                     IconButton(
                         onClick = navigateBack
                     ) {
-                        Icon(Icons.Default.ArrowBack, "Zpět")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zpět")
                     }
                 }
             )
