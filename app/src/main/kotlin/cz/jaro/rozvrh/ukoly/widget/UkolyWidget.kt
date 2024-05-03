@@ -53,6 +53,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import java.util.UUID
 
+@Suppress("unused")
 class UkolyWidget : GlanceAppWidget() {
 
     @SuppressLint("RestrictedApi")

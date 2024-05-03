@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,7 +69,7 @@ import kotlin.reflect.KFunction3
 
 @Destination
 @Composable
-fun NastaveniScreen(
+fun Nastaveni(
     navigator: DestinationsNavigator
 ) {
     val viewModel = koinViewModel<NastaveniViewModel> {
@@ -79,7 +80,7 @@ fun NastaveniScreen(
     val nastaveni by viewModel.nastaveni.collectAsStateWithLifecycle(null)
     val skupiny by viewModel.skupiny.collectAsStateWithLifecycle(null)
 
-    NastaveniScreen(
+    NastaveniContent(
         navigateBack = navigator::navigateUp,
         nastaveni = nastaveni,
         upravitNastaveni = viewModel::upravitNastaveni,
@@ -91,7 +92,7 @@ fun NastaveniScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NastaveniScreen(
+fun NastaveniContent(
     navigateBack: () -> Unit,
     nastaveni: Nastaveni?,
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
@@ -483,4 +484,3 @@ fun NastaveniScreen(
     }
 }
 
-fun Int.nula(): String = if ("$this".length == 1) "0$this" else "$this"

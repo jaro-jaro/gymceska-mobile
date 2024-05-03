@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
-import cz.jaro.rozvrh.destinations.RozvrhScreenDestination
+import cz.jaro.rozvrh.destinations.RozvrhDestination
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -61,7 +61,7 @@ class RozvrhViewModel(
     fun vybratRozvrh(vjec: Vjec) {
         viewModelScope.launch {
             params.navigovat(
-                RozvrhScreenDestination(
+                RozvrhDestination(
                     vjec = if (vjec.jmeno == "HOME") repo.nastaveni.first().mojeTrida else vjec,
                     mujRozvrh = _mujRozvrh.first(),
                     stalost = stalost,
@@ -73,7 +73,7 @@ class RozvrhViewModel(
     fun zmenitStalost(stalost: Stalost) {
         viewModelScope.launch {
             params.navigovat(
-                RozvrhScreenDestination(
+                RozvrhDestination(
                     vjec = vjec.value,
                     mujRozvrh = _mujRozvrh.first(),
                     stalost = stalost,
@@ -87,7 +87,7 @@ class RozvrhViewModel(
     fun zmenitMujRozvrh() {
         viewModelScope.launch {
             params.navigovat(
-                RozvrhScreenDestination(
+                RozvrhDestination(
                     vjec = vjec.value,
                     mujRozvrh = !_mujRozvrh.first(),
                     stalost = stalost,

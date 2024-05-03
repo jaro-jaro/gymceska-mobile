@@ -31,7 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
+import cz.jaro.rozvrh.destinations.NastaveniDestination
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
@@ -86,7 +86,7 @@ fun AppBar(
 
             IconButton(
                 onClick = {
-                    navigate(NastaveniScreenDestination)
+                    navigate(NastaveniDestination)
                 }
             ) {
                 Icon(Icons.Default.Settings, stringResource(R.string.nastaveni))

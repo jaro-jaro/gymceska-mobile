@@ -33,14 +33,14 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.destinations.NastaveniScreenDestination
-import cz.jaro.rozvrh.destinations.SpravceUkoluScreenDestination
+import cz.jaro.rozvrh.destinations.NastaveniDestination
+import cz.jaro.rozvrh.destinations.SpravceUkoluDestination
 import org.koin.androidx.compose.koinViewModel
 import java.util.UUID
 
 @Destination
 @Composable
-fun UkolyScreen(
+fun Ukoly(
     navigator: DestinationsNavigator,
 ) {
     val viewModel = koinViewModel<UkolyViewModel>()
@@ -49,7 +49,7 @@ fun UkolyScreen(
     val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()
     val jeInteligentni by viewModel.inteligentni.collectAsStateWithLifecycle()
 
-    UkolyScreen(
+    UkolyContent(
         state = state,
         skrtnout = viewModel::skrtnout,
         odskrtnout = viewModel::odskrtnout,
@@ -61,7 +61,7 @@ fun UkolyScreen(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun UkolyScreen(
+fun UkolyContent(
     state: UkolyState,
     skrtnout: (UUID) -> Unit,
     odskrtnout: (UUID) -> Unit,
@@ -79,7 +79,7 @@ fun UkolyScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            navigate(NastaveniScreenDestination)
+                            navigate(NastaveniDestination)
                         }
                     ) {
                         Icon(Icons.Default.Settings, stringResource(R.string.nastaveni))
@@ -87,7 +87,7 @@ fun UkolyScreen(
 
                     if (jeInteligentni && !jeOffline) IconButton(
                         onClick = {
-                            navigate(SpravceUkoluScreenDestination)
+                            navigate(SpravceUkoluDestination)
                         }
                     ) {
                         Icon(Icons.Default.Edit, stringResource(R.string.spravovat_ukoly))

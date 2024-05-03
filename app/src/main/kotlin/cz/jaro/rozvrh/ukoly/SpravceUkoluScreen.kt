@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
@@ -52,14 +53,14 @@ import java.util.UUID
 
 @Destination
 @Composable
-fun SpravceUkoluScreen(
+fun SpravceUkolu(
     navigator: DestinationsNavigator
 ) {
     val viewModel = koinViewModel<UkolyViewModel>()
 
     val ukoly by viewModel.ukoly.collectAsStateWithLifecycle()
 
-    SpravceUkoluScreen(
+    SpravceUkoluContent(
         ukoly = ukoly,
         pridatUkol = viewModel::pridatUkol,
         odebratUkol = viewModel::odebratUkol,
@@ -70,7 +71,7 @@ fun SpravceUkoluScreen(
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun SpravceUkoluScreen(
+fun SpravceUkoluContent(
     ukoly: List<Ukol>?,
     pridatUkol: ((UUID) -> Unit) -> Unit,
     odebratUkol: (UUID) -> Unit,

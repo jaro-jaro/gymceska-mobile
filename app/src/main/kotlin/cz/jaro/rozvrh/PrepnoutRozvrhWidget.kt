@@ -6,7 +6,7 @@ import java.time.LocalTime
 @Serializable
 sealed interface PrepnoutRozvrhWidget {
     @Serializable
-    object OPulnoci : PrepnoutRozvrhWidget
+    data object OPulnoci : PrepnoutRozvrhWidget
 
     @Serializable
     data class PoKonciVyucovani(
@@ -18,7 +18,7 @@ sealed interface PrepnoutRozvrhWidget {
         private val hodin: Int,
         private val minut: Int,
     ) : PrepnoutRozvrhWidget {
-        val cas get() = LocalTime.of(hodin, minut)
+        val cas: LocalTime get() = LocalTime.of(hodin, minut)!!
 
         constructor(cas: LocalTime) : this(cas.hour, cas.minute)
     }
