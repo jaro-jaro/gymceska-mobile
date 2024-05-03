@@ -48,6 +48,7 @@ import cz.jaro.rozvrh.rozvrh.Bunka
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TypBunky
 import cz.jaro.rozvrh.rozvrh.filtrovatDen
+import cz.jaro.rozvrh.rozvrh.isEmpty
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -285,7 +286,7 @@ class DnesWidget : GlanceAppWidget() {
                             ?.map { (i, hodina) -> hodina.map { bunka -> bunka.copy(predmet = "$i. ${bunka.predmet}") } }
                             ?.toList()
                             ?.filtrovatDen(true, nastaveni.mojeSkupiny)
-                            ?.mapNotNull { it.firstOrNull() }
+                            ?.mapNotNull { hodina -> hodina.firstOrNull { !it.isEmpty() } }
                             ?.ifEmpty {
                                 listOf(
                                     Bunka("", "Žádné hodiny!", ""),

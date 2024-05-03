@@ -214,7 +214,7 @@ fun Tabulka(
                                             forceOneColumnCells = vjec is Vjec.HodinaVjec,
                                         )
                                         if (nasobitelVyskyTetoBunky < 1F) Bunka(
-                                            bunka = Bunka.prazdna,
+                                            bunka = Bunka.empty,
                                             aspectRatio = hodina.size / (maxy[i + 1] * (1F - nasobitelVyskyTetoBunky) * nasobitelVyskyCeleRadky),
                                             tridy = tridy,
                                             mistnosti = mistnosti,
