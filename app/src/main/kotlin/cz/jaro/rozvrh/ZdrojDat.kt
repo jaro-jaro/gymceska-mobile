@@ -2,14 +2,14 @@ package cz.jaro.rozvrh
 
 import java.time.LocalDateTime
 
-sealed interface ZdrojRozvrhu
+sealed interface ZdrojDat
 
-data object Online : ZdrojRozvrhu
+data object Online : ZdrojDat
 
 data class Offline(
     val ziskano: LocalDateTime,
-) : ZdrojRozvrhu
+) : ZdrojDat
 
 data class OfflineRuzneCasti(
     val nejstarsi: LocalDateTime,
-) : ZdrojRozvrhu
+) : ZdrojDat

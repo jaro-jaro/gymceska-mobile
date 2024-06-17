@@ -43,7 +43,7 @@ import cz.jaro.rozvrh.MainActivity
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
-import cz.jaro.rozvrh.Uspech
+import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.rozvrh.Bunka
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TypBunky
@@ -274,7 +274,7 @@ class DnesWidget : GlanceAppWidget() {
                     val stalost = if (cisloDne == 1 && !dnes) Stalost.PristiTyden else Stalost.TentoTyden
 
                     val hodiny = repo.ziskatRozvrh(stalost).let { result ->
-                        if (result !is Uspech) return@let listOf(Bunka("", "Žádná data!", ""))
+                        if (result !is Result.Uspech) return@let listOf(Bunka("", "Žádná data!", ""))
 
                         val tabulka = result.rozvrh
 
@@ -329,7 +329,7 @@ class DnesWidget : GlanceAppWidget() {
 
                 val result = repo.ziskatRozvrh(Stalost.TentoTyden)
 
-                if (result !is Uspech) return LocalTime.MIDNIGHT
+                if (result !is Result.Uspech) return LocalTime.MIDNIGHT
 
                 val tabulka = result.rozvrh
 

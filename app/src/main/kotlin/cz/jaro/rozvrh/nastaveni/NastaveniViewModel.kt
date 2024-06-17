@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.Repository
-import cz.jaro.rozvrh.Uspech
+import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.rozvrh.Stalost
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -37,7 +37,7 @@ class NastaveniViewModel(
             val vse = tridy.mapNotNull {
                 update(it.jmeno)
                 val res = repo.ziskatRozvrh(it, stalost)
-                if (res !is Uspech) {
+                if (res !is Result.Uspech) {
                     finish(null)
                     return@mapNotNull null
                 }

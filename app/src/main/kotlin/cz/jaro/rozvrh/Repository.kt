@@ -7,14 +7,13 @@ import android.net.NetworkCapabilities
 import android.provider.Settings
 import android.widget.Toast
 import androidx.annotation.Keep
-import androidx.datastore.preferences.SharedPreferencesMigration
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.DataSnapshot
@@ -51,6 +50,7 @@ import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.koin.core.annotation.Single
 import java.io.IOException
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -60,13 +60,35 @@ import kotlin.time.Duration.Companion.seconds
 @Single
 class Repository(
     private val ctx: Context,
+    private val preferences: DataStore<Preferences>,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    init {
+        scope.launch {
+            if (preferences.data.first().contains(booleanPreferencesKey("first")).not()) {
+                if (!isOnline()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
+                    }
+                    exitProcess(-1)
+                }
+                preferences.edit {
+                    it[booleanPreferencesKey("first")] = false
+                }
+            }
+            preferences.edit {
+                it[Keys.VERZE] = BuildConfig.VERSION_CODE
+            }
+        }
+    }
 
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
         fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}")
         fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}_posledni")
+        fun suplovani(datum: LocalDate) = stringPreferencesKey("suplovani+_${datum.dayOfWeek}_${datum.month}_${datum.year}")
+        fun suplovaniPosledni(datum: LocalDate) = stringPreferencesKey("suplovani+_${datum.dayOfWeek}_${datum.month}_${datum.year}_posledni")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
         val VERZE = intPreferencesKey("verze")
@@ -154,34 +176,6 @@ class Repository(
         remoteConfig["velkeMistnosti"].asString().fromJson<List<String>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf())
 
-    private val preferences = PreferenceDataStoreFactory.create(
-        migrations = listOf(
-            SharedPreferencesMigration({
-                ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)!!
-            }),
-            FourToFiveMigration(tridy)
-        )
-    ) {
-        ctx.preferencesDataStoreFile("Gymceska_JARO_datastore")
-    }.also {
-        scope.launch {
-            if (it.data.first().contains(booleanPreferencesKey("first")).not()) {
-                if (!isOnline()) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
-                    }
-                    exitProcess(-1)
-                }
-                it.edit {
-                    it[booleanPreferencesKey("first")] = false
-                }
-            }
-            it.edit {
-                it[Keys.VERZE] = BuildConfig.VERSION_CODE
-            }
-        }
-    }
-
     private val offlineUkoly = preferences.data.map {
         it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
     }
@@ -256,7 +250,7 @@ class Repository(
     suspend fun ziskatSkupiny(trida: Vjec.TridaVjec): Sequence<String> {
         val result = ziskatRozvrh(trida, Stalost.Staly)
 
-        if (result !is Uspech) return emptySequence()
+        if (result !is Result.Uspech) return emptySequence()
 
         return result.rozvrh
             .asSequence()
@@ -271,7 +265,7 @@ class Repository(
     suspend fun ziskaUcitele(trida: Vjec.TridaVjec): Sequence<String> {
         val result = ziskatRozvrh(trida, Stalost.Staly)
 
-        if (result !is Uspech) return emptySequence()
+        if (result !is Result.Uspech) return emptySequence()
 
         return result.rozvrh
             .asSequence()
@@ -294,7 +288,7 @@ class Repository(
         trida: Vjec.TridaVjec,
         stalost: Stalost,
     ): Result = withContext(Dispatchers.IO) {
-        if (trida.odkaz == null) return@withContext TridaNeexistuje
+        if (trida.odkaz == null) return@withContext Result.TridaNeexistuje
 
         if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) try {
             val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get()
@@ -309,7 +303,7 @@ class Repository(
                 it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
             }
 
-            return@withContext Uspech(rozvrh, Online)
+            return@withContext Result.Uspech(rozvrh, Online)
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -319,7 +313,7 @@ class Repository(
                 withContext(Dispatchers.Main) {
                     Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
                 }
-                return@withContext ZadnaData
+                return@withContext Result.ZadnaData
             }
 
         val rozvrh = preferences.data.first()[Keys.rozvrh(trida, stalost)]?.let { Json.decodeFromString<Tyden>(it) }
@@ -327,15 +321,15 @@ class Repository(
                 withContext(Dispatchers.Main) {
                     Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
                 }
-                return@withContext ZadnaData
+                return@withContext Result.ZadnaData
             }
 
         try {
-            Uspech(rozvrh, Offline(kdy))
+            Result.Uspech(rozvrh, Offline(kdy))
         } catch (e: OutOfMemoryError) {
             e.printStackTrace()
             Firebase.crashlytics.recordException(e)
-            Error
+            Result.Error
         }
     }
 

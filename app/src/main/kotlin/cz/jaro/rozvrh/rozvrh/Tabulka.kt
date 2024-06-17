@@ -37,7 +37,7 @@ import cz.jaro.rozvrh.Offline
 import cz.jaro.rozvrh.OfflineRuzneCasti
 import cz.jaro.rozvrh.Online
 import cz.jaro.rozvrh.ResponsiveText
-import cz.jaro.rozvrh.ZdrojRozvrhu
+import cz.jaro.rozvrh.ZdrojDat
 import kotlinx.coroutines.launch
 
 context(ColumnScope)
@@ -46,7 +46,7 @@ fun Tabulka(
     vjec: Vjec,
     tabulka: Tyden,
     kliklNaNeco: (vjec: Vjec) -> Unit,
-    rozvrhOfflineWarning: ZdrojRozvrhu?,
+    rozvrhOfflineWarning: ZdrojDat?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
@@ -244,7 +244,7 @@ fun Tabulka(
     }
 }
 
-private fun Modifier.doubleScrollable(
+fun Modifier.doubleScrollable(
     scrollStateX: ScrollState,
     scrollStateY: ScrollState
 ) = composed {

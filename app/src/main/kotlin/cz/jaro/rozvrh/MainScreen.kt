@@ -3,6 +3,7 @@ package cz.jaro.rozvrh
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -27,7 +28,9 @@ import com.google.firebase.ktx.Firebase
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.rozvrh.destinations.RozvrhDestination
+import cz.jaro.rozvrh.destinations.SuplovaniDestination
 import cz.jaro.rozvrh.destinations.UkolyDestination
+
 
 @Composable
 fun MainContent(
@@ -105,12 +108,24 @@ fun MainContent(
                         }
                     )
                     NavigationBarItem(
+                        selected = destination == SuplovaniDestination,
+                        onClick = {
+                            navController.navigate(SuplovaniDestination())
+                        },
+                        icon = {
+                            Icon(Icons.Default.School, null)
+                        },
+                        label = {
+                            Text(stringResource(R.string.suplovani))
+                        }
+                    )
+                    NavigationBarItem(
                         selected = destination == UkolyDestination,
                         onClick = {
                             navController.navigate(UkolyDestination())
                         },
                         icon = {
-                            Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null)
+                            Icon(Icons.AutoMirrored.Default.FormatListBulleted, null)
                         },
                         label = {
                             Text(stringResource(R.string.domaci_ukoly))

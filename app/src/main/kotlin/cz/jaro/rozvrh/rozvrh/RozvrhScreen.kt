@@ -36,7 +36,7 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
-import cz.jaro.rozvrh.ZdrojRozvrhu
+import cz.jaro.rozvrh.ZdrojDat
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -110,7 +110,7 @@ fun RozvrhContent(
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
-    rozvrhOfflineWarning: ZdrojRozvrhu?,
+    rozvrhOfflineWarning: ZdrojDat?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,

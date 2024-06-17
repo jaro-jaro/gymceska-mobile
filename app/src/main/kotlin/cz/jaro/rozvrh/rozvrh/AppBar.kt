@@ -237,8 +237,8 @@ fun AppBar(
                         Vybiratko(
                             seznam = listOf("volnou učebnu", "volného učitele"),
                             index = if (ucebna) 0 else 1,
-                            onClick = { i, _ ->
-                                ucebna = i == 0
+                            onClick = {
+                                ucebna = it.index == 0
                             },
                             label = "Najdi mi",
                             zaskrtavatko = { false },
@@ -246,28 +246,28 @@ fun AppBar(
                         Vybiratko(
                             seznam = Stalost.dnesniEntries().map { it.kdy },
                             value = stalost.kdy,
-                            onClick = { i, _ ->
-                                stalost = Stalost.dnesniEntries()[i]
+                            onClick = {
+                                stalost = Stalost.dnesniEntries()[it.index]
                             },
                             zaskrtavatko = { false },
                         )
                         Vybiratko(
                             seznam = Seznamy.dny4Pad,
                             index = denIndex,
-                            onClick = { i, _ ->
-                                denIndex = i
+                            onClick = {
+                                denIndex = it.index
                             },
                             zaskrtavatko = { false },
                         )
                         Vybiratko(
                             value = "${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu",
                             seznam = Seznamy.hodiny4Pad,
-                            onClick = { i, _ ->
-                                if (i in hodinaIndexy) hodinaIndexy -= i
-                                else if (i !in hodinaIndexy) hodinaIndexy += i
+                            onClick = {
+                                if (it.index in hodinaIndexy) hodinaIndexy -= it.index
+                                else if (it.index !in hodinaIndexy) hodinaIndexy += it.index
                             },
                             zaskrtavatko = {
-                                Seznamy.hodiny4Pad.indexOf(it) in hodinaIndexy
+                                it.index in hodinaIndexy
                             },
                             zavirat = false
                         )

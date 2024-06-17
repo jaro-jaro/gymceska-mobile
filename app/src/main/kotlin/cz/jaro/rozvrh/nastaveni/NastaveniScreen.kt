@@ -171,12 +171,12 @@ fun NastaveniContent(
                         addAll(Theme.entries.map { it.jmeno })
                     }
                 },
-                onClick = { i, _ ->
+                onClick = {
                     upravitNastaveni { nastaveni ->
                         when {
-                            dynamicColorsSupported && i == 0 -> nastaveni.copy(dynamicColors = true)
-                            dynamicColorsSupported -> nastaveni.copy(tema = Theme.entries[i - 1], dynamicColors = false)
-                            else -> nastaveni.copy(tema = Theme.entries[i], dynamicColors = false)
+                            dynamicColorsSupported && it.index == 0 -> nastaveni.copy(dynamicColors = true)
+                            dynamicColorsSupported -> nastaveni.copy(tema = Theme.entries[it.index - 1], dynamicColors = false)
+                            else -> nastaveni.copy(tema = Theme.entries[it.index], dynamicColors = false)
                         }
                     }
                 },
@@ -229,10 +229,10 @@ fun NastaveniContent(
                         "Daný počet hodin po konci vyučování",
                     )
                 },
-                onClick = { i, _ ->
+                onClick = {
                     upravitNastaveni { nast ->
                         nast.copy(
-                            prepnoutRozvrhWidget = when (i) {
+                            prepnoutRozvrhWidget = when (it.index) {
                                 0 -> PrepnoutRozvrhWidget.OPulnoci
                                 1 -> PrepnoutRozvrhWidget.VCas(16, 0)
                                 2 -> PrepnoutRozvrhWidget.PoKonciVyucovani(2)
@@ -329,9 +329,9 @@ fun NastaveniContent(
             Vybiratko(
                 value = nastaveni.mojeTrida.jmeno,
                 seznam = remember { tridy.map { it.jmeno }.drop(1) },
-                onClick = { i, _ ->
+                onClick = {
                     upravitNastaveni { nastaveni ->
-                        nastaveni.copy(mojeTrida = tridy[i + 1])
+                        nastaveni.copy(mojeTrida = tridy[it.index + 1])
                     }
                 },
                 Modifier
@@ -353,16 +353,16 @@ fun NastaveniContent(
                     Vybiratko(
                         value = moje.joinToString(),
                         seznam = skupiny.toList(),
-                        onClick = { _, it ->
+                        onClick = {
                             upravitNastaveni { nastaveni ->
-                                nastaveni.copy(mojeSkupiny = if (it in moje) nastaveni.mojeSkupiny - it else nastaveni.mojeSkupiny + it)
+                                nastaveni.copy(mojeSkupiny = if (it.value in moje) nastaveni.mojeSkupiny - it.value else nastaveni.mojeSkupiny + it.value)
                             }
                         },
                         Modifier
                             .fillMaxWidth(),
                         label = stringResource(R.string.zvolte_sve_skupiny),
                         zaskrtavatko = {
-                            it in moje
+                            it.value in moje
                         },
                         zavirat = false,
                     )

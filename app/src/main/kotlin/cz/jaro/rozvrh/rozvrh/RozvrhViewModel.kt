@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.Repository
-import cz.jaro.rozvrh.Uspech
+import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.destinations.RozvrhDestination
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -102,7 +102,7 @@ class RozvrhViewModel(
         vjec == nastaveni.mojeTrida
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
 
-    val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
+    val tabulka: StateFlow<Result.Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
         if (vjec == null) null
         else when (vjec) {
             is Vjec.TridaVjec -> repo.ziskatRozvrh(
@@ -128,7 +128,7 @@ class RozvrhViewModel(
                 stalost = stalost,
                 repo = repo
             )
-        }.takeIf { it is Uspech } as Uspech?
+        }.takeIf { it is Result.Uspech } as Result.Uspech?
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit = { a, b ->
@@ -149,7 +149,7 @@ class RozvrhViewModel(
             val plneTridy = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
                 repo.ziskatRozvrh(trida, stalost).let { result ->
-                    if (result !is Uspech) {
+                    if (result !is Result.Uspech) {
                         onComplete(null)
                         return@launch
                     }
@@ -187,7 +187,7 @@ class RozvrhViewModel(
             val zaneprazdneniUcitele = tridy.value.drop(1).flatMap { trida ->
                 progress("Prohledávám třídu\n${trida.zkratka}")
                 repo.ziskatRozvrh(trida, stalost).let { result ->
-                    if (result !is Uspech) {
+                    if (result !is Result.Uspech) {
                         onComplete(null)
                         return@launch
                     }

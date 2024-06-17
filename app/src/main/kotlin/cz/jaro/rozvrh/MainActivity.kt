@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.coroutineScope
 import com.google.firebase.analytics.ktx.analytics
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            LocalLifecycleOwner.current
             val nastaveni by repo.nastaveni.collectAsStateWithLifecycle(Nastaveni(mojeTrida = Vjec.TridaVjec("")))
             val verzeNaRozbiti by repo.verzeNaRozbiti.collectAsStateWithLifecycle()
             val jePotrebaAktualizovatAplikaci by repo.jePotrebaAktualizovatAplikaci.collectAsStateWithLifecycle(false)

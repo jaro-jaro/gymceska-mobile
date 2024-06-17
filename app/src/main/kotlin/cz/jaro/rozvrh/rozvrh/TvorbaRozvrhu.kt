@@ -5,7 +5,6 @@ import cz.jaro.rozvrh.OfflineRuzneCasti
 import cz.jaro.rozvrh.Online
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Result
-import cz.jaro.rozvrh.Uspech
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.nodes.Document
@@ -13,7 +12,7 @@ import java.time.LocalDateTime
 
 object TvorbaRozvrhu {
 
-    private val dny = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne", "Rden", "Pi")
+    val dny = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne", "Rden", "Pi")
     fun vytvoritTabulku(
         vjec: Vjec,
         doc: Document,
@@ -129,7 +128,7 @@ object TvorbaRozvrhu {
 
             val result = repo.ziskatRozvrh(trida, stalost)
 
-            if (result !is Uspech) return@withContext result
+            if (result !is Result.Uspech) return@withContext result
 
             result.rozvrh.forEachIndexed trida@{ i, den ->
                 den.forEachIndexed den@{ j, hodina ->
@@ -172,8 +171,8 @@ object TvorbaRozvrhu {
             }
         }
         novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
-        if (nejstarsi == LocalDateTime.MAX) Uspech(novaTabulka, Online)
-        else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
+        if (nejstarsi == LocalDateTime.MAX) Result.Uspech(novaTabulka, Online)
+        else Result.Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
     }
 
     suspend fun vytvoritSpecialniRozvrh(
@@ -202,7 +201,7 @@ object TvorbaRozvrhu {
 
             val result = repo.ziskatRozvrh(trida, stalost)
 
-            if (result !is Uspech) return@withContext result
+            if (result !is Result.Uspech) return@withContext result
 
             val rozvrhTridy = result.rozvrh
 
@@ -245,8 +244,8 @@ object TvorbaRozvrhu {
             }
         }
         novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
-        if (nejstarsi == LocalDateTime.MAX) Uspech(novaTabulka, Online)
-        else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
+        if (nejstarsi == LocalDateTime.MAX) Result.Uspech(novaTabulka, Online)
+        else Result.Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
     }
 }
 
@@ -254,9 +253,11 @@ object TvorbaRozvrhu {
 
 private fun <E> List<E>.singleOrGet(index: Int) = singleOrNull() ?: get(index)
 
-fun Result.upravitTabulku(edit: (Tyden) -> Tyden) = when (this) {
-    is Uspech -> copy(rozvrh = edit(rozvrh))
-    else -> this
+fun Result.upravitTabulku(edit: (Tyden) -> Tyden): Result {
+    return when (this) {
+        is Result.Uspech -> copy(rozvrh = edit(rozvrh))
+        else -> this
+    }
 }
 
 fun Tyden.filtrovatTabulku(

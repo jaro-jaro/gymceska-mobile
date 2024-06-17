@@ -34,7 +34,7 @@ fun Vybiratko(
 ) = Vybiratko(
     value = value.nazev,
     seznam = seznam.map { it.nazev },
-    onClick = { i, _ -> onClick(i, seznam[i]) },
+    onClick = { onClick(it.index, seznam[it.index]) },
     modifier = modifier,
     trailingIcon = trailingIcon,
     zaskrtavatko = { false },
@@ -57,7 +57,7 @@ fun Vybiratko(
 ) = Vybiratko(
     value = value?.jmeno ?: "",
     seznam = seznam.map { it.jmeno },
-    onClick = { i, _ -> onClick(i, seznam[i]) },
+    onClick = { onClick(it.index, seznam[it.index]) },
     modifier = modifier,
     label = label,
     trailingIcon = trailingIcon,
@@ -70,10 +70,11 @@ fun Vybiratko(
 fun Vybiratko(
     index: Int,
     seznam: List<String>,
-    onClick: (Int, String) -> Unit,
+    onClick: (IndexedValue<String>) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "",
-    zaskrtavatko: (String) -> Boolean = { it == seznam[index] },
+    zaskrtavatko: (IndexedValue<String>) -> Boolean = { it.value == seznam[index] },
+    enabled: (IndexedValue<String>) -> Boolean = { true },
     trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
     colors: TextFieldColors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
 ) = Vybiratko(
@@ -84,6 +85,7 @@ fun Vybiratko(
     label = label,
     trailingIcon = trailingIcon,
     zaskrtavatko = zaskrtavatko,
+    enabled = enabled,
     colors = colors,
 )
 
@@ -92,10 +94,11 @@ fun Vybiratko(
 fun Vybiratko(
     value: String,
     seznam: List<String>,
-    onClick: (Int, String) -> Unit,
+    onClick: (IndexedValue<String>) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "",
-    zaskrtavatko: (String) -> Boolean = { it == value },
+    zaskrtavatko: (IndexedValue<String>) -> Boolean = { it.value == value },
+    enabled: (IndexedValue<String>) -> Boolean = { true },
     trailingIcon: (@Composable (hide: () -> Unit) -> Unit)? = null,
     zavirat: Boolean = true,
     colors: TextFieldColors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -135,12 +138,12 @@ fun Vybiratko(
                 focusManager.clearFocus()
             },
         ) {
-            val zaskrtavatka = seznam.map(zaskrtavatko)
+            val zaskrtavatka = seznam.withIndex().map(zaskrtavatko)
             seznam.forEachIndexed { i, option ->
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
-                        onClick(i, option)
+                        onClick(IndexedValue(i, option))
                         if (zavirat) {
                             expanded = false
                             focusManager.clearFocus()
@@ -149,7 +152,8 @@ fun Vybiratko(
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                     leadingIcon = if (zaskrtavatka.any { it }) (@Composable {
                         if (zaskrtavatka[i]) Icon(Icons.Default.Check, null)
-                    }) else null
+                    }) else null,
+                    enabled = enabled(IndexedValue(i, option)),
                 )
             }
         }
