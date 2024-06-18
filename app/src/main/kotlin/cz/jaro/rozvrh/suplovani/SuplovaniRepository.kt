@@ -138,6 +138,7 @@ class SuplovaniRepository(
     }
 
     private suspend fun pouzitOfflineSuplovani(datum: LocalDate): Boolean {
+        return false
         val limit = 2
         val posledni = preferences.data.first()[Repository.Keys.suplovaniPosledni(datum)]?.let { LocalDateTime.parse(it) } ?: return false
         val staryHodin = posledni.until(LocalDateTime.now(), ChronoUnit.HOURS)

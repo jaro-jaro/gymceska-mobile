@@ -667,7 +667,49 @@ private fun PedagogickeDohledy(
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
     navigate: (Direction) -> Unit,
+) = Row(
+    Modifier.fillMaxWidth()
 ) {
+    val zmeny = state.suplovani.zmeny.pedagogickyDohledUTrid
+    Column(
+        Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+    ) {
+        zmeny.forEach { (trida, dohledy) ->
+            Box(
+                modifier = Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .size(zakladniVelikostBunky / 2, dohledy.size * zakladniVelikostBunky / 2),
+                contentAlignment = Alignment.Center,
+            ) {
+                ResponsiveText(
+                    text = trida,
+                    modifier = Modifier.padding(all = 8.dp),
+                    maxLines = 2,
+                )
+            }
+        }
+    }
+    Column(
+        modifier = Modifier
+            .horizontalScroll(horScrollState, enabled = false)
+    ) {
+        zmeny.forEach { (_, dohledy) ->
+            dohledy.forEach { (hodiny, vyucujici) ->
+                Row {
+                    Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                        ResponsiveText(hodiny.hodinyHezky())
+                    }
+                    Box(Modifier.bunka(4F), contentAlignment = Alignment.CenterStart) {
+                        ResponsiveText(
+                            vyucujici.joinToString(),
+                            Modifier.padding(horizontal = 8.dp),
+                            maxLines = 2,
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 
