@@ -34,7 +34,7 @@ fun ResponsiveText(
     textDecoration: TextDecoration? = null,
     textAlign: TextAlign? = null,
     lineHeight: TextUnit = TextUnit.Unspecified,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
+    overflow: TextOverflow = TextOverflow.Clip,
     softWrap: Boolean = true,
     maxLines: Int = 1,
     minLines: Int = 1,
@@ -62,9 +62,8 @@ fun ResponsiveText(
         style = style,
         onTextLayout = { textLayoutResult ->
             onTextLayout?.invoke(textLayoutResult)
-            val maxCurrentLineIndex: Int = textLayoutResult.lineCount - 1
 
-            if (textLayoutResult.isLineEllipsized(maxCurrentLineIndex)) {
+            if (textLayoutResult.didOverflowWidth || textLayoutResult.didOverflowHeight) {
                 textSize = textSize.times(TEXT_SCALE_REDUCTION_INTERVAL)
             }
         },

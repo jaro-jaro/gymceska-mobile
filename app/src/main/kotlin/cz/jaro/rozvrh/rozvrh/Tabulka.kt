@@ -93,7 +93,7 @@ fun Tabulka(
 
             Row(
                 modifier = Modifier
-                    .horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
+                    .horizontalScroll(horScrollState, enabled = false)
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 tabulka.first().drop(1).map { it.first() }.forEachIndexed { i, bunka ->
@@ -143,7 +143,7 @@ fun Tabulka(
         Column(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                .verticalScroll(verScrollState, enabled = false, reverseScrolling = true),
+                .verticalScroll(verScrollState, enabled = false),
         ) {
             Row {
                 Column(
@@ -185,7 +185,7 @@ fun Tabulka(
                 }
 
                 Column(
-                    Modifier.horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
+                    Modifier.horizontalScroll(horScrollState, enabled = false)
                 ) {
                     tabulka.drop(1).forEachIndexed { i, radek ->
                         val nasobitelVyskyCeleRadky = when {
@@ -261,8 +261,8 @@ fun Modifier.doubleScrollable(
             onDrag = { pointerInputChange, offset ->
                 coroutineScope.launch {
                     velocityTracker.addPointerInputChange(pointerInputChange)
-                    scrollStateX.scrollBy(offset.x)
-                    scrollStateY.scrollBy(offset.y)
+                    scrollStateX.scrollBy(-offset.x)
+                    scrollStateY.scrollBy(-offset.y)
                 }
             },
             onDragEnd = {
@@ -286,7 +286,7 @@ fun Modifier.doubleScrollable(
                         }
 
                         with(flingBehaviorX) {
-                            scrollScope.performFling(velocity.x)
+                            scrollScope.performFling(-velocity.x)
                         }
                     }
                 }
@@ -308,7 +308,7 @@ fun Modifier.doubleScrollable(
                         }
 
                         with(flingBehaviorY) {
-                            scrollScope.performFling(velocity.y)
+                            scrollScope.performFling(-velocity.y)
                         }
                     }
                 }

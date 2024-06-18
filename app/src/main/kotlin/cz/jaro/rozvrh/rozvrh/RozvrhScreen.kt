@@ -51,8 +51,8 @@ fun Rozvrh(
     verScroll: Int? = null,
     navigator: DestinationsNavigator,
 ) {
-    val horScrollState = rememberScrollState(horScroll ?: Int.MAX_VALUE)
-    val verScrollState = rememberScrollState(verScroll ?: Int.MAX_VALUE)
+    val horScrollState = rememberScrollState(horScroll ?: 0)
+    val verScrollState = rememberScrollState(verScroll ?: 0)
 
     val viewModel = koinViewModel<RozvrhViewModel> {
         parametersOf(

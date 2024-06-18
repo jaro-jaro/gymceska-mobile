@@ -1,19 +1,28 @@
 package cz.jaro.rozvrh.suplovani
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,8 +35,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -109,12 +122,11 @@ fun SuplovaniContent(
             )
         }
     ) { paddingValues ->
-        val verScrollState = rememberScrollState(Int.MAX_VALUE)
-        val horScrollState = rememberScrollState(Int.MAX_VALUE)
+        val verScrollState = rememberScrollState(0)
+        val horScrollState = rememberScrollState(0)
         Column(
             Modifier
                 .doubleScrollable(horScrollState, verScrollState)
-                .verticalScroll(verScrollState, enabled = false, reverseScrolling = true)
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
@@ -142,13 +154,45 @@ fun SuplovaniContent(
                 is SuplovaniState.Data -> {
                     Datumovatko(zmenitDatum, state.podporovanaData, formatovatDatum(state.datum))
 
-                    ZmenyTrid(state, horScrollState, tridy, mistnosti, vyucujici, navigate)
+                    var zobrazeni by remember { mutableIntStateOf(-1) }
+                    Surface(
+                        onClick = {
+                            zobrazeni = if (zobrazeni == 0) -1 else 0
+                        },
+                        shape = CircleShape,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                "Rozbalit",
+                                Modifier.rotate(
+                                    animateFloatAsState(if (zobrazeni == 0) 0F else -90F, label = "šipka dropdown").value
+                                )
+                            )
+                            Text("Změny v rozvrzích trid")
+                        }
+                    }
+                    AnimatedVisibility(
+                        zobrazeni == 0,
+                        enter = slideInVertically(initialOffsetY = { -it }) + expandVertically(expandFrom = Alignment.Top),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + shrinkVertically(shrinkTowards = Alignment.Top),
+                    ) {
+                        Column(
+                            Modifier
+                                .verticalScroll(verScrollState, enabled = false)
+                        ) {
+                            ZmenyTrid(state, horScrollState, tridy, mistnosti, vyucujici, navigate)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+context(ColumnScope)
 @Composable
 private fun ZmenyTrid(
     state: SuplovaniState.Data,
@@ -158,14 +202,13 @@ private fun ZmenyTrid(
     vyucujici: List<Vjec.VyucujiciVjec>,
     navigate: (Direction) -> Unit,
 ) {
-
-    Row(
-        Modifier.fillMaxWidth()
-    ) {
-        Column(
-            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+    state.suplovani.zmeny.zmenyVRozvrzichTrid.forEach { (trida, zmeny) ->
+        Row(
+            Modifier.fillMaxWidth()
         ) {
-            state.suplovani.zmeny.zmenyVRozvrzichTrid.forEach { (trida, zmeny) ->
+            Column(
+                Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+            ) {
                 Box(
                     modifier = Modifier
                         .border(1.dp, Color.Transparent)
@@ -198,12 +241,10 @@ private fun ZmenyTrid(
                     }
                 }
             }
-        }
-        Column(
-            modifier = Modifier
-                .horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
-        ) {
-            state.suplovani.zmeny.zmenyVRozvrzichTrid.forEach { (_, zmeny) ->
+            Column(
+                modifier = Modifier
+                    .horizontalScroll(horScrollState, enabled = false)
+            ) {
                 Box(
                     modifier = Modifier
                         .border(1.dp, Color.Transparent)
@@ -216,7 +257,7 @@ private fun ZmenyTrid(
                         Box(Modifier.bunka(1F / 3), contentAlignment = Alignment.Center) {
                             ResponsiveText(uniZmena.typ)
                         }
-                        Box(Modifier.bunka(2F), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.bunka(4F), contentAlignment = Alignment.CenterStart) {
                             ResponsiveText(
                                 if (uniZmena.skupina.isNotBlank()) "(${uniZmena.skupina}) ${uniZmena.poznamka}" else uniZmena.poznamka,
                                 Modifier.padding(8.dp)
@@ -247,8 +288,8 @@ private fun ZmenyTrid(
                                 )
                             },
                         )
-                        Box(Modifier.bunka(1F), contentAlignment = Alignment.CenterStart) {
-                            ResponsiveText(uniZmena.poznamka, Modifier.padding(8.dp), maxLines = 2)
+                        Box(Modifier.bunka(3F), contentAlignment = Alignment.CenterStart) {
+                            ResponsiveText(uniZmena.poznamka, Modifier.padding(horizontal = 8.dp), maxLines = 2)
                         }
                     }
                 }
@@ -261,40 +302,6 @@ private fun ZmenyTrid(
 private fun Modifier.bunka(sirka: Float) = this
     .border(1.dp, MaterialTheme.colorScheme.secondary)
     .size(zakladniVelikostBunky * sirka, zakladniVelikostBunky / 2)
-
-private fun ZmenaTridy.toList() = when (this) {
-    is ZmenaTridy.Absence -> listOf("!", skupina3, typ, "", "", "")
-    is ZmenaTridy.PresunZ -> listOf(">>", skupina3, predmet, "", "", ">> $naHezky")
-    is ZmenaTridy.PresunNa -> listOf("<<", skupina3, predmet, vyucujici, mistnost, "<< $zHezky")
-    is ZmenaTridy.Odpada -> listOf("x", skupina3, predmet, "", "", "($misto)")
-    is ZmenaTridy.Spoji -> listOf("><", skupina3, predmet, vyucujici, mistnost, "($misto)")
-    is ZmenaTridy.Zmena -> listOf("~", skupina3, predmet, vyucujici, mistnost, "")
-    is ZmenaTridy.Supluje -> listOf("x>", skupina3, predmet, vyucujici, mistnost, "($misto)")
-    is ZmenaTridy.Navic -> listOf("+", skupina3, predmet, vyucujici, mistnost, "")
-}
-
-@Composable
-private fun Zobrazeni1(state: SuplovaniState.Data) {
-    state.suplovani.zmeny.zmenyVRozvrzichTrid.forEach { (trida, zmeny) ->
-
-        Text(trida, fontWeight = FontWeight.Bold)
-
-        zmeny.forEach { zmena ->
-            with(zmena) {
-                when (this) {
-                    is ZmenaTridy.Absence -> Text("! " a "$hodinyHezky.$skupina2 $typ")
-                    is ZmenaTridy.PresunZ -> Text(">>" a "$hodina.$skupina2 $predmet >> $naHezky")
-                    is ZmenaTridy.PresunNa -> Text("<<" a "$hodina.$skupina2 $predmet-$vyucujici-$mistnost << $zHezky")
-                    is ZmenaTridy.Odpada -> Text("x " a "$hodina.$skupina2 $predmet ($misto)")
-                    is ZmenaTridy.Spoji -> Text("><" a "$hodina.$skupina2 $predmet-$vyucujici-$mistnost ($misto)")
-                    is ZmenaTridy.Zmena -> Text("~ " a "$hodina.$skupina2 $predmet-$vyucujici-$mistnost")
-                    is ZmenaTridy.Supluje -> Text("x>" a "$hodina.$skupina2 $predmet-$vyucujici-$mistnost ($misto)")
-                    is ZmenaTridy.Navic -> Text("+ " a "$hodina.$skupina2 $predmet-$vyucujici-$mistnost")
-                }
-            }
-        }
-    }
-}
 
 infix fun String.a(other: String) = buildAnnotatedString {
     append("    ")

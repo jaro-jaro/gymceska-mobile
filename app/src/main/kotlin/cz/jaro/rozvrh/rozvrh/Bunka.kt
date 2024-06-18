@@ -73,11 +73,7 @@ fun Bunka(
     contentAlignment = Alignment.Center
 ) {
     @Composable
-    fun Ucebna(
-        bunka: Bunka,
-        mistnosti: List<Vjec.MistnostVjec>,
-        kliklNaNeco: (vjec: Vjec) -> Unit
-    ) {
+    fun Ucebna() {
         ResponsiveText(
             text = bunka.ucebna,
             modifier = Modifier
@@ -97,11 +93,7 @@ fun Bunka(
     }
 
     @Composable
-    fun Trida(
-        bunka: Bunka,
-        tridy: List<Vjec.TridaVjec>,
-        kliklNaNeco: (vjec: Vjec) -> Unit
-    ) {
+    fun Trida() {
         ResponsiveText(
             text = bunka.tridaSkupina,
             modifier = Modifier
@@ -168,14 +160,14 @@ fun Bunka(
             Modifier,
             contentAlignment = Alignment.TopStart,
         ) {
-            Ucebna(bunka, mistnosti, kliklNaNeco)
+            Ucebna()
         }
         if (bunka.tridaSkupina.isNotBlank()) Box(
             Modifier
                 .weight(1F),
             contentAlignment = Alignment.TopEnd,
         ) {
-            Trida(bunka, tridy, kliklNaNeco)
+            Trida()
         }
     }
 
