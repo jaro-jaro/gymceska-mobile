@@ -208,15 +208,36 @@ sealed interface ZmenaVyucujiciho {
     ) : ZmenaVyucujiciho
 }
 
+data class UniverzalniZmenaVyucujiciho(
+    val hodiny: List<Hodina>,
+    val typ: String,
+    val tridaSkupina: TridaSkupina,
+    val predmet: Predmet,
+    val mistnost: Mistnost,
+    val poznamka: String,
+)
+
 fun ZmenaTridy.toUniverzalniZmenaTridy() = when (this) {
-    is ZmenaTridy.Absence -> UniverzalniZmenaTridy(hodiny, "!", skupina3, "", "", "", typ)
-    is ZmenaTridy.PresunZ -> UniverzalniZmenaTridy(hodiny, ">>", skupina3, predmet, "", "", ">> $naHezky")
-    is ZmenaTridy.PresunNa -> UniverzalniZmenaTridy(hodiny, "<<", skupina3, predmet, vyucujici, mistnost, "<< $zHezky")
-    is ZmenaTridy.Odpada -> UniverzalniZmenaTridy(hodiny, "x", skupina3, predmet, "", "", "($misto)")
-    is ZmenaTridy.Spoji -> UniverzalniZmenaTridy(hodiny, "><", skupina3, predmet, vyucujici, mistnost, "($misto)")
-    is ZmenaTridy.Zmena -> UniverzalniZmenaTridy(hodiny, "~", skupina3, predmet, vyucujici, mistnost, "")
-    is ZmenaTridy.Supluje -> UniverzalniZmenaTridy(hodiny, "x>", skupina3, predmet, vyucujici, mistnost, "($misto)")
-    is ZmenaTridy.Navic -> UniverzalniZmenaTridy(hodiny, "+", skupina3, predmet, vyucujici, mistnost, "")
+    is ZmenaTridy.Absence -> UniverzalniZmenaTridy(hodiny, "!", skupinaHezky, "", "", "", typ)
+    is ZmenaTridy.PresunZ -> UniverzalniZmenaTridy(hodiny, ">>", skupinaHezky, predmet, "", "", ">> $naHezky")
+    is ZmenaTridy.PresunNa -> UniverzalniZmenaTridy(hodiny, "<<", skupinaHezky, predmet, vyucujici, mistnost, "<< $zHezky")
+    is ZmenaTridy.Odpada -> UniverzalniZmenaTridy(hodiny, "x", skupinaHezky, predmet, "", "", "($misto)")
+    is ZmenaTridy.Spoji -> UniverzalniZmenaTridy(hodiny, "><", skupinaHezky, predmet, vyucujici, mistnost, "($misto)")
+    is ZmenaTridy.Zmena -> UniverzalniZmenaTridy(hodiny, "~", skupinaHezky, predmet, vyucujici, mistnost, "")
+    is ZmenaTridy.Supluje -> UniverzalniZmenaTridy(hodiny, "x>", skupinaHezky, predmet, vyucujici, mistnost, "($misto)")
+    is ZmenaTridy.Navic -> UniverzalniZmenaTridy(hodiny, "+", skupinaHezky, predmet, vyucujici, mistnost, "")
+}
+
+fun ZmenaVyucujiciho.toUniverzalniZmenaVyucujiciho() = when (this) {
+    is ZmenaVyucujiciho.Absence -> UniverzalniZmenaVyucujiciho(hodiny, "!", tridaSkupina, "", "", typ)
+    is ZmenaVyucujiciho.PresunZ -> UniverzalniZmenaVyucujiciho(hodiny, ">>", tridaSkupina, predmet, "", ">> $naHezky")
+    is ZmenaVyucujiciho.PresunNa -> UniverzalniZmenaVyucujiciho(hodiny, "<<", tridaSkupina, predmet, mistnost, "<< $zHezky")
+    is ZmenaVyucujiciho.Odpada -> UniverzalniZmenaVyucujiciho(hodiny, "x", tridaSkupina, predmet, "", poznamka.orEmpty())
+    is ZmenaVyucujiciho.Spojeno -> UniverzalniZmenaVyucujiciho(hodiny, "><", tridaSkupina, predmet, mistnost, "($misto)")
+    is ZmenaVyucujiciho.Zmena -> UniverzalniZmenaVyucujiciho(hodiny, "~", tridaSkupina, predmet, mistnost, "")
+    is ZmenaVyucujiciho.ZmenaPlus -> UniverzalniZmenaVyucujiciho(hodiny, "x!", tridaSkupina, predmet, "", "")
+    is ZmenaVyucujiciho.Supluje -> UniverzalniZmenaVyucujiciho(hodiny, "x>", tridaSkupina, predmet, mistnost, "($misto)")
+    is ZmenaVyucujiciho.Navic -> UniverzalniZmenaVyucujiciho(hodiny, "+", tridaSkupina, predmet, mistnost, "")
 }
 
 val ZmenaTridy.hodiny
@@ -256,7 +277,19 @@ val ZmenaTridy.skupina
         is ZmenaTridy.Absence -> skupina
     }
 
-val ZmenaTridy.hodinyHezky get() = hodiny.hodinyHezky()
+val ZmenaVyucujiciho.tridaSkupina
+    get() = when (this) {
+        is ZmenaVyucujiciho.PresunZ -> tridaSkupina
+        is ZmenaVyucujiciho.PresunNa -> tridaSkupina
+        is ZmenaVyucujiciho.Odpada -> tridaSkupina
+        is ZmenaVyucujiciho.Spojeno -> tridaSkupina
+        is ZmenaVyucujiciho.Zmena -> tridaSkupina
+        is ZmenaVyucujiciho.ZmenaPlus -> tridaSkupina
+        is ZmenaVyucujiciho.Supluje -> tridaSkupina
+        is ZmenaVyucujiciho.Navic -> tridaSkupina
+        is ZmenaVyucujiciho.Absence -> ""
+    }
+
 fun Collection<Hodina>.hodinyHezky() = sorted().detectProgressions().joinToString()
 
 fun List<Int>.detectProgressions(): List<String> {
@@ -281,6 +314,7 @@ fun List<Int>.detectProgressions(): List<String> {
 
 val ZmenaTridy.PresunNa.zHezky get() = (if (zDatumu == null) "" else "(${zDatumu.dayOfMonth}. ${zDatumu.monthValue}.) ") + "$zHodiny. hod."
 val ZmenaTridy.PresunZ.naHezky get() = (if (naDatum == null) "" else "(${naDatum.dayOfMonth}. ${naDatum.monthValue}.) ") + "$naHodinu. hod."
+val ZmenaVyucujiciho.PresunNa.zHezky get() = (if (zDatumu == null) "" else "(${zDatumu.dayOfMonth}. ${zDatumu.monthValue}.) ") + "$zHodiny. hod."
+val ZmenaVyucujiciho.PresunZ.naHezky get() = (if (naDatum == null) "" else "(${naDatum.dayOfMonth}. ${naDatum.monthValue}.) ") + "$naHodinu. hod."
 
-val ZmenaTridy.skupina2 get() = if (skupina.isNullOrBlank()) "" else " [$skupina]"
-val ZmenaTridy.skupina3 get() = if (skupina.isNullOrBlank()) "" else "$skupina"
+val ZmenaTridy.skupinaHezky get() = if (skupina.isNullOrBlank()) "" else "$skupina"

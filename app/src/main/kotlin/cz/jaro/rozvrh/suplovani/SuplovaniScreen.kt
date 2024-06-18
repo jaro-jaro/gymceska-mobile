@@ -1,6 +1,7 @@
 package cz.jaro.rozvrh.suplovani
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -34,10 +36,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -154,36 +156,136 @@ fun SuplovaniContent(
                 is SuplovaniState.Data -> {
                     Datumovatko(zmenitDatum, state.podporovanaData, formatovatDatum(state.datum))
 
-                    var zobrazeni by remember { mutableIntStateOf(-1) }
-                    Surface(
-                        onClick = {
-                            zobrazeni = if (zobrazeni == 0) -1 else 0
-                        },
-                        shape = CircleShape,
+                    val zobrazeni = remember { mutableIntStateOf(-1) }
+
+                    Column(
+                        Modifier.verticalScroll(verScrollState, enabled = false)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                "Rozbalit",
-                                Modifier.rotate(
-                                    animateFloatAsState(if (zobrazeni == 0) 0F else -90F, label = "šipka dropdown").value
-                                )
-                            )
-                            Text("Změny v rozvrzích trid")
+                        Cast(zobrazeni, 0, "Nepřítomné tridy") {
+                            NepritomneTridy(state, horScrollState, tridy, navigate)
                         }
-                    }
-                    AnimatedVisibility(
-                        zobrazeni == 0,
-                        enter = slideInVertically(initialOffsetY = { -it }) + expandVertically(expandFrom = Alignment.Top),
-                        exit = slideOutVertically(targetOffsetY = { -it }) + shrinkVertically(shrinkTowards = Alignment.Top),
-                    ) {
-                        Column(
-                            Modifier
-                                .verticalScroll(verScrollState, enabled = false)
-                        ) {
+                        Cast(zobrazeni, 1, "Nepřítomní vyučují") {
+                            NepritomniUcitele(state, horScrollState, vyucujici, navigate)
+                        }
+                        Cast(zobrazeni, 2, "Místnosti mimo provoz") {
+                            MistnostiMimoProvoz(state, horScrollState, mistnosti, navigate)
+                        }
+                        Cast(zobrazeni, 3, "Zmeny v rozvrzích učitelů") {
+                            ZmenyUctelu(state, horScrollState, tridy, mistnosti, vyucujici, navigate)
+                        }
+                        Cast(zobrazeni, 4, "Změny v rozvrzích trid") {
                             ZmenyTrid(state, horScrollState, tridy, mistnosti, vyucujici, navigate)
+                        }
+                        Cast(zobrazeni, 5, "Pedagogické dohledy u tříd") {
+                            PedagogickeDohledy(state, horScrollState, tridy, mistnosti, vyucujici, navigate)
+                        }
+                        Poznamky(state, horScrollState, tridy, mistnosti, vyucujici, navigate)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.Cast(
+    zobrazeni: MutableIntState,
+    i: Int,
+    nazev: String,
+    content: @Composable AnimatedVisibilityScope.() -> Unit
+) {
+    Surface(
+        onClick = {
+            zobrazeni.intValue = if (zobrazeni.intValue == i) -1 else i
+        },
+        shape = CircleShape,
+    ) {
+        Row(
+            Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.ArrowDropDown,
+                "Rozbalit",
+                Modifier.rotate(
+                    animateFloatAsState(if (zobrazeni.intValue == i) 0F else -90F, label = "šipka dropdown").value
+                )
+            )
+            Text(nazev)
+        }
+    }
+    AnimatedVisibility(
+        zobrazeni.intValue == i,
+        enter = slideInVertically(initialOffsetY = { -it }) + expandVertically(expandFrom = Alignment.Top),
+        exit = slideOutVertically(targetOffsetY = { -it }) + shrinkVertically(shrinkTowards = Alignment.Top),
+        content = content,
+    )
+}
+
+context(ColumnScope, AnimatedVisibilityScope)
+@Composable
+private fun NepritomneTridy(
+    state: SuplovaniState.Data,
+    horScrollState: ScrollState,
+    tridy: List<Vjec.TridaVjec>,
+    navigate: (Direction) -> Unit,
+) = Column {
+    val zmeny = state.suplovani.zmeny.nepritomneTridy
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .horizontalScroll(horScrollState, enabled = false)
+        ) {
+            Row {
+                zmeny.values.first().keys.forEach {
+                    Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                        ResponsiveText("$it")
+                    }
+                }
+            }
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+        ) {
+            zmeny.forEach { (trida, _) ->
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
+                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ResponsiveText(
+                        text = trida,
+                        modifier = Modifier.padding(all = 8.dp),
+                        maxLines = 2,
+                    )
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .horizontalScroll(horScrollState, enabled = false)
+        ) {
+            zmeny.forEach { (_, hodiny) ->
+                Row {
+                    hodiny.forEach { (_, typ) ->
+                        Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                            ResponsiveText(typ)
                         }
                     }
                 }
@@ -192,7 +294,264 @@ fun SuplovaniContent(
     }
 }
 
-context(ColumnScope)
+
+context(AnimatedVisibilityScope)
+@Composable
+private fun NepritomniUcitele(
+    state: SuplovaniState.Data,
+    horScrollState: ScrollState,
+    vyucujici: List<Vjec.VyucujiciVjec>,
+    navigate: (Direction) -> Unit,
+) = Column {
+    val zmeny = state.suplovani.zmeny.nepritomniUcitele
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .size(zakladniVelikostBunky * 1.25F, zakladniVelikostBunky / 2),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .horizontalScroll(horScrollState, enabled = false)
+        ) {
+            Row {
+                zmeny.values.first().keys.forEach {
+                    Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                        ResponsiveText("$it")
+                    }
+                }
+            }
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+        ) {
+            zmeny.forEach { (ucitel, _) ->
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
+                        .size(zakladniVelikostBunky * 1.25F, zakladniVelikostBunky / 2),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    ResponsiveText(
+                        text = ucitel,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        maxLines = 2,
+                    )
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .horizontalScroll(horScrollState, enabled = false)
+        ) {
+            zmeny.forEach { (_, hodiny) ->
+                Row {
+                    hodiny.forEach { (_, typ) ->
+                        Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                            ResponsiveText(typ)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+context(AnimatedVisibilityScope)
+@Composable
+private fun MistnostiMimoProvoz(
+    state: SuplovaniState.Data,
+    horScrollState: ScrollState,
+    mistnosti: List<Vjec.MistnostVjec>,
+    navigate: (Direction) -> Unit,
+) = Column {
+    val zmeny = state.suplovani.zmeny.mistnostiMimoProvoz
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .horizontalScroll(horScrollState, enabled = false)
+        ) {
+            Row {
+                zmeny.values.first().keys.forEach {
+                    Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                        ResponsiveText("$it")
+                    }
+                }
+            }
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+        ) {
+            zmeny.forEach { (mistnost, _) ->
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
+                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ResponsiveText(
+                        text = mistnost,
+                        modifier = Modifier.padding(all = 8.dp),
+                        maxLines = 2,
+                    )
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .horizontalScroll(horScrollState, enabled = false)
+        ) {
+            zmeny.forEach { (_, hodiny) ->
+                Row {
+                    hodiny.forEach { (_, typ) ->
+                        Box(Modifier.bunka(1F / 2), contentAlignment = Alignment.Center) {
+                            ResponsiveText(typ)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+context(AnimatedVisibilityScope)
+@Composable
+private fun ZmenyUctelu(
+    state: SuplovaniState.Data,
+    horScrollState: ScrollState,
+    tridy: List<Vjec.TridaVjec>,
+    mistnosti: List<Vjec.MistnostVjec>,
+    vyucujici: List<Vjec.VyucujiciVjec>,
+    navigate: (Direction) -> Unit,
+) = Column {
+    state.suplovani.zmeny.zmenyVRozvrzichUcitelu.forEach { (ucitel, nefiltrZmeny) ->
+        val zmeny = nefiltrZmeny.filter { it !is ZmenaVyucujiciho.ZmenaPlus }
+        if (zmeny.isEmpty()) return@forEach
+        Box(
+            modifier = Modifier
+                .border(1.dp, Color.Transparent)
+                .height(zakladniVelikostBunky / 2)
+                .clickable {
+                    navigate(
+                        RozvrhDestination(
+                            vjec = tridy.find { it.jmeno == ucitel },
+                            stalost = Stalost.TentoTyden, // todo
+                        )
+                    )
+                },
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(ucitel, fontWeight = FontWeight.Bold)
+        }
+        Row(
+            Modifier.fillMaxWidth()
+        ) {
+            Column(
+                Modifier.horizontalScroll(rememberScrollState(), enabled = false)
+            ) {
+
+                zmeny.groupBy { it.hodiny.toSet() }.toList().sortedBy { it.first.first() }.forEach { (hodiny, zmeny) ->
+                    Box(
+                        modifier = Modifier
+                            .border(1.dp, MaterialTheme.colorScheme.secondary)
+                            .size(zakladniVelikostBunky / 2, zmeny.size * zakladniVelikostBunky / 2),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ResponsiveText(
+                            text = hodiny.hodinyHezky(),
+                            modifier = Modifier.padding(all = 8.dp),
+                            maxLines = 2,
+                        )
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .horizontalScroll(horScrollState, enabled = false)
+            ) {
+//                Box(
+//                    modifier = Modifier
+//                        .border(1.dp, Color.Transparent)
+//                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
+//                )
+
+                zmeny.forEach { zmena ->
+
+                    val uniZmena = zmena.toUniverzalniZmenaVyucujiciho()
+                    if (zmena is ZmenaVyucujiciho.Absence) Row {
+                        Box(Modifier.bunka(1F / 3), contentAlignment = Alignment.Center) {
+                            ResponsiveText(uniZmena.typ)
+                        }
+                        Box(Modifier.bunka(2F), contentAlignment = Alignment.CenterStart) {
+                            ResponsiveText(
+                                uniZmena.poznamka,
+                                Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                    else Row {
+                        Box(Modifier.bunka(1F / 3), contentAlignment = Alignment.Center) {
+                            ResponsiveText(uniZmena.typ)
+                        }
+                        Bunka(
+                            bunka = Bunka(
+                                ucebna = uniZmena.mistnost,
+                                predmet = uniZmena.predmet,
+                                ucitel = "",
+                                tridaSkupina = uniZmena.tridaSkupina,
+                            ),
+                            aspectRatio = 2F,
+                            tridy = tridy,
+                            mistnosti = mistnosti,
+                            vyucujici = vyucujici,
+                            kliklNaNeco = { vjec ->
+                                navigate(
+                                    RozvrhDestination(
+                                        vjec = vjec,
+                                        stalost = Stalost.TentoTyden, // todo
+                                    )
+                                )
+                            },
+                        )
+                        Box(Modifier.bunka(1F), contentAlignment = Alignment.CenterStart) {
+                            ResponsiveText(uniZmena.poznamka, Modifier.padding(horizontal = 8.dp), maxLines = 2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+context(AnimatedVisibilityScope)
 @Composable
 private fun ZmenyTrid(
     state: SuplovaniState.Data,
@@ -201,7 +560,7 @@ private fun ZmenyTrid(
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
     navigate: (Direction) -> Unit,
-) {
+) = Column {
     state.suplovani.zmeny.zmenyVRozvrzichTrid.forEach { (trida, zmeny) ->
         Row(
             Modifier.fillMaxWidth()
@@ -257,7 +616,7 @@ private fun ZmenyTrid(
                         Box(Modifier.bunka(1F / 3), contentAlignment = Alignment.Center) {
                             ResponsiveText(uniZmena.typ)
                         }
-                        Box(Modifier.bunka(4F), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.bunka(2F), contentAlignment = Alignment.CenterStart) {
                             ResponsiveText(
                                 if (uniZmena.skupina.isNotBlank()) "(${uniZmena.skupina}) ${uniZmena.poznamka}" else uniZmena.poznamka,
                                 Modifier.padding(8.dp)
@@ -288,13 +647,42 @@ private fun ZmenyTrid(
                                 )
                             },
                         )
-                        Box(Modifier.bunka(3F), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.bunka(1F), contentAlignment = Alignment.CenterStart) {
                             ResponsiveText(uniZmena.poznamka, Modifier.padding(horizontal = 8.dp), maxLines = 2)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+
+context(AnimatedVisibilityScope)
+@Composable
+private fun PedagogickeDohledy(
+    state: SuplovaniState.Data,
+    horScrollState: ScrollState,
+    tridy: List<Vjec.TridaVjec>,
+    mistnosti: List<Vjec.MistnostVjec>,
+    vyucujici: List<Vjec.VyucujiciVjec>,
+    navigate: (Direction) -> Unit,
+) {
+}
+
+
+context(ColumnScope)
+@Composable
+private fun Poznamky(
+    state: SuplovaniState.Data,
+    horScrollState: ScrollState,
+    tridy: List<Vjec.TridaVjec>,
+    mistnosti: List<Vjec.MistnostVjec>,
+    vyucujici: List<Vjec.VyucujiciVjec>,
+    navigate: (Direction) -> Unit,
+) {
+    state.suplovani.zmeny.poznamky.forEach {
+        Text(it)
     }
 }
 
