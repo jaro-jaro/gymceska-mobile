@@ -190,21 +190,6 @@ fun NastaveniContent(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "Stahovat všechny rozvrhy na pozadí bezprostředně po zapnutí aplikace", Modifier.weight(1F))
-                Switch(
-                    checked = nastaveni.stahovatHned,
-                    onCheckedChange = {
-                        upravitNastaveni { nastaveni ->
-                            nastaveni.copy(stahovatHned = it)
-                        }
-                    }
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
                 Text(text = stringResource(R.string.zapnout_na_mym), Modifier.weight(1F))
                 Switch(
                     checked = nastaveni.defaultMujRozvrh,
