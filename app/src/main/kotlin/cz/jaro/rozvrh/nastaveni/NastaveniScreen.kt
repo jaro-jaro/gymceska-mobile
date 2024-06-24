@@ -1,13 +1,6 @@
 package cz.jaro.rozvrh.nastaveni
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -48,8 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -73,29 +67,13 @@ import java.time.LocalTime
 import java.time.format.DateTimeParseException
 import kotlin.reflect.KFunction3
 
-private var callback: (Uri) -> Unit = {}
-
 @Destination
 @Composable
 fun Nastaveni(
     navigator: DestinationsNavigator
 ) {
-
-    val ctx = LocalContext.current
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == Activity.RESULT_OK) {
-            callback(it.data!!.data!!)
-        }
-    }
-
-    fun getStartActivityForResult(cb: (Uri) -> Unit): ManagedActivityResultLauncher<Intent, ActivityResult> {
-        callback = cb
-        return launcher
-    }
-
     val viewModel = koinViewModel<NastaveniViewModel> {
-        parametersOf(::getStartActivityForResult, ctx.contentResolver)
+        parametersOf()
     }
 
     val tridy by viewModel.tridyFlow.collectAsStateWithLifecycle(emptyList())
@@ -108,7 +86,7 @@ fun Nastaveni(
         upravitNastaveni = viewModel::upravitNastaveni,
         tridy = tridy,
         skupiny = skupiny,
-        stahnoutVse = viewModel::stahnoutVse
+        kopirovatVse = viewModel::kopirovatVse
     )
 }
 
@@ -120,7 +98,7 @@ fun NastaveniContent(
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
-    stahnoutVse: KFunction3<Stalost, (String) -> Unit, (Boolean) -> Unit, Unit>,
+    kopirovatVse: KFunction3<Stalost, (String) -> Unit, (String?) -> Unit, Unit>,
 ) = Surface {
     Scaffold(
         topBar = {
@@ -390,7 +368,10 @@ fun NastaveniContent(
                     )
                 }
 
-            var stahnoutNastaveniDialog by remember { mutableStateOf(false) }
+            val clipboardManager = LocalClipboardManager.current
+
+            var kopirovatNastaveniDialog by remember { mutableStateOf(false) }
+            var kopirovatDialog by remember { mutableStateOf(false) }
             var stalost by remember { mutableStateOf(Stalost.dnesniEntries().first()) }
             var nacitame by remember { mutableStateOf(false) }
             var podrobnostiNacitani by remember { mutableStateOf("") }
@@ -407,28 +388,52 @@ fun NastaveniContent(
                     CircularProgressIndicator()
                 },
             )
-            if (stahnoutNastaveniDialog) AlertDialog(
+
+            if (kopirovatDialog) AlertDialog(
                 onDismissRequest = {
-                    stahnoutNastaveniDialog = false
+                    kopirovatDialog = false
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            kopirovatDialog = false
+                        }
+                    ) {
+                        Text(text = stringResource(android.R.string.ok))
+                    }
+                },
+                dismissButton = {},
+                title = {
+                    Text(text = "Kopírovat rozvrhy")
+                },
+                text = {
+                    Text("Hotovo!")
+                }
+            )
+
+            if (kopirovatNastaveniDialog) AlertDialog(
+                onDismissRequest = {
+                    kopirovatNastaveniDialog = false
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             nacitame = true
-                            stahnoutNastaveniDialog = false
+                            kopirovatNastaveniDialog = false
                             podrobnostiNacitani = "Generuji text"
 
-                            stahnoutVse(
+                            kopirovatVse(
                                 stalost,
                                 {
                                     podrobnostiNacitani = it
                                 },
                                 {
-                                    if (!it) {
+                                    if (it == null) {
                                         podrobnostiNacitani = "Nejste připojeni k internetu a nemáte staženou offline verzi všech rozvrhů tříd"
-                                        return@stahnoutVse
+                                        return@kopirovatVse
                                     }
-//                                    kopirovatDialog = true
+                                    clipboardManager.setText(AnnotatedString(it))
+                                    kopirovatDialog = true
                                     nacitame = false
                                 }
                             )
@@ -440,14 +445,14 @@ fun NastaveniContent(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            stahnoutNastaveniDialog = false
+                            kopirovatNastaveniDialog = false
                         }
                     ) {
                         Text(text = "Zrušit")
                     }
                 },
                 title = {
-                    Text(text = "Stáhnout rozvrhy")
+                    Text(text = "Kopírovat rozvrhy")
                 },
                 text = {
                     Column {
@@ -464,10 +469,10 @@ fun NastaveniContent(
 
             TextButton(
                 onClick = {
-                    stahnoutNastaveniDialog = true
+                    kopirovatNastaveniDialog = true
                 }
             ) {
-                Text("Stáhnout rozvrhy")
+                Text("Zkopírovat rozvrhy")
             }
 
             Text(stringResource(R.string.verze_aplikace, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
