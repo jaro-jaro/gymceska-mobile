@@ -200,25 +200,6 @@ class Repository(
         it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
     }
 
-    init {
-        scope.launch {
-            nastaveni.collect { nastaveni ->
-                if (nastaveni.stahovatHned)
-                    tridy.first().drop(1).forEach { trida ->
-                        launch(Dispatchers.IO) {
-                            ziskatRozvrh(trida, Stalost.TentoTyden)
-                        }
-                        launch(Dispatchers.IO) {
-                            ziskatRozvrh(trida, Stalost.PristiTyden)
-                        }
-                        launch(Dispatchers.IO) {
-                            ziskatRozvrh(trida, Stalost.Staly)
-                        }
-                    }
-            }
-        }
-    }
-
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
         preferences.edit {
             it[Keys.NASTAVENI] =
