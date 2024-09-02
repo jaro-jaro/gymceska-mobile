@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +52,14 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -66,12 +71,14 @@ import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
 import cz.jaro.rozvrh.rozvrh.dnesniEntries
+import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import cz.jaro.rozvrh.ui.theme.Theme
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalTime
 import java.time.format.DateTimeParseException
-import kotlin.reflect.KFunction3
 
 private var callback: (Uri) -> Unit = {}
 
@@ -120,7 +127,7 @@ fun NastaveniContent(
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
-    stahnoutVse: KFunction3<Stalost, (String) -> Unit, (Boolean) -> Unit, Unit>,
+    stahnoutVse: (Stalost, (String) -> Unit, (Boolean) -> Unit) -> Unit,
 ) = Surface {
     Scaffold(
         topBar = {
@@ -455,6 +462,22 @@ fun NastaveniContent(
                 Text("Stáhnout rozvrhy")
             }
 
+            val scope = rememberCoroutineScope()
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        Firebase.remoteConfig.reset().await()
+                        val configSettings = remoteConfigSettings {
+                            minimumFetchIntervalInSeconds = 3600
+                        }
+                        Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
+                        Firebase.remoteConfig.fetchAndActivate().await()
+                    }
+                }
+            ) {
+                Text("Obnovit seznamy")
+            }
+
             Text(stringResource(R.string.verze_aplikace, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
 
             Text("Simulate crash...", Modifier.clickable {
@@ -464,3 +487,23 @@ fun NastaveniContent(
     }
 }
 
+@Preview
+@Composable
+private fun NastaveniPreview() {
+    GymceskaTheme(
+        useDarkTheme = true,
+        useDynamicColor = false,
+        theme = Theme.Green
+    ) {
+        NastaveniContent(
+            navigateBack = {},
+            nastaveni = Nastaveni(
+                mojeTrida = Vjec.TridaVjec("1.A")
+            ),
+            upravitNastaveni = {},
+            tridy = emptyList(),
+            skupiny = emptySequence(),
+            stahnoutVse = { _, _, _ -> },
+        )
+    }
+}
