@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,8 @@ fun Rozvrh(
     val vyucujici by viewModel.vyucujici.collectAsStateWithLifecycle()
     val realMujRozvrh by viewModel.mujRozvrh.collectAsStateWithLifecycle()
     val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
+    val zoom by viewModel.zoom.collectAsStateWithLifecycle()
+    val alwaysTwoRowCells by viewModel.alwaysTwoRowCells.collectAsStateWithLifecycle()
 
     RozvrhContent(
         tabulka = tabulka?.rozvrh,
@@ -95,6 +98,8 @@ fun Rozvrh(
         zobrazitMujRozvrh = zobrazitMujRozvrh,
         horScrollState = horScrollState,
         verScrollState = verScrollState,
+        zoom = zoom,
+        alwaysTwoRowCells = alwaysTwoRowCells,
     )
 }
 
@@ -119,6 +124,8 @@ fun RozvrhContent(
     zobrazitMujRozvrh: Boolean,
     horScrollState: ScrollState,
     verScrollState: ScrollState,
+    zoom: Float,
+    alwaysTwoRowCells: Boolean,
 ) = Scaffold(
     topBar = {
         AppBar(
@@ -249,20 +256,23 @@ fun RozvrhContent(
         )
 
         if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
-        else Tabulka(
-            vjec = vjec,
-            tabulka = tabulka,
-            kliklNaNeco = { vjec ->
-                vybratRozvrh(vjec)
-            },
-            rozvrhOfflineWarning = rozvrhOfflineWarning,
-            tridy = tridy,
-            mistnosti = mistnosti,
-            vyucujici = vyucujici,
-            mujRozvrh = mujRozvrh,
-            horScrollState = horScrollState,
-            verScrollState = verScrollState,
-        )
+        else CompositionLocalProvider(LocalBunkaZoom provides zoom) {
+            Tabulka(
+                vjec = vjec,
+                tabulka = tabulka,
+                kliklNaNeco = { vjec ->
+                    vybratRozvrh(vjec)
+                },
+                rozvrhOfflineWarning = rozvrhOfflineWarning,
+                tridy = tridy,
+                mistnosti = mistnosti,
+                vyucujici = vyucujici,
+                mujRozvrh = mujRozvrh,
+                horScrollState = horScrollState,
+                verScrollState = verScrollState,
+                alwaysTwoRowCells = alwaysTwoRowCells,
+            )
+        }
     }
 }
 

@@ -32,6 +32,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -229,6 +230,36 @@ fun NastaveniContent(
                     }
                 )
             }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = "Vždy povolit dvouřádkové buňky.", Modifier.weight(1F))
+                Switch(
+                    checked = nastaveni.alwaysTwoRowCells,
+                    onCheckedChange = {
+                        upravitNastaveni { nastaveni ->
+                            nastaveni.copy(alwaysTwoRowCells = it)
+                        }
+                    }
+                )
+            }
+            var sliderValue by remember { mutableStateOf(nastaveni.zoom) }
+            Text(text = "Přiblížení rozvrhu: ${(sliderValue * 100).toInt()} %")
+            Slider(
+                value = sliderValue,
+                onValueChange = {
+                    sliderValue = it
+                },
+                valueRange = 0.5F..1.5F,
+                steps = 19,
+                onValueChangeFinished = {
+                    upravitNastaveni { nastaveni ->
+                        nastaveni.copy(zoom = sliderValue)
+                    }
+                }
+            )
             HorizontalDivider(Modifier.padding(vertical = 16.dp), thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outline)
             Vybiratko(
                 index = when (nastaveni.prepnoutRozvrhWidget) {
@@ -453,6 +484,8 @@ fun NastaveniContent(
                     }
                 }
             )
+
+            HorizontalDivider(Modifier.padding(vertical = 16.dp), thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outline)
 
             TextButton(
                 onClick = {

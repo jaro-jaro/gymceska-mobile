@@ -65,7 +65,8 @@ fun ResponsiveText(
             val maxCurrentLineIndex: Int = textLayoutResult.lineCount - 1
 
             if (textLayoutResult.isLineEllipsized(maxCurrentLineIndex)) {
-                textSize = textSize.times(TEXT_SCALE_REDUCTION_INTERVAL)
+                if (textSize != TextUnit.Unspecified)
+                    textSize = textSize.times(TEXT_SCALE_REDUCTION_INTERVAL)
             }
         },
     )

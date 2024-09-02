@@ -102,6 +102,14 @@ class RozvrhViewModel(
         vjec == nastaveni.mojeTrida
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
 
+    val zoom = repo.nastaveni.map { nastaveni ->
+        nastaveni.zoom
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), 1F)
+
+    val alwaysTwoRowCells = repo.nastaveni.map { nastaveni ->
+        nastaveni.alwaysTwoRowCells
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+
     val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
         if (vjec == null) null
         else when (vjec) {
