@@ -1,19 +1,24 @@
 package cz.jaro.rozvrh.rozvrh
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import cz.jaro.rozvrh.ResponsiveText
 import kotlinx.serialization.Serializable
 
@@ -46,190 +51,211 @@ fun Bunka.isEmpty() = ucebna.isEmpty() && predmet.isEmpty() && ucitel.isEmpty() 
 
 @Composable
 fun Bunka(
+    height: Float,
     bunka: Bunka,
-    aspectRatio: Float,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
     kliklNaNeco: (vjec: Vjec) -> Unit,
     forceOneColumnCells: Boolean = false,
-) = Box(
-    modifier = Modifier
-        .border(1.dp, MaterialTheme.colorScheme.secondary)
-        .then(
-            if (bunka.typ == TypBunky.Volno && !forceOneColumnCells) Modifier
-                .size(zakladniVelikostBunky * 10, zakladniVelikostBunky / aspectRatio)
-            else Modifier
-                .aspectRatio(aspectRatio)
-                .size(zakladniVelikostBunky, zakladniVelikostBunky / aspectRatio)
-        )
-        .background(
-            when (bunka.typ) {
-                TypBunky.Suplovani -> MaterialTheme.colorScheme.errorContainer
-                TypBunky.Volno, TypBunky.Trid -> MaterialTheme.colorScheme.tertiaryContainer
-                TypBunky.Normalni -> MaterialTheme.colorScheme.background
-            }
-        ),
-    contentAlignment = Alignment.Center
 ) {
-    @Composable
-    fun Ucebna(
-        bunka: Bunka,
-        mistnosti: List<Vjec.MistnostVjec>,
-        kliklNaNeco: (vjec: Vjec) -> Unit
-    ) {
-        ResponsiveText(
-            text = bunka.ucebna,
-            modifier = Modifier
-                .padding(all = 8.dp)
-                .clickable {
-                    if (bunka.ucebna.isEmpty()) return@clickable
-                    val vjec = mistnosti
-                        .find { bunka.ucebna == it.zkratka } ?: return@clickable
-                    kliklNaNeco(vjec)
-                },
-            color = when (bunka.typ) {
-                TypBunky.Suplovani -> MaterialTheme.colorScheme.onErrorContainer
-                TypBunky.Volno, TypBunky.Trid -> MaterialTheme.colorScheme.onTertiaryContainer
-                TypBunky.Normalni -> MaterialTheme.colorScheme.onBackground
-            },
-        )
+    val onUcebna = ucebna@{
+        if (bunka.ucebna.isEmpty()) return@ucebna
+        val vjec = mistnosti
+            .find { bunka.ucebna == it.zkratka } ?: return@ucebna
+        kliklNaNeco(vjec)
     }
 
-    @Composable
-    fun Trida(
-        bunka: Bunka,
-        tridy: List<Vjec.TridaVjec>,
-        kliklNaNeco: (vjec: Vjec) -> Unit
-    ) {
-        ResponsiveText(
-            text = bunka.tridaSkupina,
-            modifier = Modifier
-                .padding(all = 8.dp)
-                .clickable {
-                    if (bunka.tridaSkupina.isEmpty()) return@clickable
-                    val vjec = tridy.find {
-                        bunka.tridaSkupina
-                            .split(" ")
-                            .first() == it.zkratka
-                    } ?: return@clickable
-                    kliklNaNeco(vjec)
-                },
-            color = when (bunka.typ) {
-                TypBunky.Suplovani -> MaterialTheme.colorScheme.onErrorContainer
-                TypBunky.Volno, TypBunky.Trid -> MaterialTheme.colorScheme.onTertiaryContainer
-                TypBunky.Normalni -> MaterialTheme.colorScheme.onBackground
-            },
-        )
+    val onTrida = trida@{
+        if (bunka.tridaSkupina.isEmpty()) return@trida
+        val vjec = tridy.find {
+            bunka.tridaSkupina
+                .split(" ")
+                .first() == it.zkratka
+        } ?: return@trida
+        kliklNaNeco(vjec)
     }
 
-    @Composable
-    fun Predmet() = ResponsiveText(
-        text = bunka.predmet,
-        modifier = Modifier
-            .padding(all = 8.dp),
-        color = when (bunka.typ) {
-            TypBunky.Suplovani -> MaterialTheme.colorScheme.onErrorContainer
-            TypBunky.Volno, TypBunky.Trid -> MaterialTheme.colorScheme.onTertiaryContainer
-            TypBunky.Normalni -> MaterialTheme.colorScheme.primary
-        }
-    )
+    val onUcitel = ucitel@{
+        if (bunka.ucitel.isEmpty()) return@ucitel
+        val vjec = vyucujici.find {
+            bunka.ucitel
+                .split(",")
+                .first() == it.zkratka
+        } ?: return@ucitel
+        kliklNaNeco(vjec)
+    }
 
-    @Composable
-    fun Ucitel() = ResponsiveText(
-        text = bunka.ucitel,
-        modifier = Modifier
-            .padding(all = 8.dp)
-            .clickable {
-                if (bunka.ucitel.isEmpty()) return@clickable
-                val vjec = vyucujici.find {
-                    bunka.ucitel
-                        .split(",")
-                        .first() == it.zkratka
-                } ?: return@clickable
-                kliklNaNeco(vjec)
-            },
+    val twoRowCell = height * LocalBunkaZoom.current < .7F
+    val wholeRowCell = bunka.typ == TypBunky.Volno && !forceOneColumnCells
+
+    val size = if (wholeRowCell) Size(10F, height) else Size(1F, height)
+
+    Surface(
+        Modifier,
         color = when (bunka.typ) {
-            TypBunky.Suplovani -> MaterialTheme.colorScheme.onErrorContainer
-            TypBunky.Volno, TypBunky.Trid -> MaterialTheme.colorScheme.onTertiaryContainer
-            TypBunky.Normalni -> MaterialTheme.colorScheme.onBackground
+            TypBunky.Suplovani -> MaterialTheme.colorScheme.errorContainer
+            TypBunky.Volno, TypBunky.Trid -> MaterialTheme.colorScheme.tertiaryContainer
+            TypBunky.Normalni -> MaterialTheme.colorScheme.background
         },
-    )
-
-    val divnyRozlozeni = aspectRatio > 1F
-    val jesteDivnejsiRozlozeni = bunka.typ == TypBunky.Volno
-
-    if (!jesteDivnejsiRozlozeni) Row(
-        Modifier
-            .matchParentSize(),
-        verticalAlignment = Alignment.Top,
     ) {
-        if (bunka.ucebna.isNotBlank()) Box(
-            Modifier,
-            contentAlignment = Alignment.TopStart,
-        ) {
-            Ucebna(bunka, mistnosti, kliklNaNeco)
-        }
-        if (bunka.tridaSkupina.isNotBlank()) Box(
-            Modifier
-                .weight(1F),
-            contentAlignment = Alignment.TopEnd,
-        ) {
-            Trida(bunka, tridy, kliklNaNeco)
-        }
-    }
-
-    if (divnyRozlozeni && !jesteDivnejsiRozlozeni) Row(
-        Modifier
-            .matchParentSize(),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        if (bunka.predmet.isNotBlank()) Box(
-            Modifier,
-            contentAlignment = Alignment.BottomStart,
-        ) {
-            Predmet()
-        }
-        if (bunka.ucitel.isNotBlank()) Box(
-            Modifier
-                .weight(1F),
-            contentAlignment = Alignment.BottomEnd,
-        ) {
-            Ucitel()
-        }
-    }
-
-    if (!divnyRozlozeni && !jesteDivnejsiRozlozeni) Box(
-        Modifier
-            .matchParentSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Predmet()
-    }
-    if (!divnyRozlozeni && !jesteDivnejsiRozlozeni) Box(
-        Modifier
-            .matchParentSize(),
-        contentAlignment = Alignment.BottomCenter,
-    ) {
-        Ucitel()
-    }
-
-    if (jesteDivnejsiRozlozeni) Box(
-        Modifier
-            .matchParentSize(),
-        contentAlignment = if (forceOneColumnCells) Alignment.Center else Alignment.CenterStart,
-    ) {
-        ResponsiveText(
-            text = bunka.predmet,
-            modifier = Modifier
-                .padding(all = 8.dp),
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            textAlign = TextAlign.Center,
-            maxLines = Int.MAX_VALUE,
+        if (!twoRowCell && !wholeRowCell) BaseCell(
+            size = size,
+            center = bunka.predmet.ifBlank { null },
+            bottomCenter = bunka.ucitel.ifBlank { null },
+            onBottomCenterClick = onUcitel,
+            topStart = bunka.ucebna.ifBlank { null },
+            onTopStartClick = onUcebna,
+            topEnd = bunka.tridaSkupina.ifBlank { if (bunka.typ == TypBunky.Trid) null else "" },
+            onTopEndClick = onTrida,
+            centerStyle = TextStyle(
+                color = if (bunka.typ == TypBunky.Normalni) MaterialTheme.colorScheme.primary else Color.Unspecified,
+            ),
+        )
+        else if (twoRowCell && !wholeRowCell) BaseCell(
+            size = size,
+            bottomStart = bunka.predmet.ifBlank { null },
+            bottomEnd = bunka.ucitel.ifBlank { null },
+            onBottomEndClick = onUcitel,
+            topStart = bunka.ucebna.ifBlank { null },
+            onTopStartClick = onUcebna,
+            topEnd = bunka.tridaSkupina.ifBlank { if (bunka.typ == TypBunky.Trid) null else "" },
+            onTopEndClick = onTrida,
+            bottomStartStyle = TextStyle(
+                color = if (bunka.typ == TypBunky.Normalni) MaterialTheme.colorScheme.primary else Color.Unspecified,
+            ),
+        )
+        else BaseCell(
+            size = size,
+            center = bunka.predmet,
         )
     }
 }
 
 val zakladniVelikostBunky = 128.dp
 
+val LocalBunkaZoom = compositionLocalOf { 1F }
+
 //fun Boolean.toInt() = if (this) 1 else 0
+
+@Composable
+fun BaseCell(
+    size: Size,
+    modifier: Modifier = Modifier,
+    topStart: String? = null,
+    topStartStyle: TextStyle = LocalTextStyle.current,
+    onTopStartClick: (() -> Unit)? = null,
+    topEnd: String? = null,
+    topEndStyle: TextStyle = LocalTextStyle.current,
+    onTopEndClick: (() -> Unit)? = null,
+    bottomStart: String? = null,
+    bottomStartStyle: TextStyle = LocalTextStyle.current,
+    onBottomStartClick: (() -> Unit)? = null,
+    bottomEnd: String? = null,
+    bottomEndStyle: TextStyle = LocalTextStyle.current,
+    onBottomEndClick: (() -> Unit)? = null,
+    bottomCenter: String? = null,
+    bottomCenterStyle: TextStyle = LocalTextStyle.current,
+    onBottomCenterClick: (() -> Unit)? = null,
+    center: String? = null,
+    centerStyle: TextStyle = LocalTextStyle.current,
+    onCenterClick: (() -> Unit)? = null,
+) {
+    val cellWidth = size.width * zakladniVelikostBunky * LocalBunkaZoom.current
+    val cellHeight = size.height * zakladniVelikostBunky * LocalBunkaZoom.current
+
+    Column(
+        modifier = modifier
+            .border(1.dp, MaterialTheme.colorScheme.secondary)
+            .size(cellWidth, cellHeight)
+            .padding(1.dp),
+    ) {
+        val isTop = topStart != null || topEnd != null
+        val isCenter = center != null
+        val isBottom = bottomStart != null || bottomCenter != null || bottomEnd != null
+        val rows = listOf(isTop, isCenter, isBottom).count { it }
+
+        if (isTop) Row(
+            Modifier.size(cellWidth, cellHeight / rows),
+        ) {
+            val columns = listOf(topStart, topEnd).count { it != null }
+            if (topStart != null) Box(
+                Modifier.size(cellWidth / columns, cellHeight / rows),
+                contentAlignment = Alignment.Center,
+            ) {
+                ResponsiveText(
+                    text = topStart,
+                    style = topStartStyle,
+                    modifier = Modifier.clickable(enabled = onTopStartClick != null) {
+                        onTopStartClick?.invoke()
+                    },
+                )
+            }
+            if (topEnd != null) Box(
+                Modifier.size(cellWidth / columns, cellHeight / rows),
+                contentAlignment = Alignment.Center,
+            ) {
+                ResponsiveText(
+                    text = topEnd,
+                    style = topEndStyle,
+                    modifier = Modifier.clickable(enabled = onTopEndClick != null) {
+                        onTopEndClick?.invoke()
+                    },
+                )
+            }
+        }
+        if (center != null) Box(
+            Modifier.size(cellWidth, cellHeight / rows),
+            contentAlignment = Alignment.Center,
+        ) {
+            ResponsiveText(
+                text = center,
+                style = centerStyle,
+                modifier = Modifier.clickable(enabled = onCenterClick != null) {
+                    onCenterClick?.invoke()
+                },
+            )
+        }
+        if (isBottom) Row(
+            Modifier.size(cellWidth, cellHeight / rows),
+        ) {
+            val columns = listOf(bottomStart, bottomCenter, bottomEnd).count { it != null }
+            if (bottomStart != null) Box(
+                Modifier.size(cellWidth / columns, cellHeight / rows),
+                contentAlignment = Alignment.Center,
+            ) {
+                ResponsiveText(
+                    text = bottomStart,
+                    style = bottomStartStyle,
+                    modifier = Modifier.clickable(enabled = onBottomStartClick != null) {
+                        onBottomStartClick?.invoke()
+                    },
+                )
+            }
+            if (bottomCenter != null) Box(
+                Modifier.size(cellWidth / columns, cellHeight / rows),
+                contentAlignment = Alignment.Center,
+            ) {
+                ResponsiveText(
+                    text = bottomCenter,
+                    style = bottomCenterStyle,
+                    modifier = Modifier.clickable(enabled = onBottomCenterClick != null) {
+                        onBottomCenterClick?.invoke()
+                    }
+                )
+            }
+            if (bottomEnd != null) Box(
+                Modifier.size(cellWidth / columns, cellHeight / rows),
+                contentAlignment = Alignment.Center,
+            ) {
+                ResponsiveText(
+                    text = bottomEnd,
+                    style = bottomEndStyle,
+                    modifier = Modifier.clickable(enabled = onBottomEndClick != null) {
+                        onBottomEndClick?.invoke()
+                    },
+                )
+            }
+        }
+    }
+}
