@@ -25,7 +25,7 @@ class App : Application() {
         val DestinationsNavigator.navigate
             get() = navigate@{ route: Direction ->
                 try {
-                    this.navigate(route.also(::println))
+                    navigate(route.also(::println))
                 } catch (e: IllegalStateException) {
                     e.printStackTrace()
                     Firebase.crashlytics.log("Pokus o navigaci na $route")
