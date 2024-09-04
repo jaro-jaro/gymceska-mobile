@@ -101,12 +101,12 @@ fun Bunka(
     ) {
         if (!twoRowCell && !wholeRowCell) BaseCell(
             size = size,
-            center = bunka.predmet.ifBlank { null },
-            bottomCenter = bunka.ucitel.ifBlank { null },
+            center = bunka.predmet,
+            bottomCenter = bunka.ucitel,
             onBottomCenterClick = onUcitel,
-            topStart = bunka.ucebna.ifBlank { null },
+            topStart = bunka.ucebna,
             onTopStartClick = onUcebna,
-            topEnd = bunka.tridaSkupina.ifBlank { if (bunka.typ == TypBunky.Trid) null else "" },
+            topEnd = bunka.tridaSkupina,
             onTopEndClick = onTrida,
             centerStyle = TextStyle(
                 color = if (bunka.typ == TypBunky.Normalni) MaterialTheme.colorScheme.primary else Color.Unspecified,
@@ -114,12 +114,12 @@ fun Bunka(
         )
         else if (twoRowCell && !wholeRowCell) BaseCell(
             size = size,
-            bottomStart = bunka.predmet.ifBlank { null },
-            bottomEnd = bunka.ucitel.ifBlank { null },
+            bottomStart = bunka.predmet,
+            bottomEnd = bunka.ucitel,
             onBottomEndClick = onUcitel,
-            topStart = bunka.ucebna.ifBlank { null },
+            topStart = bunka.ucebna,
             onTopStartClick = onUcebna,
-            topEnd = bunka.tridaSkupina.ifBlank { if (bunka.typ == TypBunky.Trid) null else "" },
+            topEnd = bunka.tridaSkupina,
             onTopEndClick = onTrida,
             bottomStartStyle = TextStyle(
                 color = if (bunka.typ == TypBunky.Normalni) MaterialTheme.colorScheme.primary else Color.Unspecified,
