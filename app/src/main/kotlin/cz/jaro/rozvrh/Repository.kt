@@ -196,14 +196,18 @@ class Repository(
         }
     }
 
+    private val json = Json {
+        ignoreUnknownKeys = true
+    }
+
     val nastaveni = preferences.data.combine(tridy) { it, tridy ->
-        it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
+        it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
     }
 
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
         preferences.edit {
             it[Keys.NASTAVENI] =
-                Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
+                Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
         }
     }
 
