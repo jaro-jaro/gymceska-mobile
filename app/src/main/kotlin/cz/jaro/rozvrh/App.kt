@@ -1,6 +1,8 @@
 package cz.jaro.rozvrh
 
 import android.app.Application
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import org.koin.android.ext.koin.androidContext
@@ -21,8 +23,14 @@ class App : Application() {
 
     companion object {
         val DestinationsNavigator.navigate
-            get() = { it: Direction ->
-                navigate(it)
+            get() = navigate@{ route: Direction ->
+                try {
+                    this.navigate(route.also(::println))
+                } catch (e: IllegalStateException) {
+                    e.printStackTrace()
+                    Firebase.crashlytics.log("Pokus o navigaci na $route")
+                    Firebase.crashlytics.recordException(e)
+                }
             }
     }
 }
