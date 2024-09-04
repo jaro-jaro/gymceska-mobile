@@ -23,11 +23,12 @@ class App : Application() {
 
     companion object {
         val DestinationsNavigator.navigate
-            get() = { it: Direction ->
+            get() = navigate@{ route: Direction ->
                 try {
-                    navigate(it)
+                    navigate(route.also(::println))
                 } catch (e: IllegalStateException) {
                     e.printStackTrace()
+                    Firebase.crashlytics.log("Pokus o navigaci na $route")
                     Firebase.crashlytics.recordException(e)
                 }
             }

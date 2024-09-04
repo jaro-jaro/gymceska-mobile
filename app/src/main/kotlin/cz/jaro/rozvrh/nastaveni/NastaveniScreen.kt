@@ -1,6 +1,13 @@
 package cz.jaro.rozvrh.nastaveni
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -25,6 +32,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -35,20 +43,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -60,20 +72,38 @@ import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
 import cz.jaro.rozvrh.rozvrh.dnesniEntries
+import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import cz.jaro.rozvrh.ui.theme.Theme
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalTime
 import java.time.format.DateTimeParseException
-import kotlin.reflect.KFunction3
+
+private var callback: (Uri) -> Unit = {}
 
 @Destination
 @Composable
 fun Nastaveni(
     navigator: DestinationsNavigator
 ) {
+
+    val ctx = LocalContext.current
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == Activity.RESULT_OK) {
+            callback(it.data!!.data!!)
+        }
+    }
+
+    fun getStartActivityForResult(cb: (Uri) -> Unit): ManagedActivityResultLauncher<Intent, ActivityResult> {
+        callback = cb
+        return launcher
+    }
+
     val viewModel = koinViewModel<NastaveniViewModel> {
-        parametersOf()
+        parametersOf(::getStartActivityForResult, ctx.contentResolver)
     }
 
     val tridy by viewModel.tridyFlow.collectAsStateWithLifecycle(emptyList())
@@ -86,7 +116,7 @@ fun Nastaveni(
         upravitNastaveni = viewModel::upravitNastaveni,
         tridy = tridy,
         skupiny = skupiny,
-        kopirovatVse = viewModel::kopirovatVse
+        stahnoutVse = viewModel::stahnoutVse
     )
 }
 
@@ -98,7 +128,7 @@ fun NastaveniContent(
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
-    kopirovatVse: KFunction3<Stalost, (String) -> Unit, (String?) -> Unit, Unit>,
+    stahnoutVse: (Stalost, (String) -> Unit, (Boolean) -> Unit) -> Unit,
 ) = Surface {
     Scaffold(
         topBar = {
@@ -200,6 +230,36 @@ fun NastaveniContent(
                     }
                 )
             }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = "Vždy povolit dvouřádkové buňky.", Modifier.weight(1F))
+                Switch(
+                    checked = nastaveni.alwaysTwoRowCells,
+                    onCheckedChange = {
+                        upravitNastaveni { nastaveni ->
+                            nastaveni.copy(alwaysTwoRowCells = it)
+                        }
+                    }
+                )
+            }
+            var sliderValue by remember { mutableStateOf(nastaveni.zoom) }
+            Text(text = "Přiblížení rozvrhu: ${(sliderValue * 100).toInt()} %")
+            Slider(
+                value = sliderValue,
+                onValueChange = {
+                    sliderValue = it
+                },
+                valueRange = 0.5F..1.5F,
+                steps = 19,
+                onValueChangeFinished = {
+                    upravitNastaveni { nastaveni ->
+                        nastaveni.copy(zoom = sliderValue)
+                    }
+                }
+            )
             HorizontalDivider(Modifier.padding(vertical = 16.dp), thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outline)
             Vybiratko(
                 index = when (nastaveni.prepnoutRozvrhWidget) {
@@ -353,10 +413,7 @@ fun NastaveniContent(
                     )
                 }
 
-            val clipboardManager = LocalClipboardManager.current
-
-            var kopirovatNastaveniDialog by remember { mutableStateOf(false) }
-            var kopirovatDialog by remember { mutableStateOf(false) }
+            var stahnoutNastaveniDialog by remember { mutableStateOf(false) }
             var stalost by remember { mutableStateOf(Stalost.dnesniEntries().first()) }
             var nacitame by remember { mutableStateOf(false) }
             var podrobnostiNacitani by remember { mutableStateOf("") }
@@ -373,52 +430,28 @@ fun NastaveniContent(
                     CircularProgressIndicator()
                 },
             )
-
-            if (kopirovatDialog) AlertDialog(
+            if (stahnoutNastaveniDialog) AlertDialog(
                 onDismissRequest = {
-                    kopirovatDialog = false
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            kopirovatDialog = false
-                        }
-                    ) {
-                        Text(text = stringResource(android.R.string.ok))
-                    }
-                },
-                dismissButton = {},
-                title = {
-                    Text(text = "Kopírovat rozvrhy")
-                },
-                text = {
-                    Text("Hotovo!")
-                }
-            )
-
-            if (kopirovatNastaveniDialog) AlertDialog(
-                onDismissRequest = {
-                    kopirovatNastaveniDialog = false
+                    stahnoutNastaveniDialog = false
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             nacitame = true
-                            kopirovatNastaveniDialog = false
+                            stahnoutNastaveniDialog = false
                             podrobnostiNacitani = "Generuji text"
 
-                            kopirovatVse(
+                            stahnoutVse(
                                 stalost,
                                 {
                                     podrobnostiNacitani = it
                                 },
                                 {
-                                    if (it == null) {
+                                    if (!it) {
                                         podrobnostiNacitani = "Nejste připojeni k internetu a nemáte staženou offline verzi všech rozvrhů tříd"
-                                        return@kopirovatVse
+                                        return@stahnoutVse
                                     }
-                                    clipboardManager.setText(AnnotatedString(it))
-                                    kopirovatDialog = true
+//                                    kopirovatDialog = true
                                     nacitame = false
                                 }
                             )
@@ -430,14 +463,14 @@ fun NastaveniContent(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            kopirovatNastaveniDialog = false
+                            stahnoutNastaveniDialog = false
                         }
                     ) {
                         Text(text = "Zrušit")
                     }
                 },
                 title = {
-                    Text(text = "Kopírovat rozvrhy")
+                    Text(text = "Stáhnout rozvrhy")
                 },
                 text = {
                     Column {
@@ -452,12 +485,30 @@ fun NastaveniContent(
                 }
             )
 
+            HorizontalDivider(Modifier.padding(vertical = 16.dp), thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outline)
+
             TextButton(
                 onClick = {
-                    kopirovatNastaveniDialog = true
+                    stahnoutNastaveniDialog = true
                 }
             ) {
-                Text("Zkopírovat rozvrhy")
+                Text("Stáhnout rozvrhy")
+            }
+
+            val scope = rememberCoroutineScope()
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        Firebase.remoteConfig.reset().await()
+                        val configSettings = remoteConfigSettings {
+                            minimumFetchIntervalInSeconds = 3600
+                        }
+                        Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
+                        Firebase.remoteConfig.fetchAndActivate().await()
+                    }
+                }
+            ) {
+                Text("Obnovit seznamy")
             }
 
             Text(stringResource(R.string.verze_aplikace, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
@@ -469,3 +520,23 @@ fun NastaveniContent(
     }
 }
 
+@Preview
+@Composable
+private fun NastaveniPreview() {
+    GymceskaTheme(
+        useDarkTheme = true,
+        useDynamicColor = false,
+        theme = Theme.Green
+    ) {
+        NastaveniContent(
+            navigateBack = {},
+            nastaveni = Nastaveni(
+                mojeTrida = Vjec.TridaVjec("1.A")
+            ),
+            upravitNastaveni = {},
+            tridy = emptyList(),
+            skupiny = emptySequence(),
+            stahnoutVse = { _, _, _ -> },
+        )
+    }
+}

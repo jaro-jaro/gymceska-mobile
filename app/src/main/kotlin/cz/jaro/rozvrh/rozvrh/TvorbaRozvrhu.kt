@@ -67,8 +67,8 @@ object TvorbaRozvrhu {
                 .map { timetableCell ->
                     timetableCell.getElementsByClass("day-item").first()
                         ?.getElementsByClass("day-item-hover")
-                        ?.map { dayItemHover ->
-                            dayItemHover.getElementsByClass("day-flex").first()?.let { dayFlex ->
+                        ?.flatMap { dayItemHover ->
+                            val bunka = dayItemHover.getElementsByClass("day-flex").first()?.let { dayFlex ->
                                 Bunka(
                                     ucebna = dayFlex
                                         .getElementsByClass("top").first()!!
@@ -93,6 +93,18 @@ object TvorbaRozvrhu {
                                     }
                                 )
                             } ?: Bunka.empty
+
+                            if (dayItemHover.hasClass("hasAbsent")) listOf(
+                                bunka,
+                                Bunka(
+                                    ucebna = "",
+                                    predmet = "Absc",
+                                    ucitel = "",
+                                    tridaSkupina = "",
+                                    typ = TypBunky.Trid
+                                )
+                            )
+                            else listOf(bunka)
                         }
                         ?.ifEmpty {
                             listOf(Bunka.empty)
