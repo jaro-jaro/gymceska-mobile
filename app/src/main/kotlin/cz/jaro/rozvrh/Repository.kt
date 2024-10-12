@@ -207,33 +207,18 @@ class Repository(
         }
     }
 
-    val nastaveni = preferences.data.combine(tridy) { it, tridy ->
-        it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
+    private val json = Json {
+        ignoreUnknownKeys = true
     }
 
-    init {
-        scope.launch {
-            nastaveni.collect { nastaveni ->
-                if (nastaveni.stahovatHned)
-                    tridy.first().drop(1).forEach { trida ->
-                        launch(Dispatchers.IO) {
-                            ziskatRozvrh(trida, Stalost.TentoTyden)
-                        }
-                        launch(Dispatchers.IO) {
-                            ziskatRozvrh(trida, Stalost.PristiTyden)
-                        }
-                        launch(Dispatchers.IO) {
-                            ziskatRozvrh(trida, Stalost.Staly)
-                        }
-                    }
-            }
-        }
+    val nastaveni = preferences.data.combine(tridy) { it, tridy ->
+        it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
     }
 
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
         preferences.edit {
             it[Keys.NASTAVENI] =
-                Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> Json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
+                Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
         }
     }
 

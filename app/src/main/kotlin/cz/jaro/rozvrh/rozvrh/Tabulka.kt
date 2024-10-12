@@ -2,20 +2,16 @@ package cz.jaro.rozvrh.rozvrh
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -23,10 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.pointer.pointerInput
@@ -36,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import cz.jaro.rozvrh.Offline
 import cz.jaro.rozvrh.OfflineRuzneCasti
 import cz.jaro.rozvrh.Online
-import cz.jaro.rozvrh.ResponsiveText
 import cz.jaro.rozvrh.ZdrojRozvrhu
 import kotlinx.coroutines.launch
 
@@ -53,18 +48,23 @@ fun Tabulka(
     mujRozvrh: Boolean,
     horScrollState: ScrollState,
     verScrollState: ScrollState,
+    alwaysTwoRowCells: Boolean,
 ) {
     if (tabulka.isEmpty()) return
+
+    val canAllowCellsSmallerThan1 = mujRozvrh || vjec !is Vjec.TridaVjec || alwaysTwoRowCells
+    val maxByRow = tabulka.map {
+        it.maxOf { hodina -> hodina.size }
+    }
+    val rowHeight = maxByRow.map { max ->
+        if (max == 1) 1F
+        else if (canAllowCellsSmallerThan1) max / 2F
+        else (max / 2F).coerceAtLeast(2F)
+    }
 
     Column(
         Modifier.doubleScrollable(horScrollState, verScrollState)
     ) {
-        val maxy = tabulka.map { radek -> radek.maxOf { hodina -> hodina.size } }
-        val polovicniBunky = remember(tabulka) {
-            val minLimit = if (mujRozvrh || vjec !is Vjec.TridaVjec) 2 else 4
-            tabulka.map { radek -> radek.maxBy { it.size }.size >= minLimit }
-        }
-
         Row(
             modifier = Modifier
                 .verticalScroll(rememberScrollState(), enabled = false)
@@ -76,19 +76,10 @@ fun Tabulka(
                     .horizontalScroll(rememberScrollState(), enabled = false)
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1F)
-                        .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .size(zakladniVelikostBunky / 2, zakladniVelikostBunky / 2),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    ResponsiveText(
-                        text = tabulka[0][0][0].predmet,
-                        modifier = Modifier
-                            .padding(all = 8.dp),
-                    )
-                }
+                BaseCell(
+                    size = Size(.5F, .5F),
+                    center = tabulka[0][0][0].predmet,
+                )
             }
 
             Row(
@@ -97,45 +88,21 @@ fun Tabulka(
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 tabulka.first().drop(1).map { it.first() }.forEachIndexed { i, bunka ->
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(2F / 1)
-                            .border(1.dp, MaterialTheme.colorScheme.secondary)
-                            .size(zakladniVelikostBunky, zakladniVelikostBunky / 2),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            Modifier.matchParentSize(),
-                            contentAlignment = if (bunka.ucitel.isBlank()) Alignment.Center else Alignment.TopCenter,
-                        ) {
-                            ResponsiveText(
-                                text = bunka.predmet,
-                                modifier = Modifier
-                                    .padding(all = 8.dp)
-                                    .clickable {
-                                        if (bunka.predmet.isEmpty()) return@clickable
-                                        kliklNaNeco(if (vjec is Vjec.HodinaVjec) tridy.find {
-                                            bunka.predmet == it.zkratka
-                                        } ?: return@clickable else Vjec.HodinaVjec(
-                                            zkratka = bunka.predmet.split(".")[0],
-                                            jmeno = "${bunka.predmet} hodina",
-                                            index = i + 1
-                                        ))
-                                    },
-                            )
+                    BaseCell(
+                        size = Size(1F, .5F),
+                        center = bunka.predmet,
+                        bottomCenter = bunka.ucitel,
+                        onCenterClick = {
+                            if (bunka.predmet.isEmpty()) return@BaseCell
+                            kliklNaNeco(if (vjec is Vjec.HodinaVjec) tridy.find {
+                                bunka.predmet == it.zkratka
+                            } ?: return@BaseCell else Vjec.HodinaVjec(
+                                zkratka = bunka.predmet.split(".")[0],
+                                jmeno = "${bunka.predmet} hodina",
+                                index = i + 1
+                            ))
                         }
-                        Box(
-                            Modifier.matchParentSize(),
-                            contentAlignment = Alignment.BottomCenter,
-                        ) {
-                            ResponsiveText(
-                                text = bunka.ucitel,
-                                modifier = Modifier
-                                    .padding(all = 8.dp),
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                        }
-                    }
+                    )
                 }
             }
         }
@@ -150,37 +117,18 @@ fun Tabulka(
                     Modifier.horizontalScroll(rememberScrollState())
                 ) {
                     tabulka.drop(1).map { it.first().first() }.forEachIndexed { i, bunka ->
-                        Column(
-                            modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .aspectRatio((if (polovicniBunky[i + 1]) 2F else 1F) / maxy[i + 1])
-                                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                                    .size(zakladniVelikostBunky / 2, zakladniVelikostBunky * maxy[i + 1] / (if (polovicniBunky[i + 1]) 2F else 1F)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    Modifier.matchParentSize(),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    ResponsiveText(
-                                        text = bunka.predmet,
-                                        modifier = Modifier
-                                            .padding(all = 8.dp)
-                                            .clickable {
-                                                if (bunka.predmet.isEmpty()) return@clickable
-                                                kliklNaNeco(
-                                                    if (vjec is Vjec.DenVjec) tridy.find {
-                                                        bunka.predmet == it.zkratka
-                                                    } ?: return@clickable else Seznamy.dny.find { it.zkratka == bunka.predmet }!!
-                                                )
-                                            },
-                                    )
-                                }
+                        BaseCell(
+                            size = Size(.5F, rowHeight[i + 1]),
+                            center = bunka.predmet,
+                            onCenterClick = {
+                                if (bunka.predmet.isEmpty()) return@BaseCell
+                                kliklNaNeco(
+                                    if (vjec is Vjec.DenVjec) tridy.find {
+                                        bunka.predmet == it.zkratka
+                                    } ?: return@BaseCell else Seznamy.dny.find { it.zkratka == bunka.predmet }!!
+                                )
                             }
-                        }
+                        )
                     }
                 }
 
@@ -188,37 +136,29 @@ fun Tabulka(
                     Modifier.horizontalScroll(horScrollState, enabled = false, reverseScrolling = true)
                 ) {
                     tabulka.drop(1).forEachIndexed { i, radek ->
-                        val nasobitelVyskyCeleRadky = when {
-                            polovicniBunky[i + 1] -> 1F / 2F
-                            else -> 1F
-                        }
                         Row {
                             radek.drop(1).forEach { hodina ->
                                 Column(
                                     modifier = Modifier
                                         .border(1.dp, MaterialTheme.colorScheme.secondary)
                                 ) {
+                                    val baseHeight = rowHeight[i + 1] / hodina.size
                                     hodina.forEach { bunka ->
-                                        val nasobitelVyskyTetoBunky = when {
-                                            !mujRozvrh && vjec is Vjec.TridaVjec && hodina.size == 1 && bunka.tridaSkupina.isNotBlank() -> 4F / 5F
-                                            else -> 1F
+                                        val cellHeight = when {
+                                            !mujRozvrh && vjec is Vjec.TridaVjec && hodina.size == 1 && bunka.tridaSkupina.isNotBlank() -> baseHeight * 4F / 5F
+                                            else -> baseHeight
                                         }
                                         Bunka(
+                                            height = cellHeight,
                                             bunka = bunka,
-                                            aspectRatio = hodina.size / (maxy[i + 1] * nasobitelVyskyTetoBunky * nasobitelVyskyCeleRadky),
                                             tridy = tridy,
                                             mistnosti = mistnosti,
                                             vyucujici = vyucujici,
                                             kliklNaNeco = kliklNaNeco,
                                             forceOneColumnCells = vjec is Vjec.HodinaVjec,
                                         )
-                                        if (nasobitelVyskyTetoBunky < 1F) Bunka(
-                                            bunka = Bunka.empty,
-                                            aspectRatio = hodina.size / (maxy[i + 1] * (1F - nasobitelVyskyTetoBunky) * nasobitelVyskyCeleRadky),
-                                            tridy = tridy,
-                                            mistnosti = mistnosti,
-                                            vyucujici = vyucujici,
-                                            kliklNaNeco = {},
+                                        if (cellHeight < baseHeight) BaseCell(
+                                            size = Size(width = 1F, height = baseHeight - cellHeight)
                                         )
                                     }
                                 }

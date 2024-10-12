@@ -25,6 +25,7 @@ import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
 import com.ramcosta.composedestinations.DestinationsNavHost
+import cz.jaro.compose_dialog.dialogState
 import cz.jaro.rozvrh.destinations.RozvrhDestination
 import cz.jaro.rozvrh.destinations.UkolyDestination
 
@@ -118,6 +119,7 @@ fun MainContent(
                 }
             }
         ) { paddingValues ->
+            cz.jaro.compose_dialog.AlertDialog(dialogState)
             DestinationsNavHost(navGraph = NavGraphs.root, Modifier.padding(paddingValues), navController = navController)
         }
     }
