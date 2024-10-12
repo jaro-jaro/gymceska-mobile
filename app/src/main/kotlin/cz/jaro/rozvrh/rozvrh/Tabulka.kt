@@ -212,14 +212,14 @@ private fun Modifier.doubleScrollable(
                     scrollStateX.scroll {
                         val scrollScope = object : ScrollScope {
                             override fun scrollBy(pixels: Float): Float {
-                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(pixels, 0F), NestedScrollSource.Fling).x
+                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(pixels, 0F), NestedScrollSource.SideEffect).x
                                 val scrollAvailableAfterPreScroll = pixels - consumedByPreScroll
                                 val consumedBySelfScroll = this@scroll.scrollBy(scrollAvailableAfterPreScroll)
                                 val deltaAvailableAfterScroll = scrollAvailableAfterPreScroll - consumedBySelfScroll
                                 val consumedByPostScroll = nestedScrollDispatcher.dispatchPostScroll(
                                     Offset(consumedBySelfScroll, 0F),
                                     Offset(deltaAvailableAfterScroll, 0F),
-                                    NestedScrollSource.Fling
+                                    NestedScrollSource.SideEffect
                                 ).x
                                 return consumedByPreScroll + consumedBySelfScroll + consumedByPostScroll
                             }
@@ -234,14 +234,14 @@ private fun Modifier.doubleScrollable(
                     scrollStateY.scroll {
                         val scrollScope = object : ScrollScope {
                             override fun scrollBy(pixels: Float): Float {
-                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(0F, pixels), NestedScrollSource.Fling).y
+                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(0F, pixels), NestedScrollSource.SideEffect).y
                                 val scrollAvailableAfterPreScroll = pixels - consumedByPreScroll
                                 val consumedBySelfScroll = this@scroll.scrollBy(scrollAvailableAfterPreScroll)
                                 val deltaAvailableAfterScroll = scrollAvailableAfterPreScroll - consumedBySelfScroll
                                 val consumedByPostScroll = nestedScrollDispatcher.dispatchPostScroll(
                                     Offset(0F, consumedBySelfScroll),
                                     Offset(0F, deltaAvailableAfterScroll),
-                                    NestedScrollSource.Fling
+                                    NestedScrollSource.SideEffect
                                 ).y
                                 return consumedByPreScroll + consumedBySelfScroll + consumedByPostScroll
                             }
