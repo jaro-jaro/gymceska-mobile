@@ -4,14 +4,17 @@ import androidx.compose.foundation.ScrollState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
+import cz.jaro.rozvrh.combineStates
 import cz.jaro.rozvrh.destinations.RozvrhDestination
+import cz.jaro.rozvrh.filterNotNullState
+import cz.jaro.rozvrh.mapState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -47,16 +50,19 @@ class RozvrhViewModel(
 
     val stalost = params.stalost ?: Stalost.dnesniEntries().first()
 
-    private val _mujRozvrh = repo.nastaveni.map { nastaveni ->
+    private val _mujRozvrh = repo.nastaveni.mapState(
+        viewModelScope, SharingStarted.WhileSubscribed(5.seconds)
+    ) { nastaveni ->
         params.mujRozvrh ?: nastaveni.defaultMujRozvrh
     }
 
-    val mujRozvrh = combine(_mujRozvrh, repo.nastaveni, vjec) { mujRozvrh, nastaveni, vjec ->
+    val mujRozvrh = combineStates(
+        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
+        _mujRozvrh, repo.nastaveni, vjec
+    ) { mujRozvrh, nastaveni, vjec ->
         if (vjec == null) null
         else mujRozvrh && vjec == nastaveni.mojeTrida
-    }
-        .filterNotNull()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+    }.filterNotNullState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
 
     fun vybratRozvrh(vjec: Vjec) {
         viewModelScope.launch {
@@ -98,17 +104,16 @@ class RozvrhViewModel(
         }
     }
 
-    val zobrazitMujRozvrh = vjec.combine(repo.nastaveni) { vjec, nastaveni ->
+    val zobrazitMujRozvrh = combineStates(
+        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
+        vjec, repo.nastaveni
+    ) { vjec, nastaveni ->
         vjec == nastaveni.mojeTrida
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), true)
+    }
 
-    val zoom = repo.nastaveni.map { nastaveni ->
-        nastaveni.zoom
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), 1F)
+    val zoom = repo.nastaveni.mapState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), Nastaveni::zoom)
 
-    val alwaysTwoRowCells = repo.nastaveni.map { nastaveni ->
-        nastaveni.alwaysTwoRowCells
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+    val alwaysTwoRowCells = repo.nastaveni.mapState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), Nastaveni::alwaysTwoRowCells)
 
     val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
         if (vjec == null) null
@@ -137,7 +142,8 @@ class RozvrhViewModel(
                 repo = repo
             )
         }.takeIf { it is Uspech } as Uspech?
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit = { a, b ->
         viewModelScope.launch {
@@ -218,5 +224,4 @@ class RozvrhViewModel(
             onComplete(vysledek)
         }
     }
-
 }
