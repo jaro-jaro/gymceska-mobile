@@ -135,7 +135,7 @@ object TvorbaRozvrhu {
 
         val seznamNazvu = repo.tridy.value.drop(1)
 
-        val novaTabulka = MutableList(6) { MutableList(11) { mutableListOf<Bunka>() } }
+        val novaTabulka = emptyTyden(vjec)
 
         val nejstarsi = seznamNazvu.fold(null as LocalDateTime?) { zatimNejstarsi, trida ->
 
@@ -197,18 +197,7 @@ object TvorbaRozvrhu {
 
         val seznamNazvu = repo.tridy.value.drop(1)
 
-        val vyska = when (vjec) {
-            is Vjec.DenVjec -> seznamNazvu.count()
-            is Vjec.HodinaVjec -> 5
-            else -> throw IllegalArgumentException()
-        }
-        val sirka = when (vjec) {
-            is Vjec.DenVjec -> 10
-            is Vjec.HodinaVjec -> seznamNazvu.count()
-            else -> throw IllegalArgumentException()
-        }
-
-        val novaTabulka = MutableList(vyska + 1) { MutableList(sirka + 1) { mutableListOf<Bunka>() } }
+        val novaTabulka = emptyTyden(vjec, seznamNazvu.count())
 
         val nejstarsi = seznamNazvu.fold(null as LocalDateTime?) { zatimNejstarsi, trida ->
 
@@ -259,6 +248,31 @@ object TvorbaRozvrhu {
         novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
         if (nejstarsi == null) Uspech(novaTabulka, Online)
         else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
+    }
+
+    private fun emptyTyden(
+        vjec: Vjec,
+        pocetTrid: Int = 0
+    ): MutableList<MutableList<MutableList<Bunka>>> {
+        val vyska = when (vjec) {
+            is Vjec.DenVjec -> pocetTrid
+            is Vjec.HodinaVjec -> 5
+            else -> 5
+        }
+        val sirka = when (vjec) {
+            is Vjec.DenVjec -> 10
+            is Vjec.HodinaVjec -> pocetTrid
+            else -> 10
+        }
+
+        val novaTabulka = MutableList(vyska + 1) { MutableList(sirka + 1) { mutableListOf<Bunka>() } }
+        return novaTabulka
+    }
+
+    fun blankTyden() = emptyTyden(Vjec.TridaVjec("")).map { den ->
+        den.map {
+            listOf(Bunka.empty)
+        }
     }
 }
 
