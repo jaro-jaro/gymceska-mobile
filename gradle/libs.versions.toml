@@ -1,7 +1,6 @@
 [versions]
 androidx-activity-compose = "1.9.2"
 androidx-core = "1.13.1"
-compose-material3-datetime-pickers = "0.7.2"
 firebase-analytics = "22.1.2"
 firebase-config = "22.0.0"
 firebase-crashlytics = "19.2.0"
@@ -75,8 +74,6 @@ compose-destinations-core = { group = "io.github.raamcosta.compose-destinations"
 compose-destinations-ksp = { group = "io.github.raamcosta.compose-destinations", name = "ksp", version.ref = "compose-destinations" }
 # Jetpack Preferences DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
-# Datetime pickers
-compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
 # Semantic versioning
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 
