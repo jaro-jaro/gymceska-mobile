@@ -28,10 +28,11 @@ sealed interface Vjec {
 
     @Serializable
     data class VyucujiciVjec(
-        @SerialName("jmeno")
-        override val nazev: String,
+        val jmeno: String,
         override val zkratka: String,
-    ) : Vjec
+    ) : Vjec {
+        override val nazev: String get() = if (zkratka.isNotBlank()) "$zkratka – $jmeno" else jmeno
+    }
 
     sealed interface Indexed : Vjec {
         val index: Int
