@@ -39,6 +39,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
@@ -228,17 +229,14 @@ class Repository(
         }
     }
 
-    suspend fun stahnoutVse(update: (String) -> Unit, finish: () -> Unit) {
+    suspend fun stahnoutVse() {
         if (!isOnline()) return
         withContext(Dispatchers.IO) {
             tridy.value.drop(1).forEach { trida ->
+                _currentlyDownloading.value = trida
                 Stalost.entries.forEach { stalost ->
-                    update("Stahování:\n${trida.nazev} – ${stalost.nazev}")
 
-                    val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: run {
-                        update("Něco se nepovedlo :(")
-                        return@withContext
-                    }).get()
+                    val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: return@withContext).get()
 
                     val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
                         vjec = trida,
@@ -251,7 +249,7 @@ class Repository(
                     }
                 }
             }
-            finish()
+            _currentlyDownloading.value = null
         }
     }
 
@@ -292,6 +290,9 @@ class Repository(
         return starost < limit
     }
 
+    private val _currentlyDownloading = MutableStateFlow<Vjec.TridaVjec?>(null)
+    val currentlyDownloading = _currentlyDownloading.asStateFlow()
+
     suspend fun ziskatRozvrh(
         trida: Vjec.TridaVjec,
         stalost: Stalost,
@@ -299,6 +300,7 @@ class Repository(
         if (trida.odkaz == null) return@withContext TridaNeexistuje
 
         if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) try {
+            _currentlyDownloading.value = trida
             val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get()
 
             val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
@@ -310,6 +312,7 @@ class Repository(
                 it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
                 it[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
             }
+            _currentlyDownloading.value = null
 
             return@withContext Uspech(rozvrh, Online)
         } catch (e: IOException) {

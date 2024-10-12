@@ -113,6 +113,8 @@ class RozvrhViewModel(
 
     val zoom = repo.nastaveni.mapState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), Nastaveni::zoom)
 
+    val currentlyDownloading = repo.currentlyDownloading
+
     val alwaysTwoRowCells = repo.nastaveni.mapState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), Nastaveni::alwaysTwoRowCells)
 
     val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
@@ -145,9 +147,9 @@ class RozvrhViewModel(
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
-    val stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit = { a, b ->
+    val stahnoutVse: () -> Unit = {
         viewModelScope.launch {
-            repo.stahnoutVse(a, b)
+            repo.stahnoutVse()
         }
     }
 

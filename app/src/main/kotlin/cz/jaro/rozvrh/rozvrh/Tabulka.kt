@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.ScrollScope
@@ -119,6 +120,8 @@ fun Tabulka(
                     tabulka.drop(1).map { it.first().first() }.forEachIndexed { i, bunka ->
                         BaseCell(
                             size = Size(.5F, rowHeight[i + 1]),
+                            Modifier
+                                .animateContentSize(),
                             center = bunka.predmet,
                             onCenterClick = {
                                 if (bunka.predmet.isEmpty()) return@BaseCell
@@ -137,9 +140,10 @@ fun Tabulka(
                 ) {
                     tabulka.drop(1).forEachIndexed { i, radek ->
                         Row {
-                            radek.drop(1).forEach { hodina ->
+                            radek.drop(1).forEachIndexed { j, hodina ->
                                 Column(
                                     modifier = Modifier
+                                        .animateContentSize()
                                         .border(1.dp, MaterialTheme.colorScheme.secondary)
                                 ) {
                                     val baseHeight = rowHeight[i + 1] / hodina.size
@@ -168,18 +172,18 @@ fun Tabulka(
                 }
             }
 
-            Text(
-                rozvrhOfflineWarning?.let {
+            rozvrhOfflineWarning?.let {
+                Text(
                     when (it) {
+                        Online -> "Prohlížíte si aktuální rozvrh."
                         is Offline -> "Prohlížíte si verzi rozvrhu z ${it.ziskano.dayOfMonth}. ${it.ziskano.monthNumber}. ${it.ziskano.hour}:${it.ziskano.minute.nula()}. "
                         is OfflineRuzneCasti -> "Nejstarší část tohoto rozvrhu pochází z ${it.nejstarsi.dayOfMonth}. ${it.nejstarsi.monthNumber}. ${it.nejstarsi.hour}:${it.nejstarsi.minute.nula()}. "
-                        Online -> ""
-                    }
-                }?.plus("Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            )
+                    } + if (it != Online) "Pro aktualizaci dat klikněte Stáhnout vše." else "",
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                )
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -95,6 +96,7 @@ fun Rozvrh(
     val zobrazitMujRozvrh by viewModel.zobrazitMujRozvrh.collectAsStateWithLifecycle()
     val zoom by viewModel.zoom.collectAsStateWithLifecycle()
     val alwaysTwoRowCells by viewModel.alwaysTwoRowCells.collectAsStateWithLifecycle()
+    val currentlyDownloading by viewModel.currentlyDownloading.collectAsStateWithLifecycle()
 
     RozvrhContent(
         tabulka = tabulka?.rozvrh,
@@ -117,6 +119,7 @@ fun Rozvrh(
         verScrollState = verScrollState,
         zoom = zoom,
         alwaysTwoRowCells = alwaysTwoRowCells,
+        currentlyDownloading = currentlyDownloading,
     )
 }
 
@@ -127,7 +130,7 @@ fun RozvrhContent(
     stalost: Stalost,
     vybratRozvrh: (Vjec) -> Unit,
     zmenitStalost: (Stalost) -> Unit,
-    stahnoutVse: ((String) -> Unit, () -> Unit) -> Unit,
+    stahnoutVse: () -> Unit,
     navigate: (Direction) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
@@ -142,6 +145,7 @@ fun RozvrhContent(
     verScrollState: ScrollState,
     zoom: Float,
     alwaysTwoRowCells: Boolean,
+    currentlyDownloading: Vjec.TridaVjec?,
 ) = Scaffold(
     topBar = {
         AppBar(
@@ -151,15 +155,11 @@ fun RozvrhContent(
             najdiMiVolnehoUcitele = najdiMiVolnehoUcitele,
             tabulka = tabulka,
             vybratRozvrh = vybratRozvrh,
+            currentlyDownloading = currentlyDownloading
         )
     }
 ) { paddingValues ->
-    if (vjec == null || mujRozvrh == null || tridy.size <= 1) LinearProgressIndicator(
-        Modifier
-            .padding(paddingValues)
-            .fillMaxWidth()
-    )
-    else Column(
+    Column(
         modifier = Modifier
             .padding(paddingValues)
             .fillMaxSize()
@@ -168,7 +168,7 @@ fun RozvrhContent(
 
         PrepinatkoStalosti(stalost, zmenitStalost)
 
-        if (tabulka == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (tabulka == null || vjec == null || mujRozvrh == null) LinearProgressIndicator(Modifier.fillMaxWidth())
         else CompositionLocalProvider(LocalBunkaZoom provides zoom) {
             Tabulka(
                 vjec = vjec,
@@ -216,10 +216,10 @@ private fun PrepinatkoStalosti(stalost: Stalost, zmenitStalost: (Stalost) -> Uni
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Vybiratko(
-    vjec: Vjec,
+    vjec: Vjec?,
     zobrazitMujRozvrh: Boolean,
     zmenitMujRozvrh: () -> Unit,
-    mujRozvrh: Boolean,
+    mujRozvrh: Boolean?,
     vybratRozvrh: (Vjec) -> Unit,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
@@ -240,10 +240,13 @@ private fun Vybiratko(
                 .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable),
             readOnly = true,
-            value = vjec.nazev,
+            value = vjec?.nazev ?: "",
+            placeholder = {
+                CircularProgressIndicator()
+            },
             onValueChange = {},
             trailingIcon = {
-                Row(
+                if (mujRozvrh != null) Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (zobrazitMujRozvrh) IconButton(
