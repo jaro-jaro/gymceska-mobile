@@ -8,8 +8,8 @@ import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.Uspech
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDateTime
 import org.jsoup.nodes.Document
-import java.time.LocalDateTime
 
 object TvorbaRozvrhu {
 
@@ -137,7 +137,7 @@ object TvorbaRozvrhu {
 
         val novaTabulka = MutableList(6) { MutableList(11) { mutableListOf<Bunka>() } }
 
-        val nejstarsi = seznamNazvu.fold(LocalDateTime.MAX) { zatimNejstarsi, trida ->
+        val nejstarsi = seznamNazvu.fold(null as LocalDateTime?) { zatimNejstarsi, trida ->
 
             val result = repo.ziskatRozvrh(trida, stalost)
 
@@ -172,7 +172,7 @@ object TvorbaRozvrhu {
             }
 
             if (result.zdroj !is Offline) zatimNejstarsi
-            else if (result.zdroj.ziskano < zatimNejstarsi!!) result.zdroj.ziskano
+            else if (zatimNejstarsi == null || result.zdroj.ziskano < zatimNejstarsi) result.zdroj.ziskano
             else zatimNejstarsi
         }
         novaTabulka.forEachIndexed { i, den ->
@@ -184,7 +184,7 @@ object TvorbaRozvrhu {
             }
         }
         novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
-        if (nejstarsi == LocalDateTime.MAX) Uspech(novaTabulka, Online)
+        if (nejstarsi == null) Uspech(novaTabulka, Online)
         else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
     }
 
@@ -210,7 +210,7 @@ object TvorbaRozvrhu {
 
         val novaTabulka = MutableList(vyska + 1) { MutableList(sirka + 1) { mutableListOf<Bunka>() } }
 
-        val nejstarsi = seznamNazvu.fold(LocalDateTime.MAX) { zatimNejstarsi, trida ->
+        val nejstarsi = seznamNazvu.fold(null as LocalDateTime?) { zatimNejstarsi, trida ->
 
             val result = repo.ziskatRozvrh(trida, stalost)
 
@@ -245,7 +245,7 @@ object TvorbaRozvrhu {
             novaTabulka[0][0] = rozvrhTridy[0][0].toMutableList()
 
             if (result.zdroj !is Offline) zatimNejstarsi
-            else if (result.zdroj.ziskano < zatimNejstarsi!!) result.zdroj.ziskano
+            else if (zatimNejstarsi == null || result.zdroj.ziskano < zatimNejstarsi) result.zdroj.ziskano
             else zatimNejstarsi
         }
         novaTabulka.forEachIndexed { i, den ->
@@ -257,7 +257,7 @@ object TvorbaRozvrhu {
             }
         }
         novaTabulka[0][0][0] = novaTabulka[0][0][0].copy(predmet = vjec.zkratka)
-        if (nejstarsi == LocalDateTime.MAX) Uspech(novaTabulka, Online)
+        if (nejstarsi == null) Uspech(novaTabulka, Online)
         else Uspech(novaTabulka, OfflineRuzneCasti(nejstarsi))
     }
 }

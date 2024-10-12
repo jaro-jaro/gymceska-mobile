@@ -25,7 +25,6 @@ import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
 import com.ramcosta.composedestinations.DestinationsNavHost
-import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.compose_dialog.dialogState
 import cz.jaro.rozvrh.destinations.RozvrhDestination
 import cz.jaro.rozvrh.destinations.UkolyDestination
@@ -76,8 +75,8 @@ fun MainContent(
         val destination by navController.appCurrentDestinationAsState()
 
         LaunchedEffect(Unit) {
-            if (rozvrh) navController.navigate(RozvrhDestination())
-            if (ukoly) navController.navigate(UkolyDestination())
+            if (rozvrh) navController.navigateToDestination(RozvrhDestination())
+            if (ukoly) navController.navigateToDestination(UkolyDestination())
         }
 
         LaunchedEffect(Unit) {
@@ -96,7 +95,7 @@ fun MainContent(
                     NavigationBarItem(
                         selected = destination is RozvrhDestination,
                         onClick = {
-                            navController.navigate(RozvrhDestination())
+                            navController.navigateToDestination(RozvrhDestination())
                         },
                         icon = {
                             Icon(Icons.Default.TableChart, null)
@@ -108,7 +107,7 @@ fun MainContent(
                     NavigationBarItem(
                         selected = destination == UkolyDestination,
                         onClick = {
-                            navController.navigate(UkolyDestination())
+                            navController.navigateToDestination(UkolyDestination())
                         },
                         icon = {
                             Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null)

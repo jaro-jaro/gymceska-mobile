@@ -1,6 +1,6 @@
 package cz.jaro.rozvrh
 
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 sealed interface ZdrojRozvrhu
 

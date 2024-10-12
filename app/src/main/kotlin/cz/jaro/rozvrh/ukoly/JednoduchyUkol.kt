@@ -1,11 +1,13 @@
 package cz.jaro.rozvrh.ukoly
 
 import kotlinx.serialization.Serializable
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Serializable
 data class JednoduchyUkol(
-    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = MyUuidSerializer::class) val id: Uuid,
     val text: String,
     val stav: StavUkolu,
 )

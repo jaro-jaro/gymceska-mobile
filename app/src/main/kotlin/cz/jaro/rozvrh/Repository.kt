@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
@@ -46,17 +47,23 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.koin.core.annotation.Single
 import java.io.IOException
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
-import java.util.UUID
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Single
 class Repository(
     private val ctx: Context,
@@ -66,7 +73,7 @@ class Repository(
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
         fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}")
-        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}_posledni")
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = longPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}_posledni+")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
         val VERZE = intPreferencesKey("verze")
@@ -96,11 +103,13 @@ class Repository(
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ukoly = snapshot.getValue(TI)
                 val noveUkoly = ukoly?.mapNotNull {
+                    println(it)
                     Ukol(
                         datum = it["datum"] ?: return@mapNotNull null,
                         nazev = it["nazev"] ?: return@mapNotNull null,
-                        predmet = it["predmet"] ?: return@mapNotNull null,
-                        id = it["id"]?.let { id -> UUID.fromString(id) } ?: UUID.randomUUID(),
+                        predmet = it["predmet2"] ?: it["predmet"] ?: return@mapNotNull null,
+                        skupina = it["skupina"] ?: "",
+                        id = it["id"]?.let { id -> Uuid.parse(id) } ?: Uuid.random(),
                     )
                 }
                 onlineUkoly.value = noveUkoly
@@ -186,8 +195,10 @@ class Repository(
         it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
     }
 
-    private val fakeUkol = UUID.fromString("00000000-0000-0000-0000-000000000000")!!
+    @OptIn(ExperimentalUuidApi::class)
+    private val fakeUkol = Uuid.parse("00000000-0000-0000-0000-000000000000")
 
+    @OptIn(ExperimentalUuidApi::class)
     val ukoly = combine(isOnlineFlow, onlineUkoly, offlineUkoly) { isOnline, onlineUkoly, offlineUkoly ->
         if (isOnline) onlineUkoly else offlineUkoly
     }.map { ukoly ->
@@ -230,7 +241,7 @@ class Repository(
 
                     preferences.edit {
                         it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
-                        it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+                        it[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
                     }
                 }
             }
@@ -269,10 +280,10 @@ class Repository(
     }
 
     private suspend fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
-        val limit = if (stalost == Stalost.Staly) 168 * 2 else 1
-        val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) } ?: return false
-        val staryHodin = posledni.until(LocalDateTime.now(), ChronoUnit.HOURS)
-        return staryHodin < limit
+        val limit = if (stalost == Stalost.Staly) 14.days else 1.hours
+        val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { Instant.fromEpochSeconds(it) } ?: return false
+        val starost = Clock.System.now() - posledni
+        return starost < limit
     }
 
     suspend fun ziskatRozvrh(
@@ -291,7 +302,7 @@ class Repository(
 
             preferences.edit {
                 it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
-                it[Keys.rozvrhPosledni(trida, stalost)] = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+                it[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
             }
 
             return@withContext Uspech(rozvrh, Online)
@@ -299,7 +310,7 @@ class Repository(
             e.printStackTrace()
         }
 
-        val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { LocalDateTime.parse(it) }
+        val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { Instant.fromEpochSeconds(it) }
             ?: run {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
@@ -316,7 +327,7 @@ class Repository(
             }
 
         try {
-            Uspech(rozvrh, Offline(kdy))
+            Uspech(rozvrh, Offline(kdy.toLocalDateTime(TimeZone.currentSystemDefault())))
         } catch (e: OutOfMemoryError) {
             e.printStackTrace()
             Firebase.crashlytics.recordException(e)
@@ -348,19 +359,28 @@ class Repository(
     }
 
     val skrtleUkoly = preferences.data.map {
-        it[Keys.SKRTLE_UKOLY]?.map { id -> UUID.fromString(id) }?.toSet() ?: emptySet()
+        it[Keys.SKRTLE_UKOLY]?.map { id -> Uuid.parse(id) }?.toSet() ?: emptySet()
     }
 
-    suspend fun upravitSkrtleUkoly(edit: (Set<UUID>) -> Set<UUID>) {
+    suspend fun upravitSkrtleUkoly(edit: (Set<Uuid>) -> Set<Uuid>) {
         preferences.edit {
             it[Keys.SKRTLE_UKOLY] = edit(
-                it[Keys.SKRTLE_UKOLY]?.map { id -> UUID.fromString(id) }?.toSet() ?: emptySet()
+                it[Keys.SKRTLE_UKOLY]?.map { id -> Uuid.parse(id) }?.toSet() ?: emptySet()
             ).map { id -> id.toString() }.toSet()
         }
     }
 
     suspend fun upravitUkoly(ukoly: List<Ukol>) {
-        ukolyRef.setValue(ukoly.map { mapOf("datum" to it.datum, "nazev" to it.nazev, "predmet" to it.predmet, "id" to it.id.toString()) }).await()
+        ukolyRef.setValue(ukoly.map {
+            mapOf(
+                "datum" to it.datum,
+                "nazev" to it.nazev,
+                "skupina" to it.skupina,
+                "predmet2" to it.predmet,
+                "predmet" to listOf(it.predmet, it.skupina).filter(String::isNotEmpty).joinToString(" "),
+                "id" to it.id.toString()
+            )
+        }).await()
     }
 
     @SuppressLint("HardwareIds")

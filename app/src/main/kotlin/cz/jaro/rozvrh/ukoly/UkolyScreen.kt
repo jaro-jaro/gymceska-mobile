@@ -1,7 +1,6 @@
 package cz.jaro.rozvrh.ukoly
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,8 +35,10 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.destinations.NastaveniDestination
 import cz.jaro.rozvrh.destinations.SpravceUkoluDestination
 import org.koin.androidx.compose.koinViewModel
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Destination
 @Composable
 fun Ukoly(
@@ -59,12 +60,12 @@ fun Ukoly(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun UkolyContent(
     state: UkolyState,
-    skrtnout: (UUID) -> Unit,
-    odskrtnout: (UUID) -> Unit,
+    skrtnout: (Uuid) -> Unit,
+    odskrtnout: (Uuid) -> Unit,
     navigate: (Direction) -> Unit,
     jeOffline: Boolean,
     jeInteligentni: Boolean,
@@ -105,14 +106,20 @@ fun UkolyContent(
             when (state) {
                 UkolyState.Nacitani -> item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 is UkolyState.Nacteno -> {
+                    val lastUkol = state.ukoly.indexOfLast { it.stav != StavUkolu.Nadpis1 && it.stav != StavUkolu.Nadpis2 }
+                    val lastMyUkol = state.ukoly.indexOfLast { it.stav == StavUkolu.Skrtly || it.stav == StavUkolu.Neskrtly }
                     items(state.ukoly.size, key = { state.ukoly[it].id }) { i ->
                         val ukol = state.ukoly[i]
-                        if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred) {
-                            val alpha by animateFloatAsState(if (i != state.ukoly.lastIndex) 1F else 0F, label = "alpha")
-                            Text(stringResource(R.string.splnene_ukoly),
+                        if (ukol.stav == StavUkolu.Nadpis1 || ukol.stav == StavUkolu.Nadpis2) {
+                            val alpha by animateFloatAsState(
+                                if (ukol.stav == StavUkolu.Nadpis1 && i <= lastMyUkol || ukol.stav == StavUkolu.Nadpis2 && i < lastUkol) 1F else 0F, label = "alpha"
+                            )
+                            Text(
+                                if (ukol.stav == StavUkolu.Nadpis1) stringResource(R.string.splnene_ukoly) else "Úkoly jiných skupin:",
                                 Modifier
-                                    .animateItemPlacement()
-                                    .alpha(alpha))
+                                    .animateItem()
+                                    .alpha(alpha)
+                            )
                         } else
                             ListItem(
                                 headlineContent = {
@@ -125,15 +132,15 @@ fun UkolyContent(
                                         text = ukol.text,
                                     )
                                 },
-                                Modifier.animateItemPlacement(),
-                                leadingContent = {
+                                Modifier.animateItem(),
+                                leadingContent = if (ukol.stav != StavUkolu.Cizi) ({
                                     Checkbox(
                                         checked = ukol.stav == StavUkolu.Skrtly,
                                         onCheckedChange = {
                                             (if (ukol.stav == StavUkolu.Skrtly) odskrtnout else skrtnout)(ukol.id)
                                         }
                                     )
-                                }
+                                }) else null
                             )
                     }
                     if (state.ukoly.isEmpty()) item {

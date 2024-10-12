@@ -1,6 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
-import java.time.LocalDate
+import cz.jaro.rozvrh.ukoly.today
 
 enum class Stalost(
     val nazev: String,
@@ -26,7 +26,7 @@ enum class Stalost(
     companion object
 }
 
-fun Stalost.Companion.dnesniEntries() = denniEntries(LocalDate.now().dayOfWeek.value)
+fun Stalost.Companion.dnesniEntries() = denniEntries(today().dayOfWeek.value)
 
 fun Stalost.Companion.denniEntries(den: Int) = buildList {
     if (den in 1..5) add(Stalost.TentoTyden)

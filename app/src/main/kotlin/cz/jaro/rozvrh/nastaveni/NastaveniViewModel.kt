@@ -11,13 +11,13 @@ import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.rozvrh.Stalost
+import cz.jaro.rozvrh.ukoly.today
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.time.LocalDate
 
 @KoinViewModel
 class NastaveniViewModel(
@@ -63,11 +63,11 @@ class NastaveniViewModel(
                 finish(true)
             }
 
-            val dnes = LocalDate.now()
+            val dnes = today()
 
             val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                 type = """application/json"""
-                putExtra(Intent.EXTRA_TITLE, "ROZVRH-${dnes.year}-${dnes.monthValue}-${dnes.dayOfMonth}-$stalost")
+                putExtra(Intent.EXTRA_TITLE, "ROZVRH-${dnes.year}-${dnes.monthNumber}-${dnes.dayOfMonth}-$stalost")
             }
 
             launcher.launch(intent)

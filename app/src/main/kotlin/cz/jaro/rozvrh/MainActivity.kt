@@ -15,9 +15,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.coroutineScope
+import androidx.navigation.NavController
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
+import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +28,9 @@ import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.koin.android.ext.android.inject
 import java.net.SocketTimeoutException
+import com.ramcosta.composedestinations.navigation.navigate as navigateTo
+
+fun NavController.navigateToDestination(direction: Direction) = navigateTo(direction)
 
 class MainActivity : ComponentActivity() {
 

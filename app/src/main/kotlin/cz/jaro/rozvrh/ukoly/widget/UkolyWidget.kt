@@ -40,8 +40,7 @@ import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.ukoly.JednoduchyUkol
 import cz.jaro.rozvrh.ukoly.StavUkolu
-import cz.jaro.rozvrh.ukoly.Ukol
-import cz.jaro.rozvrh.ukoly.ciselnaHodnotaDatumu
+import cz.jaro.rozvrh.ukoly.dateFromUkol
 import cz.jaro.rozvrh.ukoly.zjednusit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +50,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Suppress("unused")
 class UkolyWidget : GlanceAppWidget() {
@@ -63,6 +63,9 @@ class UkolyWidget : GlanceAppWidget() {
     ) = GlanceTheme {
         val prefs = currentState<Preferences>()
         val ukoly = Json.decodeFromString<List<JednoduchyUkol>>(prefs[stringPreferencesKey("ukoly")] ?: "[]")
+            .filter {
+                it.stav in listOf(StavUkolu.Neskrtly, StavUkolu.Skrtly, StavUkolu.Nadpis1)
+            }
 
         val bg = ColorProvider(R.color.background_color)
         val onbg = ColorProvider(R.color.on_background_color)
@@ -94,7 +97,7 @@ class UkolyWidget : GlanceAppWidget() {
                 }
             }
             items(ukoly) { ukol ->
-                if (ukol.stav == StavUkolu.TakovaTaBlboVecUprostred)
+                if (ukol.stav == StavUkolu.Nadpis1)
                     Text(
                         text = context.resources.getString(R.string.splnene_ukoly),
                         GlanceModifier.padding(vertical = 4.dp).clickable(action),
@@ -171,27 +174,38 @@ class UkolyWidget : GlanceAppWidget() {
                 } else super.onReceive(context, intent)
             }
 
+            @OptIn(ExperimentalUuidApi::class)
             override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
                 super.onUpdate(context, appWidgetManager, appWidgetIds)
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val rawUkoly = repo.ukoly.first()
                     val skrtle = repo.skrtleUkoly.first()
+                    val nastaveni = repo.nastaveni.first()
                     val ukoly = rawUkoly
-                        ?.sortedBy(Ukol::ciselnaHodnotaDatumu)
+                        ?.sortedBy(::dateFromUkol)
                         ?.map {
-                            it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
+                            val ukolJeMuj = it.skupina.isEmpty() || nastaveni.mojeSkupiny.isEmpty() || it.skupina in nastaveni.mojeSkupiny
+                            it.zjednusit(
+                                stav = when {
+                                    !ukolJeMuj -> StavUkolu.Cizi
+                                    it.id in skrtle -> StavUkolu.Skrtly
+                                    else -> StavUkolu.Neskrtly
+                                }
+                            )
                         }
                         ?.let { ukoly ->
                             if (ukoly.any { it.stav == StavUkolu.Skrtly })
-                                ukoly.plus(JednoduchyUkol(id = UUID.randomUUID(), "", stav = StavUkolu.TakovaTaBlboVecUprostred))
+                                ukoly.plus(JednoduchyUkol(id = Uuid.random(), "", stav = StavUkolu.Nadpis1))
                             else ukoly
                         }
                         ?.sortedBy {
                             when (it.stav) {
-                                StavUkolu.Neskrtly -> -1
-                                StavUkolu.TakovaTaBlboVecUprostred -> 0
-                                StavUkolu.Skrtly -> 1
+                                StavUkolu.Neskrtly -> 0
+                                StavUkolu.Nadpis1 -> 1
+                                StavUkolu.Skrtly -> 2
+                                StavUkolu.Nadpis2 -> 3
+                                StavUkolu.Cizi -> 4
                             }
                         } ?: return@launch
 

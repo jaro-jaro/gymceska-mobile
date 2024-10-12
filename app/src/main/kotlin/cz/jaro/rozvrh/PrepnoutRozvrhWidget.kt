@@ -1,7 +1,7 @@
 package cz.jaro.rozvrh
 
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
-import java.time.LocalTime
 
 @Serializable
 sealed interface PrepnoutRozvrhWidget {
@@ -18,7 +18,7 @@ sealed interface PrepnoutRozvrhWidget {
         private val hodin: Int,
         private val minut: Int,
     ) : PrepnoutRozvrhWidget {
-        val cas: LocalTime get() = LocalTime.of(hodin, minut)!!
+        val cas: LocalTime get() = LocalTime(hodin, minut)
 
         constructor(cas: LocalTime) : this(cas.hour, cas.minute)
     }

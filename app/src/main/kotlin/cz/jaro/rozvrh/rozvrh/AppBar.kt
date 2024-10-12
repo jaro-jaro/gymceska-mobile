@@ -32,10 +32,13 @@ import androidx.compose.ui.window.DialogProperties
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.destinations.NastaveniDestination
-import java.time.LocalDate
-import java.time.LocalTime
+import cz.jaro.rozvrh.ukoly.time
+import cz.jaro.rozvrh.ukoly.today
+import kotlinx.datetime.Clock.System
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.toJavaDuration
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,13 +102,13 @@ fun AppBar(
             var ucebna by remember { mutableStateOf(true) }
             var stalost by remember {
                 mutableStateOf(Stalost.denniEntries(
-                    LocalDate.now().dayOfWeek.value.let { if (LocalTime.now() > LocalTime.of(15, 45)) it + 1 else it }
+                    today().dayOfWeek.value.let { if (time() > LocalTime(15, 45)) it + 1 else it }
                 ).first())
             }
             var denIndex by remember {
                 mutableIntStateOf(
-                    LocalDate.now().dayOfWeek.value
-                        .let { if (LocalTime.now() > LocalTime.of(15, 45)) it + 1 else it }
+                    today().dayOfWeek.value
+                        .let { if (time() > LocalTime(15, 45)) it + 1 else it }
                         .let { if (it > 5) 1 else it } - 1
                 )
             }
@@ -119,7 +122,7 @@ fun AppBar(
                                 try {
                                     val cas = it.first().ucitel.split(" - ").first()
                                     val hm = cas.split(":")
-                                    LocalTime.now() < LocalTime.of(hm[0].toInt(), hm[1].toInt()) + 10.minutes.toJavaDuration()
+                                    (System.now() - 10.minutes).toLocalDateTime(TimeZone.currentSystemDefault()).time < LocalTime(hm[0].toInt(), hm[1].toInt())
                                 } catch (e: Exception) {
                                     false
                                 }
