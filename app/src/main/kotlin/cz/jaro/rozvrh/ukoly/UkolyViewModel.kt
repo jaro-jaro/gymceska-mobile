@@ -9,16 +9,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
-import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.combine as kombajn
 
+@OptIn(ExperimentalUuidApi::class)
 @KoinViewModel
 class UkolyViewModel(
     private val repo: Repository
 ) : ViewModel() {
 
-    private val idTTBVU = UUID.randomUUID()
+    private val idNadpis1 = Uuid.random()
+    private val idNadpis2 = Uuid.random()
 
     val jeOnline = repo.isOnlineFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
@@ -26,27 +29,37 @@ class UkolyViewModel(
     val inteligentni = repo.jeZarizeniPovoleno
 
     val ukoly = repo.ukoly.map { ukoly ->
-        ukoly?.sortedBy(Ukol::ciselnaHodnotaDatumu)
+        ukoly?.sortedBy(::dateFromUkol)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
-    val state = ukoly.kombajn(repo.skrtleUkoly) { ukoly, skrtle ->
+    val state = kombajn(ukoly, repo.skrtleUkoly, repo.nastaveni) { ukoly, skrtle, nastaveni ->
         if (ukoly == null) UkolyState.Nacitani
         else UkolyState.Nacteno(
             ukoly = ukoly.map {
-                it.zjednusit(stav = if (it.id in skrtle) StavUkolu.Skrtly else StavUkolu.Neskrtly)
+                val ukolJeMuj = it.skupina.isEmpty() || nastaveni.mojeSkupiny.isEmpty() || it.skupina in nastaveni.mojeSkupiny
+                it.zjednusit(
+                    stav = when {
+                        !ukolJeMuj -> StavUkolu.Cizi
+                        it.id in skrtle -> StavUkolu.Skrtly
+                        else -> StavUkolu.Neskrtly
+                    }
+                )
             }
-                .plus(JednoduchyUkol(id = idTTBVU, "", stav = StavUkolu.TakovaTaBlboVecUprostred))
+                .plus(JednoduchyUkol(id = idNadpis1, "", stav = StavUkolu.Nadpis1))
+                .plus(JednoduchyUkol(id = idNadpis2, "", stav = StavUkolu.Nadpis2))
                 .sortedBy {
                     when (it.stav) {
-                        StavUkolu.Neskrtly -> -1
-                        StavUkolu.TakovaTaBlboVecUprostred -> 0
-                        StavUkolu.Skrtly -> 1
+                        StavUkolu.Neskrtly -> 0
+                        StavUkolu.Nadpis1 -> 1
+                        StavUkolu.Skrtly -> 2
+                        StavUkolu.Nadpis2 -> 3
+                        StavUkolu.Cizi -> 4
                     }
                 },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), UkolyState.Nacitani)
 
-    fun skrtnout(id: UUID) {
+    fun skrtnout(id: Uuid) {
         viewModelScope.launch {
             repo.upravitSkrtleUkoly {
                 it + id
@@ -54,7 +67,7 @@ class UkolyViewModel(
         }
     }
 
-    fun odskrtnout(id: UUID) {
+    fun odskrtnout(id: Uuid) {
         viewModelScope.launch {
             repo.upravitSkrtleUkoly {
                 it - id
@@ -62,7 +75,7 @@ class UkolyViewModel(
         }
     }
 
-    fun pridatUkol(callback: (UUID) -> Unit) {
+    fun pridatUkol(callback: (Uuid) -> Unit) {
         viewModelScope.launch {
             val novyUkol = Ukol()
             repo.upravitUkoly(ukoly.value!! + novyUkol)
@@ -70,7 +83,7 @@ class UkolyViewModel(
         }
     }
 
-    fun odebratUkol(id: UUID) {
+    fun odebratUkol(id: Uuid) {
         viewModelScope.launch {
             repo.upravitUkoly(ukoly.value!!.filter { it.id != id })
         }

@@ -1,5 +1,5 @@
 package cz.jaro.rozvrh.ukoly
 
 enum class StavUkolu {
-    Skrtly, Neskrtly, TakovaTaBlboVecUprostred;
+    Skrtly, Nadpis1, Neskrtly, Nadpis2, Cizi;
 }

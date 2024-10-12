@@ -8,15 +8,20 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -36,7 +41,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,8 +61,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.rozvrh.BuildConfig
@@ -67,9 +75,9 @@ import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
 import cz.jaro.rozvrh.rozvrh.dnesniEntries
 import cz.jaro.rozvrh.ui.theme.Theme
+import kotlinx.datetime.LocalTime
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalTime
 import java.time.format.DateTimeParseException
 import kotlin.reflect.KFunction3
 
@@ -271,26 +279,30 @@ fun NastaveniContent(
             if (nastaveni.prepnoutRozvrhWidget is PrepnoutRozvrhWidget.VCas) {
                 var hm by remember { mutableStateOf(nastaveni.prepnoutRozvrhWidget.cas.toString()) }
                 var dialog by remember { mutableStateOf(false) }
-                if (dialog) TimePickerDialog(
-                    initialTime = try {
-                        LocalTime.parse(hm)
-                    } catch (e: DateTimeParseException) {
-                        nastaveni.prepnoutRozvrhWidget.cas
-                    },
-                    onTimeChange = {
-                        dialog = false
-                        hm = it.toString()
-                        upravitNastaveni { nast ->
-                            nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.VCas(it))
-                        }
-                    },
-                    title = {
-                        Text("Vyberte čas")
-                    },
-                    onDismissRequest = {
-                        dialog = false
-                    },
+
+                val initialTime = try {
+                    LocalTime.parse(hm)
+                } catch (e: DateTimeParseException) {
+                    nastaveni.prepnoutRozvrhWidget.cas
+                }
+                val state = rememberTimePickerState(
+                    initialHour = initialTime.hour,
+                    initialMinute = initialTime.minute,
+                    is24Hour = true,
                 )
+                if (dialog) TimePickerDialog(
+                    onCancel = { dialog = false },
+                    onConfirm = {
+                        dialog = false
+                        val time = LocalTime(state.hour, state.minute)
+                        hm = time.toString()
+                        upravitNastaveni { nast ->
+                            nast.copy(prepnoutRozvrhWidget = PrepnoutRozvrhWidget.VCas(time))
+                        }
+                    }
+                ) {
+                    TimePicker(state)
+                }
 
                 OutlinedTextField(
                     value = hm,
@@ -479,3 +491,47 @@ fun NastaveniContent(
     }
 }
 
+
+@Composable
+fun TimePickerDialog(
+    title: String = "Vyberte čas",
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+    toggle: @Composable () -> Unit = {},
+    content: @Composable () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier =
+            Modifier.width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min)
+                .background(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface
+                ),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                content()
+                Row(modifier = Modifier.height(40.dp).fillMaxWidth()) {
+                    toggle()
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(onClick = onCancel) { Text("Zrušit") }
+                    TextButton(onClick = onConfirm) { Text("OK") }
+                }
+            }
+        }
+    }
+}

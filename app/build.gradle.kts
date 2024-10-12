@@ -62,8 +62,6 @@ android {
 }
 
 dependencies {
-    //noinspection UseTomlInstead
-    implementation("androidx.core:core-ktx:1.13.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.core)
@@ -82,6 +80,6 @@ dependencies {
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
-    implementation(libs.compose.material3.datetime.pickers)
     implementation(libs.semver)
+    implementation(libs.kotlinx.datetime)
 }

@@ -49,16 +49,23 @@ import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TypBunky
 import cz.jaro.rozvrh.rozvrh.filtrovatDen
 import cz.jaro.rozvrh.rozvrh.isEmpty
+import cz.jaro.rozvrh.ukoly.time
+import cz.jaro.rozvrh.ukoly.today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import java.time.LocalDate
-import java.time.LocalTime
+import kotlin.time.Duration.Companion.hours
 
 
 @Suppress("unused")
@@ -268,7 +275,7 @@ class DnesWidget : GlanceAppWidget() {
 
                     val dnes = rozvrhZobrazitNaDnesek()
 
-                    val den = LocalDate.now().plusDays(if (dnes) 0 else 1)
+                    val den = today().plus(DatePeriod(days = if (dnes) 0 else 1))
                     val cisloDne = den.dayOfWeek.value // 1-5 (2-7)
 
                     val stalost = if (cisloDne == 1 && !dnes) Stalost.PristiTyden else Stalost.TentoTyden
@@ -301,7 +308,7 @@ class DnesWidget : GlanceAppWidget() {
 
                         updateAppWidgetState(context, id) { prefs ->
                             prefs[stringPreferencesKey("hodiny")] = Json.encodeToString(hodiny)
-                            prefs[stringPreferencesKey("den")] = den.run { "$dayOfMonth. $monthValue." }
+                            prefs[stringPreferencesKey("den")] = den.run { "$dayOfMonth. $monthNumber." }
                         }
                         glanceAppWidget.update(context, id)
                     }
@@ -312,15 +319,15 @@ class DnesWidget : GlanceAppWidget() {
                 when (val nastaveni = repo.nastaveni.first().prepnoutRozvrhWidget) {
                     is PrepnoutRozvrhWidget.OPulnoci -> true
                     is PrepnoutRozvrhWidget.VCas -> {
-                        val cas = LocalTime.now()
+                        val cas = time()
                         cas < nastaveni.cas
                     }
 
                     is PrepnoutRozvrhWidget.PoKonciVyucovani -> {
-                        val cas = LocalTime.now()
+                        val cas = Clock.System.now()
                         val konecVyucovani = zjistitKonecVyucovani()
 
-                        cas < konecVyucovani.plusHours(nastaveni.poHodin.toLong())
+                        (cas - nastaveni.poHodin.hours).toLocalDateTime(TimeZone.currentSystemDefault()).time < konecVyucovani
                     }
                 }
 
@@ -329,13 +336,13 @@ class DnesWidget : GlanceAppWidget() {
 
                 val result = repo.ziskatRozvrh(Stalost.TentoTyden)
 
-                if (result !is Uspech) return LocalTime.MIDNIGHT
+                if (result !is Uspech) return LocalTime(0, 0)
 
                 val tabulka = result.rozvrh
 
-                val denTydne = LocalDate.now().dayOfWeek.value /* 1-5 (6-7) */
+                val denTydne = today().dayOfWeek.value /* 1-5 (6-7) */
 
-                val den = tabulka.getOrNull(denTydne) ?: return LocalTime.NOON
+                val den = tabulka.getOrNull(denTydne) ?: return LocalTime(12, 0)
 
                 val hodina = den
                     .mapIndexed { i, hodina -> i to hodina }
@@ -347,9 +354,9 @@ class DnesWidget : GlanceAppWidget() {
                         }
                     }
                     ?.first
-                    ?: return LocalTime.NOON
+                    ?: return LocalTime(12, 0)
 
-                return tabulka.first()[hodina].first().ucitel.split(" - ")[1].split(":").let { LocalTime.of(it[0].toInt(), it[1].toInt()) }
+                return tabulka.first()[hodina].first().ucitel.split(" - ")[1].split(":").let { LocalTime(it[0].toInt(), it[1].toInt()) }
             }
         }
     }

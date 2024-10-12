@@ -2,6 +2,7 @@ package cz.jaro.rozvrh.ukoly
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,10 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
@@ -29,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -40,17 +46,19 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
-import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
 import org.koin.androidx.compose.koinViewModel
-import java.time.DateTimeException
-import java.time.LocalDate
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Destination
 @Composable
 fun SpravceUkolu(
@@ -69,22 +77,24 @@ fun SpravceUkolu(
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun SpravceUkoluContent(
     ukoly: List<Ukol>?,
-    pridatUkol: ((UUID) -> Unit) -> Unit,
-    odebratUkol: (UUID) -> Unit,
+    pridatUkol: ((Uuid) -> Unit) -> Unit,
+    odebratUkol: (Uuid) -> Unit,
     zmenitUkol: (Ukol) -> Unit,
     navigateBack: () -> Unit
 ) = Surface {
-    var upravovat by rememberSaveable { mutableStateOf(null as UUID?) }
+    var upravovat by rememberSaveable { mutableStateOf(null as Uuid?) }
     var datum by rememberSaveable { mutableStateOf("") }
     var predmet by rememberSaveable { mutableStateOf("") }
+    var skupina by rememberSaveable { mutableStateOf("") }
     var nazev by rememberSaveable { mutableStateOf("") }
     fun reset() {
         datum = ""
         predmet = ""
+        skupina = ""
         nazev = ""
     }
 
@@ -92,6 +102,7 @@ fun SpravceUkoluContent(
         val ukol = ukoly?.find { it.id == upravovat } ?: return
         datum = ukol.datum
         predmet = ukol.predmet
+        skupina = ukol.skupina
         nazev = ukol.nazev
     }
 
@@ -105,7 +116,7 @@ fun SpravceUkoluContent(
         confirmButton = {
             TextButton(
                 onClick = {
-                    zmenitUkol(Ukol(datum = datum, nazev = nazev, predmet = predmet, id = upravovat!!))
+                    zmenitUkol(Ukol(datum = datum, nazev = nazev, skupina = skupina, predmet = predmet, id = upravovat!!))
                     upravovat = null
                     reset()
                 }
@@ -134,47 +145,42 @@ fun SpravceUkoluContent(
             Column {
                 val predvybranyDatum by remember(datum) {
                     derivedStateOf {
-                        if (datum == "0. 0.") return@derivedStateOf LocalDate.now()
-
-                        val jenDatum = datum.replace(" ", "").split(".")
-                        val den = jenDatum.getOrNull(0)?.toIntOrNull() ?: return@derivedStateOf LocalDate.now()
-                        val mesic = jenDatum.getOrNull(1)?.toIntOrNull() ?: return@derivedStateOf LocalDate.now()
-
-                        try {
-                            val aktualni = LocalDate.now().monthValue
-                            val tentoRok = LocalDate.now().year
-
-                            val rok = when {
-                                aktualni >= 8 && mesic >= 8 -> tentoRok
-                                aktualni >= 8 && mesic < 8 -> tentoRok + 1
-                                aktualni < 8 && mesic >= 8 -> tentoRok - 1
-                                aktualni < 8 && mesic < 8 -> tentoRok
-                                else -> throw IllegalArgumentException("WTF")
-                            }
-
-                            LocalDate.of(rok, mesic, den)
-                        } catch (e: DateTimeException) {
-                            e.printStackTrace()
-                            Firebase.crashlytics.recordException(e)
-                            return@derivedStateOf LocalDate.now()
-                        }
+                        dateFromString(datum) ?: today()
                     }
                 }
 
+                val state = rememberDatePickerState(
+                    initialSelectedDateMillis = predvybranyDatum.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
+                    initialDisplayMode = DisplayMode.Picker,
+                )
                 if (datumDialog) DatePickerDialog(
                     onDismissRequest = {
                         datumDialog = false
                     },
-                    onDateChange = {
-                        datum = "${it.dayOfMonth}. ${it.monthValue}."
-                        datumDialog = false
-                        focusManager.moveFocus(FocusDirection.Down)
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                datumDialog = false
+                                val chosenDate = Instant.fromEpochMilliseconds(state.selectedDateMillis!!).toLocalDateTime(TimeZone.UTC).date
+                                datum = "${chosenDate.dayOfMonth}. ${chosenDate.monthNumber}."
+                                datumDialog = false
+                                focusManager.moveFocus(FocusDirection.Down)
+                            }
+                        ) {
+                            Text("OK")
+                        }
                     },
-                    title = {
-                        Text("Vyberte datum")
-                    },
-                    initialDate = predvybranyDatum,
-                )
+                ) {
+                    DatePicker(
+                        state = state,
+                        title = {
+                            DatePickerDefaults.DatePickerTitle(
+                                displayMode = state.displayMode,
+                                Modifier.padding(PaddingValues(start = 24.dp, end = 12.dp, top = 16.dp))
+                            )
+                        },
+                    )
+                }
 
                 TextField(
                     value = datum,
@@ -210,6 +216,20 @@ fun SpravceUkoluContent(
                     },
                     label = {
                         Text("Předmět")
+                    },
+                    singleLine = true,
+                )
+                TextField(
+                    value = skupina,
+                    onValueChange = {
+                        skupina = it
+                    },
+                    Modifier.fillMaxWidth(),
+                    keyboardActions = KeyboardActions {
+                        focusManager.moveFocus(FocusDirection.Down)
+                    },
+                    label = {
+                        Text("Skupina")
                     },
                     singleLine = true,
                 )
