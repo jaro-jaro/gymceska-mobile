@@ -55,8 +55,8 @@ fun Vybiratko(
         focusedTextColor = /*if (value == null) ExposedDropdownMenuDefaults.outlinedTextFieldColors().focusedPlaceholderColor else*/ MaterialTheme.colorScheme.primary,
     ),
 ) = Vybiratko(
-    value = value?.jmeno ?: "",
-    seznam = seznam.map { it.jmeno },
+    value = value?.nazev ?: "",
+    seznam = seznam.map { it.nazev },
     onClick = { i, _ -> onClick(i, seznam[i]) },
     modifier = modifier,
     label = label,

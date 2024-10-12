@@ -62,7 +62,7 @@ class RozvrhViewModel(
         viewModelScope.launch {
             params.navigovat(
                 RozvrhDestination(
-                    vjec = if (vjec.jmeno == "HOME") repo.nastaveni.first().mojeTrida else vjec,
+                    vjec = if (vjec.nazev == "HOME") repo.nastaveni.first().mojeTrida else vjec,
                     mujRozvrh = _mujRozvrh.first(),
                     stalost = stalost,
                 )

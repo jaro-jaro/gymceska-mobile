@@ -159,7 +159,7 @@ fun AppBar(
                             Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volné tyto ${filtry.text()}učebny:")
                         }
                         if (ucebna) items(volneTridy.toList()) {
-                            Text("${it.jmeno}, to je${it.napoveda}", Modifier.clickable {
+                            Text("${it.nazev}, to je${it.napoveda}", Modifier.clickable {
                                 najdiMiDialog = false
                                 vybratRozvrh(it)
                             })
@@ -168,7 +168,7 @@ fun AppBar(
                             Text("Na škole jsou ${stalost.kdy} ${Seznamy.dny4Pad[denIndex]} ${hodinaIndexy.joinToString(" a ") { "$it." }} hodinu volní tito ${filtry.text()}učitelé:")
                         }
                         if (!ucebna) items(volniUcitele.toList()) {
-                            Text(it.jmeno, Modifier.clickable {
+                            Text(it.nazev, Modifier.clickable {
                                 najdiMiDialog = false
                                 vybratRozvrh(it)
                             })

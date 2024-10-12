@@ -27,7 +27,7 @@ class FourToFiveMigration(
         val mojeTridaObject = nastaveni.optJSONObject("mojeTrida") ?: return currentData
         val mojeTridaType = mojeTridaObject.optString("type").ifBlank { null }
         val mojeTrida = mojeTridaType?.split(".")?.last()?.toList()?.reversed()?.joinToString(".")
-        val mojeNovaTrida = tridy.find { it.jmeno == mojeTrida } ?: tridy.getOrNull(1) ?: tridy.first()
+        val mojeNovaTrida = tridy.find { it.nazev == mojeTrida } ?: tridy.getOrNull(1) ?: tridy.first()
 
         nastaveni.put("mojeTrida", JSONObject(Json.encodeToString(mojeNovaTrida)))
 

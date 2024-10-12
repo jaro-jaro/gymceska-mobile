@@ -72,8 +72,8 @@ class Repository(
 
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
-        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}")
-        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = longPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}_posledni+")
+        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.nazev}_${stalost.nazev}")
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = longPreferencesKey("rozvrh+_${trida.nazev}_${stalost.nazev}_posledni+")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
         val VERZE = intPreferencesKey("verze")
@@ -227,7 +227,7 @@ class Repository(
         withContext(Dispatchers.IO) {
             tridy.value.drop(1).forEach { trida ->
                 Stalost.entries.forEach { stalost ->
-                    update("Stahování:\n${trida.jmeno} – ${stalost.nazev}")
+                    update("Stahování:\n${trida.nazev} – ${stalost.nazev}")
 
                     val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: run {
                         update("Něco se nepovedlo :(")

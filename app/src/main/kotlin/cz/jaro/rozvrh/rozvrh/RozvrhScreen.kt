@@ -160,7 +160,7 @@ fun RozvrhContent(
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-                label = tridy.first().jmeno,
+                label = tridy.first().nazev,
                 trailingIcon = { hide ->
                     if (zobrazitMujRozvrh) IconButton(
                         onClick = {
@@ -204,7 +204,7 @@ fun RozvrhContent(
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-                label = mistnosti.first().jmeno,
+                label = mistnosti.first().nazev,
                 trailingIcon = { hide ->
                     IconButton(
                         onClick = {
@@ -215,7 +215,7 @@ fun RozvrhContent(
                                 content = {
                                     LazyColumn {
                                         items(mistnosti.drop(1)) {
-                                            Text("${it.jmeno} - to je${it.napoveda}")
+                                            Text("${it.nazev} - to je${it.napoveda}")
                                         }
                                     }
                                 },
@@ -234,7 +234,7 @@ fun RozvrhContent(
                 Modifier
                     .weight(1F)
                     .padding(horizontal = 4.dp),
-                label = vyucujici.first().jmeno,
+                label = vyucujici.first().nazev,
             )
         }
 

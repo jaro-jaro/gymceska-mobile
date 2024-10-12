@@ -98,7 +98,7 @@ fun Tabulka(
                                 bunka.predmet == it.zkratka
                             } ?: return@BaseCell else Vjec.HodinaVjec(
                                 zkratka = bunka.predmet.split(".")[0],
-                                jmeno = "${bunka.predmet} hodina",
+                                nazev = "${bunka.predmet} hodina",
                                 index = i + 1
                             ))
                         }
