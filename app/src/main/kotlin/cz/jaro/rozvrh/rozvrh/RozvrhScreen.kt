@@ -73,10 +73,14 @@ import androidx.window.core.layout.WindowHeightSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import cz.jaro.compose_dialog.dialogState
 import cz.jaro.compose_dialog.show
-import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.Error
 import cz.jaro.rozvrh.Repository
+import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.Route
-import cz.jaro.rozvrh.ZdrojRozvrhu
+import cz.jaro.rozvrh.TridaNeexistuje
+import cz.jaro.rozvrh.Uspech
+import cz.jaro.rozvrh.ZadnaData
+import cz.jaro.rozvrh.navigate
 import org.koin.compose.getKoin
 
 @Composable
@@ -105,7 +109,7 @@ fun Rozvrh(
         viewModel.navigovat = navController.navigate
     }
 
-    val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
+    val tabulka by viewModel.result.collectAsStateWithLifecycle()
     val realVjec by viewModel.vjec.collectAsStateWithLifecycle()
 
     val tridy by viewModel.tridy.collectAsStateWithLifecycle()
@@ -118,7 +122,7 @@ fun Rozvrh(
     val currentlyDownloading by viewModel.currentlyDownloading.collectAsStateWithLifecycle()
 
     RozvrhContent(
-        tabulka = tabulka?.rozvrh,
+        result = tabulka,
         vjec = realVjec,
         stalost = viewModel.stalost,
         vybratRozvrh = viewModel::vybratRozvrh,
@@ -127,7 +131,6 @@ fun Rozvrh(
         navigate = navController.navigate,
         najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
         najdiMiVolnehoUcitele = viewModel::najdiMiVolnehoUcitele,
-        rozvrhOfflineWarning = tabulka?.zdroj,
         tridy = tridy,
         mistnosti = mistnosti,
         vyucujici = vyucujici,
@@ -144,7 +147,7 @@ fun Rozvrh(
 
 @Composable
 fun RozvrhContent(
-    tabulka: Tyden?,
+    result: Result?,
     vjec: Vjec?,
     stalost: Stalost,
     vybratRozvrh: (Vjec) -> Unit,
@@ -153,7 +156,6 @@ fun RozvrhContent(
     navigate: (Route) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
-    rozvrhOfflineWarning: ZdrojRozvrhu?,
     tridy: List<Vjec.TridaVjec>,
     mistnosti: List<Vjec.MistnostVjec>,
     vyucujici: List<Vjec.VyucujiciVjec>,
@@ -170,7 +172,7 @@ fun RozvrhContent(
     navigate = navigate,
     najdiMiVolnouTridu = najdiMiVolnouTridu,
     najdiMiVolnehoUcitele = najdiMiVolnehoUcitele,
-    tabulka = tabulka,
+    result = result,
     vybratRozvrh = vybratRozvrh,
     currentlyDownloading = currentlyDownloading,
 ) { paddingValues ->
@@ -195,23 +197,29 @@ fun RozvrhContent(
             PrepinatkoStalosti(stalost, zmenitStalost, Modifier.fillMaxWidth())
         }
 
-        if (tabulka == null || vjec == null || mujRozvrh == null) LinearProgressIndicator(Modifier.fillMaxWidth())
-        else CompositionLocalProvider(LocalBunkaZoom provides zoom) {
-            Tabulka(
-                vjec = vjec,
-                tabulka = tabulka,
-                kliklNaNeco = { vjec ->
-                    vybratRozvrh(vjec)
-                },
-                rozvrhOfflineWarning = rozvrhOfflineWarning,
-                tridy = tridy,
-                mistnosti = mistnosti,
-                vyucujici = vyucujici,
-                mujRozvrh = mujRozvrh,
-                horScrollState = horScrollState,
-                verScrollState = verScrollState,
-                alwaysTwoRowCells = alwaysTwoRowCells,
-            )
+        if (result == null || vjec == null || mujRozvrh == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+        else when(result) {
+            is Uspech -> CompositionLocalProvider(LocalBunkaZoom provides zoom) {
+                Tabulka(
+                    vjec = vjec,
+                    tabulka = result.rozvrh,
+                    kliklNaNeco = { vjec ->
+                        vybratRozvrh(vjec)
+                    },
+                    rozvrhOfflineWarning = result.zdroj,
+                    tridy = tridy,
+                    mistnosti = mistnosti,
+                    vyucujici = vyucujici,
+                    mujRozvrh = mujRozvrh,
+                    horScrollState = horScrollState,
+                    verScrollState = verScrollState,
+                    alwaysTwoRowCells = alwaysTwoRowCells,
+                )
+            }
+
+            Error -> Text("Omlouváme se, ale došlo k chybě při stahování rozvrhu. Zkuste to znovu.")
+            TridaNeexistuje -> Text("Tato třída neexistuje")
+            ZadnaData -> Text("Jste offline a nemáte stažená žádná data z dřívjejška.")
         }
     }
 }

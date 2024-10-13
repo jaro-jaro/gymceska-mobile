@@ -58,13 +58,13 @@ import androidx.navigation.NavController
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
-import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
+import cz.jaro.rozvrh.navigate
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko

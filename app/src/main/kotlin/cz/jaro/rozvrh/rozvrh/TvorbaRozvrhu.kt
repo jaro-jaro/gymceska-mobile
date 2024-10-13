@@ -282,6 +282,11 @@ object TvorbaRozvrhu {
 
 private fun <E> List<E>.singleOrGet(index: Int) = singleOrNull() ?: get(index)
 
+val Result.tabulka get() = when (this) {
+    is Uspech -> rozvrh
+    else -> null
+}
+
 fun Result.upravitTabulku(edit: (Tyden) -> Tyden) = when (this) {
     is Uspech -> copy(rozvrh = edit(rozvrh))
     else -> this

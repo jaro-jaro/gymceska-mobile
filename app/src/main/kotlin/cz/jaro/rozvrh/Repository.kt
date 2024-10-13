@@ -1,11 +1,6 @@
 package cz.jaro.rozvrh
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.provider.Settings
-import android.widget.Toast
 import androidx.annotation.Keep
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
@@ -57,7 +52,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
-import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
@@ -67,7 +61,8 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class, ExperimentalSettingsApi::class)
 class Repository(
     private val settings: ObservableSettings,
-    private val ctx: Context,
+    private val userOnlineManager: UserOnlineManager,
+    private val userIdProvider: UserIdProvider,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -164,12 +159,6 @@ class Repository(
     init {
         scope.launch {
             if ("first" !in settings) {
-                if (!isOnline()) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
-                    }
-                    exitProcess(-1)
-                }
                 settings["first"] = false
             }
             settings[Keys.VERZE] = BuildConfig.VERSION_CODE
@@ -291,17 +280,11 @@ class Repository(
 
         val kdy = settings.getLongOrNull(Keys.rozvrhPosledni(trida, stalost))?.let { Instant.fromEpochSeconds(it) }
             ?: run {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
-                }
                 return@withContext ZadnaData
             }
 
         val rozvrh = settings.getStringOrNull(Keys.rozvrh(trida, stalost))?.fromJson<Tyden>()
             ?: run {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
-                }
                 return@withContext ZadnaData
             }
 
@@ -318,22 +301,9 @@ class Repository(
         stalost: Stalost,
     ): Result = ziskatRozvrh(nastaveni.first().mojeTrida, stalost)
 
-    private fun isOnline(): Boolean = ctx.isOnline()
+    private fun isOnline(): Boolean = userOnlineManager.isOnline()
 
     companion object {
-        fun Context.isOnline(): Boolean {
-            val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork) ?: return false
-
-            return capabilities.hasTransport(
-                NetworkCapabilities.TRANSPORT_CELLULAR
-            ) || capabilities.hasTransport(
-                NetworkCapabilities.TRANSPORT_WIFI
-            ) || capabilities.hasTransport(
-                NetworkCapabilities.TRANSPORT_ETHERNET
-            )
-        }
-
         val json = Json {
             ignoreUnknownKeys = true
         }
@@ -368,7 +338,7 @@ class Repository(
     val jeZarizeniPovoleno = configActive.map {
         val povolene = remoteConfig["povolenaZarizeni"].asString().fromJson<List<String>>()
 
-        val ja = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
+        val ja = userIdProvider.getUserId()
 
         ja in povolene
     }.stateIn(scope, SharingStarted.Eagerly, false)
@@ -460,3 +430,11 @@ fun <T1, T2, T3, T4, R> combineStates(
     transform: (T1, T2, T3, T4) -> R
 ): StateFlow<R> = combine(flow, flow2, flow3, flow4, transform)
     .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value))
+
+fun interface UserIdProvider {
+    fun getUserId(): String
+}
+
+fun interface UserOnlineManager {
+    fun isOnline(): Boolean
+}

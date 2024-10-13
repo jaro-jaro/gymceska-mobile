@@ -44,9 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
+import cz.jaro.rozvrh.navigate
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn

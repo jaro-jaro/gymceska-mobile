@@ -16,11 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.compose_dialog.dialogState
 import cz.jaro.rozvrh.nastaveni.Nastaveni
@@ -132,3 +134,14 @@ fun MainContent(
         }
     }
 }
+
+val NavController.navigate
+    get() = navigate@{ route: Route ->
+        try {
+            navigate(route.also(::println))
+        } catch (e: IllegalStateException) {
+            e.printStackTrace()
+            com.google.firebase.Firebase.crashlytics.log("Pokus o navigaci na $route")
+            com.google.firebase.Firebase.crashlytics.recordException(e)
+        }
+    }

@@ -36,6 +36,7 @@ import androidx.compose.ui.window.DialogProperties
 import cz.jaro.rozvrh.ActionScope
 import cz.jaro.rozvrh.Navigation
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.Result
 import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.ukoly.time
 import cz.jaro.rozvrh.ukoly.today
@@ -51,7 +52,7 @@ fun RozvrhNavigation(
     navigate: (Route) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
-    tabulka: Tyden?,
+    result: Result?,
     vybratRozvrh: (Vjec) -> Unit,
     currentlyDownloading: Vjec.TridaVjec?,
     content: @Composable (PaddingValues) -> Unit,
@@ -66,7 +67,7 @@ fun RozvrhNavigation(
     },
     title = stringResource(R.string.rozvrh),
     actions = {
-        Actions(stahnoutVse, tabulka, vybratRozvrh, najdiMiVolnouTridu, najdiMiVolnehoUcitele)
+        Actions(stahnoutVse, result, vybratRozvrh, najdiMiVolnouTridu, najdiMiVolnehoUcitele)
     },
     currentDestination = Route.Rozvrh(),
     navigateToDestination = navigate,
@@ -84,7 +85,7 @@ fun RozvrhNavigation(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun ActionScope.Actions(
     stahnoutVse: () -> Unit,
-    tabulka: Tyden?,
+    result: Result?,
     vybratRozvrh: (Vjec) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
@@ -129,10 +130,11 @@ private fun ActionScope.Actions(
                 .let { if (it > 5) 1 else it } - 1
         )
     }
-    var hodinaIndexy by remember(tabulka) {
+    var hodinaIndexy by remember(result) {
         mutableStateOf(
             listOf(
-                tabulka
+                result
+                    ?.tabulka
                     ?.get(0)
                     ?.drop(1)
                     ?.indexOfFirst {

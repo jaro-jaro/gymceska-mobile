@@ -10,7 +10,6 @@ import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.combineStates
 import cz.jaro.rozvrh.mapState
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -117,7 +116,7 @@ class RozvrhViewModel(
 
     val alwaysTwoRowCells = repo.nastaveni.mapState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), Nastaveni::alwaysTwoRowCells)
 
-    val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
+    val result = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
         when (vjec) {
             is Vjec.TridaVjec -> repo.ziskatRozvrh(
                 trida = vjec,
@@ -142,7 +141,7 @@ class RozvrhViewModel(
                 stalost = stalost,
                 repo = repo
             )
-        }.takeIf { it is Uspech } as Uspech?
+        }
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 

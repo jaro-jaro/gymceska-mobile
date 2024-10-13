@@ -21,10 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.R
 import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
+import cz.jaro.rozvrh.navigate
 import org.koin.compose.getKoin
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
