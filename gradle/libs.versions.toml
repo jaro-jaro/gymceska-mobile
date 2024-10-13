@@ -9,7 +9,7 @@ firebase-crashlytics-gradle = "3.0.2"
 androidx-glance = "1.1.0"
 androidx-compose = "1.7.3"
 firebase-database = "21.0.0"
-jsoup = "1.16.2"
+ksoup = "0.1.9"
 kotlin = "2.0.20"
 kotlinx-coroutines = "1.9.0"
 kotlinx-datetime = "0.6.1"
@@ -62,8 +62,9 @@ firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analy
 firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "firebase-crashlytics" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebase-database" }
 firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebase-config" }
-# Junit
-jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+# Ksoup
+ksoup = { group = "com.fleeksoft.ksoup", name = "ksoup-ktor2", version.ref = "ksoup" }
+ksoup-network = { group = "com.fleeksoft.ksoup", name = "ksoup-network-ktor2", version.ref = "ksoup" }
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin-androidx-compose" }
@@ -96,6 +97,10 @@ androidx-jetpack-glance = [
 koin = [
     "koin-core",
     "koin-androidx-compose",
+]
+ksoup = [
+    "ksoup",
+    "ksoup-network",
 ]
 
 [plugins]

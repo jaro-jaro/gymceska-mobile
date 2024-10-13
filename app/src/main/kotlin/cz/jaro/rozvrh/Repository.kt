@@ -16,6 +16,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.DataSnapshot
@@ -57,7 +59,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.jsoup.Jsoup
 import java.io.IOException
 import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.days
@@ -105,7 +106,6 @@ class Repository(
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ukoly = snapshot.getValue(TI)
                 val noveUkoly = ukoly?.mapNotNull {
-                    println(it)
                     Ukol(
                         datum = it["datum"] ?: return@mapNotNull null,
                         nazev = it["nazev"] ?: return@mapNotNull null,
@@ -234,7 +234,7 @@ class Repository(
                 _currentlyDownloading.value = trida
                 Stalost.entries.forEach { stalost ->
 
-                    val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: return@withContext).get()
+                    val doc = Ksoup.parseGetRequest(trida.odkaz?.replace("###", stalost.odkaz) ?: return@withContext)
 
                     val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
                         vjec = trida,
@@ -299,7 +299,7 @@ class Repository(
 
         if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) try {
             _currentlyDownloading.value = trida
-            val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get()
+            val doc = Ksoup.parseGetRequest(trida.odkaz.replace("###", stalost.odkaz))
 
             val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
                 vjec = trida,
@@ -408,23 +408,17 @@ class Repository(
 
         if (jeDebug) return false
 
-        val response = try {
+        val document = try {
             withContext(Dispatchers.IO) {
-                Jsoup
-                    .connect("https://raw.githubusercontent.com/jaro-jaro/gymceska-mobile/main/app/version.txt")
-                    .ignoreContentType(true)
-                    .maxBodySize(0)
-                    .execute()
+                Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/gymceska-mobile/main/app/version.txt")
             }
         } catch (e: IOException) {
             Firebase.crashlytics.recordException(e)
             return false
         }
 
-        if (response.statusCode() != 200) return false
-
         val mistniVerze = BuildConfig.VERSION_NAME.toVersion(false)
-        val nejnovejsiVerze = response.body().trim().toVersion(false)
+        val nejnovejsiVerze = document.text().trim().toVersion(false)
 
         return mistniVerze < nejnovejsiVerze
     }

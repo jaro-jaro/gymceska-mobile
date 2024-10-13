@@ -1,5 +1,6 @@
 package cz.jaro.rozvrh.rozvrh
 
+import com.fleeksoft.ksoup.nodes.Document
 import cz.jaro.rozvrh.Offline
 import cz.jaro.rozvrh.OfflineRuzneCasti
 import cz.jaro.rozvrh.Online
@@ -9,7 +10,6 @@ import cz.jaro.rozvrh.Uspech
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
-import org.jsoup.nodes.Document
 
 object TvorbaRozvrhu {
 
@@ -28,6 +28,7 @@ object TvorbaRozvrhu {
                 )
             )
         ) + doc
+            .body()
             .getElementsByClass("bk-timetable-body").first()!!
             .getElementById("main")!!
             .getElementsByClass("bk-timetable-hours").first()!!
@@ -47,6 +48,7 @@ object TvorbaRozvrhu {
                 )
             }
     ) + doc
+        .body()
         .getElementsByClass("bk-timetable-body").first()!!
         .getElementById("main")!!
         .getElementsByClass("bk-timetable-row")

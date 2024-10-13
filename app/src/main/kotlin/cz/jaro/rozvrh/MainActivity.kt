@@ -15,7 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.coroutineScope
-import androidx.navigation.NavController
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
@@ -24,7 +25,6 @@ import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
 import org.koin.android.ext.android.inject
 import java.net.SocketTimeoutException
 
@@ -45,22 +45,16 @@ class MainActivity : ComponentActivity() {
 
         val aktualizovatAplikaci = {
             lifecycle.coroutineScope.launch(Dispatchers.IO) {
-                val response = try {
+                val document = try {
                     withContext(Dispatchers.IO) {
-                        Jsoup
-                            .connect("https://raw.githubusercontent.com/jaro-jaro/gymceska-mobile/main/app/version.txt")
-                            .ignoreContentType(true)
-                            .maxBodySize(0)
-                            .execute()
+                        Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/gymceska-mobile/main/app/version.txt")
                     }
                 } catch (e: SocketTimeoutException) {
                     Firebase.crashlytics.recordException(e)
                     return@launch
                 }
 
-                if (response.statusCode() != 200) return@launch
-
-                val nejnovejsiVerze = response.body()
+                val nejnovejsiVerze = document.text()
 
                 startActivity(Intent().apply {
                     action = Intent.ACTION_VIEW
