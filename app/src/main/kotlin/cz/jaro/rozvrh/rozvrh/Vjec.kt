@@ -1,33 +1,38 @@
 package cz.jaro.rozvrh.rozvrh
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed interface Vjec {
-    val jmeno: String
+    val nazev: String
     val zkratka: String
 
     @Serializable
     data class TridaVjec(
-        override val jmeno: String,
+        @SerialName("jmeno")
+        override val nazev: String,
         val odkaz: String? = null,
     ) : Vjec {
-        override val zkratka: String get() = jmeno
+        override val zkratka: String get() = nazev
     }
 
     @Serializable
     data class MistnostVjec(
-        override val jmeno: String,
+        @SerialName("jmeno")
+        override val nazev: String,
         val napoveda: String? = null,
     ) : Vjec {
-        override val zkratka: String get() = jmeno
+        override val zkratka: String get() = nazev
     }
 
     @Serializable
     data class VyucujiciVjec(
-        override val jmeno: String,
+        val jmeno: String,
         override val zkratka: String,
-    ) : Vjec
+    ) : Vjec {
+        override val nazev: String get() = if (zkratka.isNotBlank()) "$zkratka – $jmeno" else jmeno
+    }
 
     sealed interface Indexed : Vjec {
         val index: Int
@@ -35,14 +40,14 @@ sealed interface Vjec {
 
     @Serializable
     data class DenVjec(
-        override val jmeno: String,
+        override val nazev: String,
         override val zkratka: String,
         override val index: Int,
     ) : Indexed
 
     @Serializable
     data class HodinaVjec(
-        override val jmeno: String,
+        override val nazev: String,
         override val zkratka: String,
         override val index: Int,
     ) : Indexed

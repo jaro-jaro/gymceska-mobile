@@ -44,13 +44,13 @@ class NastaveniViewModel(
         viewModelScope.launch {
             val tridy = repo.tridy.value
             val vse = tridy.mapNotNull {
-                update(it.jmeno)
+                update(it.nazev)
                 val res = repo.ziskatRozvrh(it, stalost)
                 if (res !is Uspech) {
                     finish(false)
                     return@mapNotNull null
                 }
-                it.jmeno to res.rozvrh
+                it.nazev to res.rozvrh
             }.toMap()
             update("Už to skoro je!")
             val data = Json.encodeToString(vse)

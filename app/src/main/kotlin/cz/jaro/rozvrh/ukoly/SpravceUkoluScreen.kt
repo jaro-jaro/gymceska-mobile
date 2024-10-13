@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
@@ -22,18 +22,14 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -50,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.rozvrh.App.Companion.navigate
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -74,6 +72,7 @@ fun SpravceUkolu(
         odebratUkol = viewModel::odebratUkol,
         zmenitUkol = viewModel::upravitUkol,
         navigateBack = navigator::navigateUp,
+        navigate = navigator.navigate,
     )
 }
 
@@ -84,7 +83,8 @@ fun SpravceUkoluContent(
     pridatUkol: ((Uuid) -> Unit) -> Unit,
     odebratUkol: (Uuid) -> Unit,
     zmenitUkol: (Ukol) -> Unit,
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    navigate: (Direction) -> Unit,
 ) = Surface {
     var upravovat by rememberSaveable { mutableStateOf(null as Uuid?) }
     var datum by rememberSaveable { mutableStateOf("") }
@@ -142,7 +142,9 @@ fun SpravceUkoluContent(
         },
         text = {
             val focusManager = LocalFocusManager.current
-            Column {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+            ) {
                 val predvybranyDatum by remember(datum) {
                     derivedStateOf {
                         dateFromString(datum) ?: today()
@@ -248,39 +250,16 @@ fun SpravceUkoluContent(
         },
     )
 
-    Scaffold(
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = {
-                    Text("Nový úkol")
-                },
-                icon = {
-                    Icon(Icons.Default.Add, null)
-                },
-                onClick = {
-                    pridatUkol {
-                        upravovat = it
-                        datumDialog = true
-                        update()
-                    }
-                },
-            )
+    SpravceUkoluNavigation(
+        navigateBack = navigateBack,
+        pridatUkol = {
+            pridatUkol {
+                upravovat = it
+                datumDialog = true
+                update()
+            }
         },
-        floatingActionButtonPosition = FabPosition.Center,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = "Spravovat úkoly")
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navigateBack
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zpět")
-                    }
-                }
-            )
-        },
+        navigate = navigate,
     ) { paddingValues ->
         if (ukoly == null) LinearProgressIndicator(Modifier.padding(paddingValues))
         else LazyColumn(
@@ -293,7 +272,7 @@ fun SpravceUkoluContent(
                     headlineContent = {
                         Text(ukol.asString())
                     },
-                    Modifier.animateItemPlacement(),
+                    Modifier.animateItem(),
                     trailingContent = {
                         Row {
                             IconButton(

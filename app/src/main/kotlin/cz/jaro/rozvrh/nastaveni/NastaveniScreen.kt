@@ -25,25 +25,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +66,8 @@ import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
@@ -120,11 +116,12 @@ fun Nastaveni(
 
     NastaveniContent(
         navigateBack = navigator::navigateUp,
+        navigate = navigator.navigate,
         nastaveni = nastaveni,
         upravitNastaveni = viewModel::upravitNastaveni,
         tridy = tridy,
         skupiny = skupiny,
-        stahnoutVse = viewModel::stahnoutVse
+        stahnoutVse = viewModel::stahnoutVse,
     )
 }
 
@@ -132,27 +129,16 @@ fun Nastaveni(
 @Composable
 fun NastaveniContent(
     navigateBack: () -> Unit,
+    navigate: (Direction) -> Unit,
     nastaveni: Nastaveni?,
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
     stahnoutVse: (Stalost, (String) -> Unit, (Boolean) -> Unit) -> Unit,
 ) = Surface {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = stringResource(R.string.nastaveni))
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navigateBack
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.zpet))
-                    }
-                }
-            )
-        }
+    NastaveniNavigation(
+        navigateBack = navigateBack,
+        navigate = navigate,
     ) { paddingValues ->
         if (nastaveni == null) LinearProgressIndicator(
             Modifier
@@ -384,8 +370,8 @@ fun NastaveniContent(
             }
             HorizontalDivider(Modifier.padding(vertical = 16.dp), thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outline)
             Vybiratko(
-                value = nastaveni.mojeTrida.jmeno,
-                seznam = remember { tridy.map { it.jmeno }.drop(1) },
+                value = nastaveni.mojeTrida.nazev,
+                seznam = remember { tridy.map { it.nazev }.drop(1) },
                 onClick = { i, _ ->
                     upravitNastaveni { nastaveni ->
                         nastaveni.copy(mojeTrida = tridy[i + 1])
@@ -576,7 +562,8 @@ fun TimePickerDialog(
         }
     }
 }
-@Preview
+
+@Preview(device = "spec:parent=pixel_9,orientation=landscape")
 @Composable
 private fun NastaveniPreview() {
     GymceskaTheme(
@@ -585,6 +572,7 @@ private fun NastaveniPreview() {
         theme = Theme.Green
     ) {
         NastaveniContent(
+            navigate = {},
             navigateBack = {},
             nastaveni = Nastaveni(
                 mojeTrida = Vjec.TridaVjec("1.A")

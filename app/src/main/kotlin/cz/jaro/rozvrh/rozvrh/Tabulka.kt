@@ -98,7 +98,7 @@ fun Tabulka(
                                 bunka.predmet == it.zkratka
                             } ?: return@BaseCell else Vjec.HodinaVjec(
                                 zkratka = bunka.predmet.split(".")[0],
-                                jmeno = "${bunka.predmet} hodina",
+                                nazev = "${bunka.predmet} hodina",
                                 index = i + 1
                             ))
                         }
@@ -137,7 +137,7 @@ fun Tabulka(
                 ) {
                     tabulka.drop(1).forEachIndexed { i, radek ->
                         Row {
-                            radek.drop(1).forEach { hodina ->
+                            radek.drop(1).forEachIndexed { j, hodina ->
                                 Column(
                                     modifier = Modifier
                                         .border(1.dp, MaterialTheme.colorScheme.secondary)
@@ -168,18 +168,18 @@ fun Tabulka(
                 }
             }
 
-            Text(
-                rozvrhOfflineWarning?.let {
+            rozvrhOfflineWarning?.let {
+                Text(
                     when (it) {
+                        Online -> "Prohlížíte si aktuální rozvrh."
                         is Offline -> "Prohlížíte si verzi rozvrhu z ${it.ziskano.dayOfMonth}. ${it.ziskano.monthNumber}. ${it.ziskano.hour}:${it.ziskano.minute.nula()}. "
                         is OfflineRuzneCasti -> "Nejstarší část tohoto rozvrhu pochází z ${it.nejstarsi.dayOfMonth}. ${it.nejstarsi.monthNumber}. ${it.nejstarsi.hour}:${it.nejstarsi.minute.nula()}. "
-                        Online -> ""
-                    }
-                }?.plus("Pro aktualizaci dat klikněte Stáhnout vše.") ?: "Prohlížíte si aktuální rozvrh.",
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            )
+                    } + if (it != Online) "Pro aktualizaci dat klikněte Stáhnout vše." else "",
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                )
+            }
         }
     }
 }
@@ -212,14 +212,14 @@ private fun Modifier.doubleScrollable(
                     scrollStateX.scroll {
                         val scrollScope = object : ScrollScope {
                             override fun scrollBy(pixels: Float): Float {
-                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(pixels, 0F), NestedScrollSource.Fling).x
+                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(pixels, 0F), NestedScrollSource.SideEffect).x
                                 val scrollAvailableAfterPreScroll = pixels - consumedByPreScroll
                                 val consumedBySelfScroll = this@scroll.scrollBy(scrollAvailableAfterPreScroll)
                                 val deltaAvailableAfterScroll = scrollAvailableAfterPreScroll - consumedBySelfScroll
                                 val consumedByPostScroll = nestedScrollDispatcher.dispatchPostScroll(
                                     Offset(consumedBySelfScroll, 0F),
                                     Offset(deltaAvailableAfterScroll, 0F),
-                                    NestedScrollSource.Fling
+                                    NestedScrollSource.SideEffect
                                 ).x
                                 return consumedByPreScroll + consumedBySelfScroll + consumedByPostScroll
                             }
@@ -234,14 +234,14 @@ private fun Modifier.doubleScrollable(
                     scrollStateY.scroll {
                         val scrollScope = object : ScrollScope {
                             override fun scrollBy(pixels: Float): Float {
-                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(0F, pixels), NestedScrollSource.Fling).y
+                                val consumedByPreScroll = nestedScrollDispatcher.dispatchPreScroll(Offset(0F, pixels), NestedScrollSource.SideEffect).y
                                 val scrollAvailableAfterPreScroll = pixels - consumedByPreScroll
                                 val consumedBySelfScroll = this@scroll.scrollBy(scrollAvailableAfterPreScroll)
                                 val deltaAvailableAfterScroll = scrollAvailableAfterPreScroll - consumedBySelfScroll
                                 val consumedByPostScroll = nestedScrollDispatcher.dispatchPostScroll(
                                     Offset(0F, consumedBySelfScroll),
                                     Offset(0F, deltaAvailableAfterScroll),
-                                    NestedScrollSource.Fling
+                                    NestedScrollSource.SideEffect
                                 ).y
                                 return consumedByPreScroll + consumedBySelfScroll + consumedByPostScroll
                             }

@@ -38,7 +38,11 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -72,8 +76,8 @@ class Repository(
 
     object Keys {
         val NASTAVENI = stringPreferencesKey("nastaveni")
-        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}")
-        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = longPreferencesKey("rozvrh+_${trida.jmeno}_${stalost.nazev}_posledni+")
+        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.nazev}_${stalost.nazev}")
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = longPreferencesKey("rozvrh+_${trida.nazev}_${stalost.nazev}_posledni+")
         val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
         val UKOLY = stringPreferencesKey("ukoly")
         val VERZE = intPreferencesKey("verze")
@@ -207,13 +211,16 @@ class Repository(
         }
     }
 
+    private fun defaultNastaveni(tridy: List<Vjec.TridaVjec>) = Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
+
     private val json = Json {
         ignoreUnknownKeys = true
     }
 
     val nastaveni = preferences.data.combine(tridy) { it, tridy ->
-        it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
+        it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: defaultNastaveni(tridy)
     }
+        .stateIn(scope, SharingStarted.Eagerly, defaultNastaveni(tridy.value))
 
     suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
         preferences.edit {
@@ -222,17 +229,14 @@ class Repository(
         }
     }
 
-    suspend fun stahnoutVse(update: (String) -> Unit, finish: () -> Unit) {
+    suspend fun stahnoutVse() {
         if (!isOnline()) return
         withContext(Dispatchers.IO) {
             tridy.value.drop(1).forEach { trida ->
+                _currentlyDownloading.value = trida
                 Stalost.entries.forEach { stalost ->
-                    update("Stahování:\n${trida.jmeno} – ${stalost.nazev}")
 
-                    val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: run {
-                        update("Něco se nepovedlo :(")
-                        return@withContext
-                    }).get()
+                    val doc = Jsoup.connect(trida.odkaz?.replace("###", stalost.odkaz) ?: return@withContext).get()
 
                     val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
                         vjec = trida,
@@ -245,7 +249,7 @@ class Repository(
                     }
                 }
             }
-            finish()
+            _currentlyDownloading.value = null
         }
     }
 
@@ -286,6 +290,9 @@ class Repository(
         return starost < limit
     }
 
+    private val _currentlyDownloading = MutableStateFlow<Vjec.TridaVjec?>(null)
+    val currentlyDownloading = _currentlyDownloading.asStateFlow()
+
     suspend fun ziskatRozvrh(
         trida: Vjec.TridaVjec,
         stalost: Stalost,
@@ -293,6 +300,7 @@ class Repository(
         if (trida.odkaz == null) return@withContext TridaNeexistuje
 
         if (isOnline() && !pouzitOfflineRozvrh(trida, stalost)) try {
+            _currentlyDownloading.value = trida
             val doc = Jsoup.connect(trida.odkaz.replace("###", stalost.odkaz)).get()
 
             val rozvrh = TvorbaRozvrhu.vytvoritTabulku(
@@ -304,6 +312,7 @@ class Repository(
                 it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
                 it[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
             }
+            _currentlyDownloading.value = null
 
             return@withContext Uspech(rozvrh, Online)
         } catch (e: IOException) {
@@ -426,3 +435,62 @@ class Repository(
         emit(jePotrebaAktualizovatAplikaci())
     }
 }
+
+inline fun <T, R> StateFlow<T>.mapState(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    crossinline transform: (value: T) -> R
+): StateFlow<R> = map(transform)
+        .stateIn(coroutineScope, sharingStarted, transform(value))
+
+inline fun <T> StateFlow<T>.filterState(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    defaultInitialValue: T,
+    crossinline predicate: (value: T) -> Boolean
+): StateFlow<T> = filter(predicate)
+        .stateIn(coroutineScope, sharingStarted, if (predicate(value)) value else defaultInitialValue)
+
+fun <T: Any> StateFlow<T?>.filterNotNullState(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    defaultInitialValue: T,
+): StateFlow<T> = filterNotNull()
+        .stateIn(coroutineScope, sharingStarted, value ?: defaultInitialValue)
+
+fun <T1, T2, R> StateFlow<T1>.combineStates(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    flow2: StateFlow<T2>,
+    transform: (a: T1, b: T2) -> R
+): StateFlow<R> = combineStates(coroutineScope, sharingStarted, this, flow2, transform)
+
+fun <T1, T2, R> combineStates(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    flow: StateFlow<T1>,
+    flow2: StateFlow<T2>,
+    transform: (a: T1, b: T2) -> R
+): StateFlow<R> = flow.combine(flow2, transform)
+        .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value))
+
+fun <T1, T2, T3, R> combineStates(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    flow: StateFlow<T1>,
+    flow2: StateFlow<T2>,
+    flow3: StateFlow<T3>,
+    transform: (T1, T2, T3) -> R
+): StateFlow<R> = combine(flow, flow2, flow3, transform)
+    .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value, flow3.value))
+
+fun <T1, T2, T3, T4, R> combine(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted,
+    flow: StateFlow<T1>,
+    flow2: StateFlow<T2>,
+    flow3: StateFlow<T3>,
+    flow4: StateFlow<T4>,
+    transform: (T1, T2, T3, T4) -> R
+): StateFlow<R> = combine(flow, flow2, flow3, flow4, transform)
+    .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value))

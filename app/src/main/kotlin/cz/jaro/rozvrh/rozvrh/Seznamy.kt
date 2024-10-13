@@ -56,7 +56,7 @@ object Seznamy {
 val Seznamy.dny
     get() = dny1Pad.mapIndexed { index, it ->
         Vjec.DenVjec(
-            jmeno = it,
+            nazev = it,
             zkratka = it.take(2),
             index = index + 1,
         )

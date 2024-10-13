@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.bundles.koin)
+    implementation(libs.androidx.adaptive.android)
     ksp(libs.koin.ksp.compiler)
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
