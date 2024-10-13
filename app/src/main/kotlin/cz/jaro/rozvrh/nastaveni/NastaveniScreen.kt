@@ -1,6 +1,5 @@
 package cz.jaro.rozvrh.nastaveni
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -71,6 +70,7 @@ import cz.jaro.rozvrh.rozvrh.Vybiratko
 import cz.jaro.rozvrh.rozvrh.dnesniEntries
 import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import cz.jaro.rozvrh.ui.theme.Theme
+import cz.jaro.rozvrh.ui.theme.areDynamicColorsSupported
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.LocalTime
@@ -162,7 +162,7 @@ fun NastaveniContent(
                     }
                 )
             }
-            val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+            val dynamicColorsSupported = areDynamicColorsSupported()
             Vybiratko(
                 value = when {
                     dynamicColorsSupported && nastaveni.dynamicColors -> "Dynamické"
