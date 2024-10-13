@@ -51,13 +51,6 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    applicationVariants.forEach { variant ->
-        sourceSets.getByName(variant.name) {
-            java {
-                srcDir("build/generated/ksp/${variant.name}/kotlin")
-            }
-        }
-    }
 }
 
 dependencies {
