@@ -97,8 +97,8 @@ fun Tabulka(
                             kliklNaNeco(if (vjec is Vjec.HodinaVjec) tridy.find {
                                 bunka.predmet == it.zkratka
                             } ?: return@BaseCell else Vjec.HodinaVjec(
-                                zkratka = bunka.predmet.split(".")[0],
-                                nazev = "${bunka.predmet} hodina",
+                                zkratka = bunka.predmet,
+                                nazev = "${bunka.predmet}. hodina",
                                 index = i + 1
                             ))
                         }
