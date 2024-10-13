@@ -42,7 +42,7 @@ fun Vybiratko(
     onClick: (Int, String) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "",
-    zaskrtavatko: (String) -> Boolean = { it == seznam[index] },
+    zaskrtavatko: ((String) -> Boolean)? = { it == seznam[index] },
 ) = Vybiratko(
     value = seznam[index],
     seznam = seznam,
@@ -60,7 +60,7 @@ fun Vybiratko(
     onClick: (Int, String) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "",
-    zaskrtavatko: (String) -> Boolean = { it == value },
+    zaskrtavatko: ((String) -> Boolean)? = { it == value },
     zavirat: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -90,7 +90,7 @@ fun Vybiratko(
                 focusManager.clearFocus()
             },
         ) {
-            val zaskrtavatka = seznam.map(zaskrtavatko)
+            val zaskrtavatka = zaskrtavatko?.let { seznam.map(zaskrtavatko) }
             seznam.forEachIndexed { i, option ->
                 DropdownMenuItem(
                     text = { Text(option) },
@@ -102,9 +102,11 @@ fun Vybiratko(
                         }
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                    leadingIcon = if (zaskrtavatka.any { it }) (@Composable {
-                        if (zaskrtavatka[i]) Icon(Icons.Default.Check, null)
-                    }) else null
+                    leadingIcon = zaskrtavatka?.let {
+                        ({
+                            if (zaskrtavatka[i]) Icon(Icons.Default.Check, null)
+                        })
+                    }
                 )
             }
         }
