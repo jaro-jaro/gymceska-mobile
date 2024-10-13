@@ -1,6 +1,5 @@
 package cz.jaro.compose_dialog
 
-import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.DialogProperties
 
 sealed interface AlertDialogStyle {
@@ -53,8 +51,6 @@ sealed interface AlertDialogStyle {
 
 interface AlertDialogScope {
     fun hide()
-
-    val context: Context
 }
 
 interface AlertDialogState {
@@ -132,13 +128,9 @@ fun AlertDialog(
 ) {
     require(state is AlertDialogStateImpl)
 
-    val ctx = LocalContext.current
-
     val scope: AlertDialogScope = remember {
         object : AlertDialogScope {
             override fun hide() = state.hideTopMost()
-
-            override val context: Context get() = ctx
         }
     }
     state.dialogStyles.forEach { info ->
