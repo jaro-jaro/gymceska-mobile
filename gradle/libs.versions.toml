@@ -2,13 +2,10 @@
 androidx-activity-compose = "1.9.2"
 androidx-core = "1.13.1"
 filekit-core = "0.8.7"
-firebase-analytics = "22.1.2"
-firebase-config = "22.0.0"
-firebase-crashlytics = "19.2.0"
+firebase = "1.13.0"
 firebase-crashlytics-gradle = "3.0.2"
 androidx-glance = "1.1.0"
 androidx-compose = "1.7.3"
-firebase-database = "21.0.0"
 ksoup = "0.1.9"
 kotlin = "2.0.20"
 kotlinx-coroutines = "1.9.0"
@@ -58,10 +55,10 @@ androidx-adaptive-android = { group = "androidx.compose.material3.adaptive", nam
 androidx-glance = { group = "androidx.glance", name = "glance", version.ref = "androidx-glance" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "androidx-glance" }
 # Firebase
-firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx", version.ref = "firebase-analytics" }
-firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "firebase-crashlytics" }
-firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebase-database" }
-firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebase-config" }
+firebase-analytics = { group = "dev.gitlive", name = "firebase-analytics", version.ref = "firebase" }
+firebase-crashlytics = { group = "dev.gitlive", name = "firebase-crashlytics", version.ref = "firebase" }
+firebase-database = { group = "dev.gitlive", name = "firebase-database", version.ref = "firebase" }
+firebase-config = { group = "dev.gitlive", name = "firebase-config", version.ref = "firebase" }
 # Ksoup
 ksoup = { group = "com.fleeksoft.ksoup", name = "ksoup-ktor2", version.ref = "ksoup" }
 ksoup-network = { group = "com.fleeksoft.ksoup", name = "ksoup-network-ktor2", version.ref = "ksoup" }
