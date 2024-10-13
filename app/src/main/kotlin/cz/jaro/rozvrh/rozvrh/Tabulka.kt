@@ -1,6 +1,5 @@
 package cz.jaro.rozvrh.rozvrh
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.ScrollScope
@@ -120,8 +119,6 @@ fun Tabulka(
                     tabulka.drop(1).map { it.first().first() }.forEachIndexed { i, bunka ->
                         BaseCell(
                             size = Size(.5F, rowHeight[i + 1]),
-                            Modifier
-                                .animateContentSize(),
                             center = bunka.predmet,
                             onCenterClick = {
                                 if (bunka.predmet.isEmpty()) return@BaseCell
@@ -143,7 +140,6 @@ fun Tabulka(
                             radek.drop(1).forEachIndexed { j, hodina ->
                                 Column(
                                     modifier = Modifier
-                                        .animateContentSize()
                                         .border(1.dp, MaterialTheme.colorScheme.secondary)
                                 ) {
                                     val baseHeight = rowHeight[i + 1] / hodina.size
