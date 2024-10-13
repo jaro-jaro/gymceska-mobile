@@ -72,4 +72,5 @@ dependencies {
     implementation(libs.androidx.adaptive.android)
     implementation(libs.semver)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.filekit.core)
 }

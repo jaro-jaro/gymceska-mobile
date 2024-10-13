@@ -1,13 +1,6 @@
 package cz.jaro.rozvrh.nastaveni
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -51,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -85,33 +77,15 @@ import kotlinx.datetime.LocalTime
 import org.koin.compose.getKoin
 import java.time.format.DateTimeParseException
 
-private var callback: (Uri) -> Unit = {}
-
 @Composable
 fun Nastaveni(
     args: Route.Nastaveni,
     navController: NavController,
 ) {
-
-    val ctx = LocalContext.current
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == Activity.RESULT_OK) {
-            callback(it.data!!.data!!)
-        }
-    }
-
-    fun getStartActivityForResult(cb: (Uri) -> Unit): ManagedActivityResultLauncher<Intent, ActivityResult> {
-        callback = cb
-        return launcher
-    }
-
     val repo = getKoin().get<Repository>()
     val viewModel = viewModel<NastaveniViewModel> {
         NastaveniViewModel(
             repo = repo,
-            getStartActivityForResult = ::getStartActivityForResult,
-            contentResolver = ctx.contentResolver,
         )
     }
 

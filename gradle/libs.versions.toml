@@ -1,6 +1,7 @@
 [versions]
 androidx-activity-compose = "1.9.2"
 androidx-core = "1.13.1"
+filekit-core = "0.8.7"
 firebase-analytics = "22.1.2"
 firebase-config = "22.0.0"
 firebase-crashlytics = "19.2.0"
@@ -70,6 +71,8 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 # Semantic versioning
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
+# Filekit
+filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit-core" }
 
 [bundles]
 androidx-jetpack-compose = [
