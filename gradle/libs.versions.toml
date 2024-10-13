@@ -21,9 +21,9 @@ gms-google-services = "4.4.2"
 koin = "3.5.3"
 koin-androidx-compose = "3.5.3"
 androidx-lifecycle = "2.8.6"
-datastore = "1.1.1"
 semver = "1.4.2"
 adaptive-android = "1.0.0"
+multiplatform-settings = "1.2.0"
 
 [libraries]
 # Androidx
@@ -68,12 +68,13 @@ ksoup-network = { group = "com.fleeksoft.ksoup", name = "ksoup-network-ktor2", v
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin-androidx-compose" }
-# Jetpack Preferences DataStore
-androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 # Semantic versioning
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 # Filekit
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit-core" }
+# Multiplatform Settings
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
+multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
 
 [bundles]
 androidx-jetpack-compose = [

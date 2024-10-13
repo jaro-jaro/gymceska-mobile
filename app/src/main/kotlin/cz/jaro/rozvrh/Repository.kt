@@ -7,15 +7,6 @@ import android.net.NetworkCapabilities
 import android.provider.Settings
 import android.widget.Toast
 import androidx.annotation.Keep
-import androidx.datastore.preferences.SharedPreferencesMigration
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.Firebase
@@ -28,6 +19,12 @@ import com.google.firebase.database.database
 import com.google.firebase.remoteconfig.get
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.ObservableSettings
+import com.russhwolf.settings.contains
+import com.russhwolf.settings.coroutines.getStringOrNullFlow
+import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
+import com.russhwolf.settings.set
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.TvorbaRozvrhu
 import cz.jaro.rozvrh.rozvrh.Tyden
@@ -67,19 +64,20 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalSettingsApi::class)
 class Repository(
+    private val settings: ObservableSettings,
     private val ctx: Context,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     object Keys {
-        val NASTAVENI = stringPreferencesKey("nastaveni")
-        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = stringPreferencesKey("rozvrh+_${trida.nazev}_${stalost.nazev}")
-        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = longPreferencesKey("rozvrh+_${trida.nazev}_${stalost.nazev}_posledni+")
-        val SKRTLE_UKOLY = stringSetPreferencesKey("skrtle_ukoly")
-        val UKOLY = stringPreferencesKey("ukoly")
-        val VERZE = intPreferencesKey("verze")
+        const val NASTAVENI = "nastaveni"
+        fun rozvrh(trida: Vjec.TridaVjec, stalost: Stalost) = "rozvrh-_${trida.nazev}_${stalost.nazev}"
+        fun rozvrhPosledni(trida: Vjec.TridaVjec, stalost: Stalost) = "rozvrh-_${trida.nazev}_${stalost.nazev}_posledni"
+        const val SKRTLE_UKOLY = "skrtle_ukoly"
+        const val UKOLY = "ukoly"
+        const val VERZE = "verze"
     }
 
     private val firebase = Firebase
@@ -117,9 +115,7 @@ class Repository(
                 onlineUkoly.value = noveUkoly
 
                 scope.launch {
-                    preferences.edit {
-                        it[Keys.UKOLY] = Json.encodeToString(noveUkoly)
-                    }
+                    settings[Keys.UKOLY] = Json.encodeToString(noveUkoly)
 
                     upravitSkrtleUkoly { skrtle ->
                         skrtle.filter { uuid ->
@@ -165,36 +161,23 @@ class Repository(
         remoteConfig["velkeMistnosti"].asString().fromJson<List<String>>()
     }.stateIn(scope, SharingStarted.Eagerly, listOf())
 
-    private val preferences = PreferenceDataStoreFactory.create(
-        migrations = listOf(
-            SharedPreferencesMigration({
-                ctx.getSharedPreferences("hm", Context.MODE_PRIVATE)!!
-            }),
-            FourToFiveMigration(tridy)
-        )
-    ) {
-        ctx.preferencesDataStoreFile("Gymceska_JARO_datastore")
-    }.also {
+    init {
         scope.launch {
-            if (it.data.first().contains(booleanPreferencesKey("first")).not()) {
+            if ("first" !in settings) {
                 if (!isOnline()) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(ctx, "Je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
                     }
                     exitProcess(-1)
                 }
-                it.edit {
-                    it[booleanPreferencesKey("first")] = false
-                }
+                settings["first"] = false
             }
-            it.edit {
-                it[Keys.VERZE] = BuildConfig.VERSION_CODE
-            }
+            settings[Keys.VERZE] = BuildConfig.VERSION_CODE
         }
     }
 
-    private val offlineUkoly = preferences.data.map {
-        it[Keys.UKOLY]?.let { it1 -> Json.decodeFromString<List<Ukol>>(it1) }
+    private val offlineUkoly = settings.getStringOrNullFlow(Keys.UKOLY).map {
+        it?.fromJson<List<Ukol>>()
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -211,20 +194,12 @@ class Repository(
 
     private fun defaultNastaveni(tridy: List<Vjec.TridaVjec>) = Nastaveni(mojeTrida = tridy.getOrElse(1) { tridy.first() })
 
-    private val json = Json {
-        ignoreUnknownKeys = true
+    val nastaveni = settings.getStringOrNullStateFlow(scope, Keys.NASTAVENI).combineStates(scope, tridy) { it, tridy ->
+        it?.fromJson<Nastaveni>() ?: defaultNastaveni(tridy)
     }
 
-    val nastaveni = preferences.data.combine(tridy) { it, tridy ->
-        it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: defaultNastaveni(tridy)
-    }
-        .stateIn(scope, SharingStarted.Eagerly, defaultNastaveni(tridy.value))
-
-    suspend fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
-        preferences.edit {
-            it[Keys.NASTAVENI] =
-                Json.encodeToString(edit(it[Keys.NASTAVENI]?.let { it1 -> json.decodeFromString<Nastaveni>(it1) } ?: Nastaveni(mojeTrida = tridy.value[1])))
-        }
+    fun zmenitNastaveni(edit: (Nastaveni) -> Nastaveni) {
+        settings[Keys.NASTAVENI] = Json.encodeToString(edit(nastaveni.value))
     }
 
     suspend fun stahnoutVse() {
@@ -241,10 +216,8 @@ class Repository(
                         doc = doc,
                     )
 
-                    preferences.edit {
-                        it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
-                        it[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
-                    }
+                    settings[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
+                    settings[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
                 }
             }
             _currentlyDownloading.value = null
@@ -281,9 +254,9 @@ class Repository(
             .sorted()
     }
 
-    private suspend fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
+    private fun pouzitOfflineRozvrh(trida: Vjec.TridaVjec, stalost: Stalost): Boolean {
         val limit = if (stalost == Stalost.Staly) 14.days else 1.hours
-        val posledni = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { Instant.fromEpochSeconds(it) } ?: return false
+        val posledni = settings.getLongOrNull(Keys.rozvrhPosledni(trida, stalost))?.let { Instant.fromEpochSeconds(it) } ?: return false
         val starost = Clock.System.now() - posledni
         return starost < limit
     }
@@ -306,10 +279,9 @@ class Repository(
                 doc = doc,
             )
 
-            preferences.edit {
-                it[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
-                it[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
-            }
+            settings[Keys.rozvrh(trida, stalost)] = Json.encodeToString(rozvrh)
+            settings[Keys.rozvrhPosledni(trida, stalost)] = Clock.System.now().epochSeconds / 60L * 60L
+
             _currentlyDownloading.value = null
 
             return@withContext Uspech(rozvrh, Online)
@@ -317,7 +289,7 @@ class Repository(
             e.printStackTrace()
         }
 
-        val kdy = preferences.data.first()[Keys.rozvrhPosledni(trida, stalost)]?.let { Instant.fromEpochSeconds(it) }
+        val kdy = settings.getLongOrNull(Keys.rozvrhPosledni(trida, stalost))?.let { Instant.fromEpochSeconds(it) }
             ?: run {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
@@ -325,7 +297,7 @@ class Repository(
                 return@withContext ZadnaData
             }
 
-        val rozvrh = preferences.data.first()[Keys.rozvrh(trida, stalost)]?.let { Json.decodeFromString<Tyden>(it) }
+        val rozvrh = settings.getStringOrNull(Keys.rozvrh(trida, stalost))?.fromJson<Tyden>()
             ?: run {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(ctx, R.string.neni_stazeno, Toast.LENGTH_LONG).show()
@@ -362,19 +334,21 @@ class Repository(
             )
         }
 
-        inline fun <reified T> String.fromJson(): T = Json.decodeFromString(this)
-    }
-
-    val skrtleUkoly = preferences.data.map {
-        it[Keys.SKRTLE_UKOLY]?.map { id -> Uuid.parse(id) }?.toSet() ?: emptySet()
-    }
-
-    suspend fun upravitSkrtleUkoly(edit: (Set<Uuid>) -> Set<Uuid>) {
-        preferences.edit {
-            it[Keys.SKRTLE_UKOLY] = edit(
-                it[Keys.SKRTLE_UKOLY]?.map { id -> Uuid.parse(id) }?.toSet() ?: emptySet()
-            ).map { id -> id.toString() }.toSet()
+        val json = Json {
+            ignoreUnknownKeys = true
         }
+
+        inline fun <reified T> String.fromJson(): T = json.decodeFromString(this)
+    }
+
+    val skrtleUkoly = settings.getStringOrNullFlow(Keys.SKRTLE_UKOLY).map {
+        it?.fromJson<Set<String>>()?.map { id -> Uuid.parse(id) }?.toSet() ?: emptySet()
+    }
+
+    fun upravitSkrtleUkoly(edit: (Set<Uuid>) -> Set<Uuid>) {
+        settings[Keys.SKRTLE_UKOLY] = edit(
+            settings.getStringOrNull(Keys.SKRTLE_UKOLY)?.fromJson<List<String>>()?.map { id -> Uuid.parse(id) }?.toSet() ?: emptySet()
+        ).map { id -> id.toString() }.toSet().let { Json.encodeToString(it) }
     }
 
     suspend fun upravitUkoly(ukoly: List<Ukol>) {
@@ -433,56 +407,56 @@ inline fun <T, R> StateFlow<T>.mapState(
     sharingStarted: SharingStarted,
     crossinline transform: (value: T) -> R
 ): StateFlow<R> = map(transform)
-        .stateIn(coroutineScope, sharingStarted, transform(value))
+    .stateIn(coroutineScope, sharingStarted, transform(value))
 
 inline fun <T> StateFlow<T>.filterState(
     coroutineScope: CoroutineScope,
-    sharingStarted: SharingStarted,
     defaultInitialValue: T,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
     crossinline predicate: (value: T) -> Boolean
 ): StateFlow<T> = filter(predicate)
-        .stateIn(coroutineScope, sharingStarted, if (predicate(value)) value else defaultInitialValue)
+    .stateIn(coroutineScope, sharingStarted, if (predicate(value)) value else defaultInitialValue)
 
-fun <T: Any> StateFlow<T?>.filterNotNullState(
+fun <T : Any> StateFlow<T?>.filterNotNullState(
     coroutineScope: CoroutineScope,
-    sharingStarted: SharingStarted,
     defaultInitialValue: T,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
 ): StateFlow<T> = filterNotNull()
-        .stateIn(coroutineScope, sharingStarted, value ?: defaultInitialValue)
+    .stateIn(coroutineScope, sharingStarted, value ?: defaultInitialValue)
 
 fun <T1, T2, R> StateFlow<T1>.combineStates(
     coroutineScope: CoroutineScope,
-    sharingStarted: SharingStarted,
     flow2: StateFlow<T2>,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (a: T1, b: T2) -> R
-): StateFlow<R> = combineStates(coroutineScope, sharingStarted, this, flow2, transform)
+): StateFlow<R> = combineStates(coroutineScope, this, flow2, sharingStarted, transform)
 
 fun <T1, T2, R> combineStates(
     coroutineScope: CoroutineScope,
-    sharingStarted: SharingStarted,
     flow: StateFlow<T1>,
     flow2: StateFlow<T2>,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (a: T1, b: T2) -> R
 ): StateFlow<R> = flow.combine(flow2, transform)
-        .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value))
+    .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value))
 
 fun <T1, T2, T3, R> combineStates(
     coroutineScope: CoroutineScope,
-    sharingStarted: SharingStarted,
     flow: StateFlow<T1>,
     flow2: StateFlow<T2>,
     flow3: StateFlow<T3>,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (T1, T2, T3) -> R
 ): StateFlow<R> = combine(flow, flow2, flow3, transform)
     .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value, flow3.value))
 
 fun <T1, T2, T3, T4, R> combineStates(
     coroutineScope: CoroutineScope,
-    sharingStarted: SharingStarted,
     flow: StateFlow<T1>,
     flow2: StateFlow<T2>,
     flow3: StateFlow<T3>,
     flow4: StateFlow<T4>,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (T1, T2, T3, T4) -> R
 ): StateFlow<R> = combine(flow, flow2, flow3, flow4, transform)
     .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value))

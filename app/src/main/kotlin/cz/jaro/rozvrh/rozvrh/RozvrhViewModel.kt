@@ -40,8 +40,9 @@ class RozvrhViewModel(
     private val velkeMistnosti = repo.velkeMistnosti
 
     val vjec = combineStates(
-        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
-        repo.nastaveni, tridy, vyucujici, mistnosti
+        viewModelScope,
+        repo.nastaveni, tridy, vyucujici, mistnosti,
+        SharingStarted.WhileSubscribed(5.seconds),
     ) { nastaveni, tridy, vyucujici, mistnosti ->
         params.vjec?.let { Vjec.fromString(it, tridy, mistnosti, vyucujici) } ?: nastaveni.mojeTrida
     }
@@ -55,8 +56,9 @@ class RozvrhViewModel(
     }
 
     val mujRozvrh = combineStates(
-        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
-        _mujRozvrh, repo.nastaveni, vjec
+        viewModelScope,
+        _mujRozvrh, repo.nastaveni, vjec,
+        SharingStarted.WhileSubscribed(5.seconds),
     ) { mujRozvrh, nastaveni, vjec ->
         mujRozvrh && vjec == nastaveni.mojeTrida
     }
@@ -102,8 +104,9 @@ class RozvrhViewModel(
     }
 
     val zobrazitMujRozvrh = combineStates(
-        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
-        vjec, repo.nastaveni
+        viewModelScope,
+        vjec, repo.nastaveni,
+        SharingStarted.WhileSubscribed(5.seconds),
     ) { vjec, nastaveni ->
         vjec == nastaveni.mojeTrida
     }

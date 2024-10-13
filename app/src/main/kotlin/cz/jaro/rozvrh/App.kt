@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.navigation.NavController
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
+import com.russhwolf.settings.ObservableSettings
+import com.russhwolf.settings.SharedPreferencesSettings
 import org.koin.core.context.startKoin
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -15,8 +17,11 @@ class App : Application() {
 
         startKoin {
             modules(module {
-                single { Repository(ctx = get()) }
                 single { this@App } bind Context::class
+                single { get<Context>().getSharedPreferences("prefs-gymceska-multiplatform", Context.MODE_PRIVATE) }
+                single { SharedPreferencesSettings(delegate = get()) } bind ObservableSettings::class
+            }, module {
+                single { Repository(settings = get(), ctx = get()) }
             })
         }
     }
