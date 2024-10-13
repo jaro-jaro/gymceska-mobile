@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
+import java.time.DayOfWeek
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -51,12 +52,35 @@ fun Ukol.zjednusit(stav: StavUkolu) = JednoduchyUkol(id = id, text = asString(),
 @OptIn(ExperimentalUuidApi::class)
 operator fun Ukol.Companion.invoke() = Ukol("0. 0.", "", "", "", Uuid.random())
 
-fun Ukol.asString() = when {
-    predmet.isNotBlank() && skupina.isNotBlank() -> "$datum – $predmet $skupina – $nazev"
-    predmet.isNotBlank() && skupina.isBlank() -> "$datum – $predmet – $nazev"
-    predmet.isBlank() && skupina.isNotBlank() -> "$datum – $skupina – $nazev"
-    else -> "$datum – $nazev"
+fun Ukol.asString() = buildString {
+    if (den != null) {
+        +den!!
+        +" "
+    }
+    +datum
+    if (predmet.isNotBlank() || skupina.isNotBlank()) +" – "
+    if (predmet.isNotBlank()) +predmet
+    if (predmet.isNotBlank() && skupina.isNotBlank()) +" "
+    if (skupina.isNotBlank()) +skupina
+    +" – "
+    +nazev
 }
+
+context(StringBuilder)
+operator fun String.unaryPlus()  = also { append(this) }
+
+private val Ukol.den get() = dateFromUkol(this)?.dayOfWeek?.zkratka
+
+private val DayOfWeek.zkratka
+    get() = when (this) {
+        DayOfWeek.MONDAY -> "po"
+        DayOfWeek.TUESDAY -> "út"
+        DayOfWeek.WEDNESDAY -> "st"
+        DayOfWeek.THURSDAY -> "čt"
+        DayOfWeek.FRIDAY -> "pá"
+        DayOfWeek.SATURDAY -> "so"
+        DayOfWeek.SUNDAY -> "ne"
+    }
 
 fun today() = now().date
 fun time() = now().time
