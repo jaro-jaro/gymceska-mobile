@@ -32,10 +32,11 @@ class RozvrhViewModel(
         val vjec: Vjec?,
         val stalost: Stalost?,
         val mujRozvrh: Boolean?,
-        val navigovat: (Direction) -> Unit,
         val horScrollState: ScrollState,
         val verScrollState: ScrollState,
     )
+
+    lateinit var navigovat: (Direction) -> Unit
 
     val tridy = repo.tridy
     val mistnosti = repo.mistnosti
@@ -66,19 +67,19 @@ class RozvrhViewModel(
 
     fun vybratRozvrh(vjec: Vjec) {
         viewModelScope.launch {
-            params.navigovat(
+            navigovat(
                 RozvrhDestination(
                     vjec = if (vjec.nazev == "HOME") repo.nastaveni.first().mojeTrida else vjec,
                     mujRozvrh = _mujRozvrh.first(),
                     stalost = stalost,
-                )
+                ).also(::println)
             )
         }
     }
 
     fun zmenitStalost(stalost: Stalost) {
         viewModelScope.launch {
-            params.navigovat(
+            navigovat(
                 RozvrhDestination(
                     vjec = vjec.value,
                     mujRozvrh = _mujRozvrh.first(),
@@ -92,7 +93,7 @@ class RozvrhViewModel(
 
     fun zmenitMujRozvrh() {
         viewModelScope.launch {
-            params.navigovat(
+            navigovat(
                 RozvrhDestination(
                     vjec = vjec.value,
                     mujRozvrh = !_mujRozvrh.first(),
