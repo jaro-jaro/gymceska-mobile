@@ -11,7 +11,6 @@ import com.google.firebase.analytics.analytics
 import com.google.firebase.crashlytics.crashlytics
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
-import org.koin.core.context.startKoin
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -19,17 +18,13 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startKoin {
-            modules(module {
-                single { this@App } bind Context::class
-                single { get<Context>().getSharedPreferences("prefs-gymceska-multiplatform", Context.MODE_PRIVATE) }
-                single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
-                single { UserOnlineManager { get<Context>().isOnline() } }
-                single { UserIdProvider { get<Context>().getUserId() } }
-            }, module {
-                single { Repository(get(), get(), get()) }
-            })
-        }
+        initKoin(module {
+            single { this@App } bind Context::class
+            single { get<Context>().getSharedPreferences("prefs-gymceska-multiplatform", Context.MODE_PRIVATE) }
+            single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
+            single { UserOnlineManager { get<Context>().isOnline() } }
+            single { UserIdProvider { get<Context>().getUserId() } }
+        })
 
         Firebase.analytics.setUserId(getUserId())
         Firebase.crashlytics.setUserId(getUserId())
