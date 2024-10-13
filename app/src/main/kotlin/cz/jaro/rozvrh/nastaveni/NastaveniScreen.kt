@@ -36,7 +36,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,9 +53,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.google.firebase.Firebase
-import com.google.firebase.remoteconfig.remoteConfig
-import com.google.firebase.remoteconfig.remoteConfigSettings
 import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
@@ -71,8 +67,6 @@ import cz.jaro.rozvrh.rozvrh.dnesniEntries
 import cz.jaro.rozvrh.ui.theme.GymceskaTheme
 import cz.jaro.rozvrh.ui.theme.Theme
 import cz.jaro.rozvrh.ui.theme.areDynamicColorsSupported
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.LocalTime
 import org.koin.compose.getKoin
 import java.time.format.DateTimeParseException
@@ -101,6 +95,7 @@ fun Nastaveni(
         tridy = tridy,
         skupiny = skupiny,
         stahnoutVse = viewModel::stahnoutVse,
+        resetRemoteConfig = viewModel::resetRemoteConfig,
     )
 }
 
@@ -114,6 +109,7 @@ fun NastaveniContent(
     tridy: List<Vjec.TridaVjec>,
     skupiny: Sequence<String>?,
     stahnoutVse: (Stalost, (String) -> Unit, (Boolean) -> Unit) -> Unit,
+    resetRemoteConfig: () -> Unit,
 ) = Surface {
     NastaveniNavigation(
         navigateBack = navigateBack,
@@ -472,17 +468,9 @@ fun NastaveniContent(
                 Text("Stáhnout rozvrhy")
             }
 
-            val scope = rememberCoroutineScope()
             TextButton(
                 onClick = {
-                    scope.launch {
-                        Firebase.remoteConfig.reset().await()
-                        val configSettings = remoteConfigSettings {
-                            minimumFetchIntervalInSeconds = 3600
-                        }
-                        Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
-                        Firebase.remoteConfig.fetchAndActivate().await()
-                    }
+                    resetRemoteConfig()
                 }
             ) {
                 Text("Obnovit seznamy")
@@ -560,6 +548,7 @@ private fun NastaveniPreview() {
             tridy = emptyList(),
             skupiny = emptySequence(),
             stahnoutVse = { _, _, _ -> },
+            resetRemoteConfig = {},
         )
     }
 }

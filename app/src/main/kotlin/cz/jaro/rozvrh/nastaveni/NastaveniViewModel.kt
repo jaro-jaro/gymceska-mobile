@@ -55,4 +55,9 @@ class NastaveniViewModel(
             )
         }
     }
+    fun resetRemoteConfig() {
+        viewModelScope.launch {
+            repo.resetRemoteConfig()
+        }
+    }
 }

@@ -5,6 +5,7 @@ import androidx.annotation.Keep
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -63,6 +64,7 @@ class Repository(
     private val settings: ObservableSettings,
     private val userOnlineManager: UserOnlineManager,
     private val userIdProvider: UserIdProvider,
+    firebase: FirebaseApp,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -75,10 +77,17 @@ class Repository(
         const val VERZE = "verze"
     }
 
-    private val firebase = Firebase
+    private val database = Firebase.database(firebase, "https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
+    private val remoteConfig = Firebase.remoteConfig(firebase)
 
-    private val database = firebase.database("https://gymceska-b9b4c-default-rtdb.europe-west1.firebasedatabase.app/")
-    private val remoteConfig = Firebase.remoteConfig
+    suspend fun resetRemoteConfig() {
+        remoteConfig.reset().await()
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+        remoteConfig.fetchAndActivate().await()
+    }
 
     private val ukolyRef = database.getReference("ukoly")
 

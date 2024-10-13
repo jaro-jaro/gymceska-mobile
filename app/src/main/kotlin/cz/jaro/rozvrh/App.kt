@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.provider.Settings
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.analytics
+import com.google.firebase.app
 import com.google.firebase.crashlytics.crashlytics
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
@@ -24,6 +25,7 @@ class App : Application() {
             single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
             single { UserOnlineManager { get<Context>().isOnline() } }
             single { UserIdProvider { get<Context>().getUserId() } }
+            single { Firebase.app }
         })
 
         Firebase.analytics.setUserId(getUserId())

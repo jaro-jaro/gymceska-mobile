@@ -11,5 +11,5 @@ fun initKoin(platformSpecificModule: Module) {
 }
 
 val commonModule = module {
-    single { Repository(get(), get(), get()) }
+    single { Repository(get(), get(), get(), get()) }
 }
