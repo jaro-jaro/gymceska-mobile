@@ -8,14 +8,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.Navigation
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.destinations.NastaveniDestination
+import cz.jaro.rozvrh.Route
 
 @Composable
 fun NastaveniNavigation(
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     navigateBack: () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
 ) = Navigation(
@@ -27,12 +26,12 @@ fun NastaveniNavigation(
             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.zpet))
         }
     },
-    currentDestination = NastaveniDestination,
+    currentDestination = Route.Nastaveni,
     navigateToDestination = navigate,
     content = content,
     minorNavigationItems = {
         MinorNavigationItem(
-            destination = NastaveniDestination,
+            destination = Route.Nastaveni,
             title = stringResource(R.string.nastaveni),
             icon = Icons.Default.Settings,
         )

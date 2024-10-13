@@ -3,12 +3,11 @@ package cz.jaro.rozvrh.rozvrh
 import androidx.compose.foundation.ScrollState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.Repository
+import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.combineStates
-import cz.jaro.rozvrh.destinations.RozvrhDestination
 import cz.jaro.rozvrh.filterNotNullState
 import cz.jaro.rozvrh.mapState
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,13 +18,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.seconds
 
-@KoinViewModel
 class RozvrhViewModel(
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
     private val repo: Repository,
 ) : ViewModel() {
     data class Parameters(
@@ -36,7 +32,7 @@ class RozvrhViewModel(
         val verScrollState: ScrollState,
     )
 
-    lateinit var navigovat: (Direction) -> Unit
+    lateinit var navigovat: (Route) -> Unit
 
     val tridy = repo.tridy
     val mistnosti = repo.mistnosti
@@ -68,11 +64,11 @@ class RozvrhViewModel(
     fun vybratRozvrh(vjec: Vjec) {
         viewModelScope.launch {
             navigovat(
-                RozvrhDestination(
+                Route.Rozvrh(
                     vjec = if (vjec.nazev == "HOME") repo.nastaveni.first().mojeTrida else vjec,
                     mujRozvrh = _mujRozvrh.first(),
                     stalost = stalost,
-                ).also(::println)
+                )
             )
         }
     }
@@ -80,7 +76,7 @@ class RozvrhViewModel(
     fun zmenitStalost(stalost: Stalost) {
         viewModelScope.launch {
             navigovat(
-                RozvrhDestination(
+                Route.Rozvrh(
                     vjec = vjec.value,
                     mujRozvrh = _mujRozvrh.first(),
                     stalost = stalost,
@@ -94,7 +90,7 @@ class RozvrhViewModel(
     fun zmenitMujRozvrh() {
         viewModelScope.launch {
             navigovat(
-                RozvrhDestination(
+                Route.Rozvrh(
                     vjec = vjec.value,
                     mujRozvrh = !_mujRozvrh.first(),
                     stalost = stalost,

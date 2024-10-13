@@ -67,39 +67,31 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.window.core.layout.WindowHeightSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootNavGraph
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.compose_dialog.dialogState
 import cz.jaro.compose_dialog.show
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.ZdrojRozvrhu
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-@Destination
-@RootNavGraph(start = true)
 @Composable
 fun Rozvrh(
-    vjec: Vjec? = null,
-    mujRozvrh: Boolean? = null,
-    stalost: Stalost? = null,
-    horScroll: Int? = null,
-    verScroll: Int? = null,
-    navigator: DestinationsNavigator,
+    args: Route.Rozvrh,
+    navController: NavController,
 ) {
-    val horScrollState = rememberScrollState(horScroll ?: Int.MAX_VALUE)
-    val verScrollState = rememberScrollState(verScroll ?: Int.MAX_VALUE)
+    val horScrollState = rememberScrollState(args.horScroll ?: Int.MAX_VALUE)
+    val verScrollState = rememberScrollState(args.verScroll ?: Int.MAX_VALUE)
 
     val viewModel = koinViewModel<RozvrhViewModel> {
         parametersOf(
             RozvrhViewModel.Parameters(
-                vjec = vjec,
-                stalost = stalost,
-                mujRozvrh = mujRozvrh,
+                vjec = args.vjec,
+                stalost = args.stalost,
+                mujRozvrh = args.mujRozvrh,
                 horScrollState = horScrollState,
                 verScrollState = verScrollState,
             )
@@ -107,7 +99,7 @@ fun Rozvrh(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.navigovat = navigator.navigate
+        viewModel.navigovat = navController.navigate
     }
 
     val tabulka by viewModel.tabulka.collectAsStateWithLifecycle()
@@ -129,7 +121,7 @@ fun Rozvrh(
         vybratRozvrh = viewModel::vybratRozvrh,
         zmenitStalost = viewModel::zmenitStalost,
         stahnoutVse = viewModel.stahnoutVse,
-        navigate = navigator.navigate,
+        navigate = navController.navigate,
         najdiMiVolnouTridu = viewModel::najdiMivolnouTridu,
         najdiMiVolnehoUcitele = viewModel::najdiMiVolnehoUcitele,
         rozvrhOfflineWarning = tabulka?.zdroj,
@@ -155,7 +147,7 @@ fun RozvrhContent(
     vybratRozvrh: (Vjec) -> Unit,
     zmenitStalost: (Stalost) -> Unit,
     stahnoutVse: () -> Unit,
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     rozvrhOfflineWarning: ZdrojRozvrhu?,
@@ -206,7 +198,6 @@ fun RozvrhContent(
                 vjec = vjec,
                 tabulka = tabulka,
                 kliklNaNeco = { vjec ->
-                    println(vjec)
                     vybratRozvrh(vjec)
                 },
                 rozvrhOfflineWarning = rozvrhOfflineWarning,

@@ -16,14 +16,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 
-@KoinViewModel
 class NastaveniViewModel(
     private val repo: Repository,
-    @InjectedParam private val getStartActivityForResult: (callback: (Uri) -> Unit) -> ManagedActivityResultLauncher<Intent, ActivityResult>,
-    @InjectedParam private val contentResolver: ContentResolver,
+    private val getStartActivityForResult: (callback: (Uri) -> Unit) -> ManagedActivityResultLauncher<Intent, ActivityResult>,
+    private val contentResolver: ContentResolver,
 ) : ViewModel() {
 
     val tridyFlow = repo.tridy

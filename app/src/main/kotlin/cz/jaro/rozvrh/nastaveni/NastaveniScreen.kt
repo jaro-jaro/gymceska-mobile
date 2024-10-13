@@ -61,17 +61,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.rozvrh.Vybiratko
@@ -87,10 +86,10 @@ import java.time.format.DateTimeParseException
 
 private var callback: (Uri) -> Unit = {}
 
-@Destination
 @Composable
 fun Nastaveni(
-    navigator: DestinationsNavigator
+    args: Route.Nastaveni,
+    navController: NavController,
 ) {
 
     val ctx = LocalContext.current
@@ -115,8 +114,8 @@ fun Nastaveni(
     val skupiny by viewModel.skupiny.collectAsStateWithLifecycle(null)
 
     NastaveniContent(
-        navigateBack = navigator::navigateUp,
-        navigate = navigator.navigate,
+        navigateBack = navController::navigateUp,
+        navigate = navController.navigate,
         nastaveni = nastaveni,
         upravitNastaveni = viewModel::upravitNastaveni,
         tridy = tridy,
@@ -129,7 +128,7 @@ fun Nastaveni(
 @Composable
 fun NastaveniContent(
     navigateBack: () -> Unit,
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     nastaveni: Nastaveni?,
     upravitNastaveni: ((Nastaveni) -> Nastaveni) -> Unit,
     tridy: List<Vjec.TridaVjec>,

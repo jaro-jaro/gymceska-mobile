@@ -30,15 +30,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowHeightSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
-import com.ramcosta.composedestinations.spec.Direction
-import cz.jaro.rozvrh.destinations.Destination
-import cz.jaro.rozvrh.destinations.RozvrhDestination
-import cz.jaro.rozvrh.destinations.UkolyDestination
 
 interface ActionScope {
     @Composable
     fun MinorNavigationItem(
-        destination: Direction,
+        destination: Route,
         title: String,
         icon: ImageVector,
     )
@@ -53,11 +49,11 @@ interface ActionScope {
 
 private fun ActionScope(
     isInTabletMode: Boolean,
-    currentDestination: Destination,
-    navigateToDestination: (Direction) -> Unit,
+    currentDestination: Route,
+    navigateToDestination: (Route) -> Unit,
 ) = object : ActionScope {
     @Composable
-    override fun MinorNavigationItem(destination: Direction, title: String, icon: ImageVector) {
+    override fun MinorNavigationItem(destination: Route, title: String, icon: ImageVector) {
         MinorNavigationItem(
             destination = destination,
             selected = destination == currentDestination,
@@ -92,8 +88,8 @@ fun Navigation(
     actions: (@Composable ActionScope.() -> Unit)? = null,
     minorNavigationItems: (@Composable ActionScope.() -> Unit)? = null,
     titleContent: (@Composable () -> Unit)? = null,
-    currentDestination: Destination,
-    navigateToDestination: (Direction) -> Unit,
+    currentDestination: Route,
+    navigateToDestination: (Route) -> Unit,
     content: @Composable (PaddingValues) -> Unit,
     navigationIcon: (@Composable () -> Unit)? = null,
     floatingActionButton: (@Composable () -> Unit)? = null,
@@ -192,10 +188,10 @@ private fun Action(
 
 @Composable
 private fun MinorNavigationItem(
-    destination: Direction,
+    destination: Route,
     selected: Boolean,
     title: String,
-    navigateToDestination: (Direction) -> Unit,
+    navigateToDestination: (Route) -> Unit,
     icon: ImageVector,
     isInTabletMode: Boolean,
 ) = if (isInTabletMode) {
@@ -224,8 +220,8 @@ private fun MinorNavigationItem(
 
 @Composable
 private fun Rail(
-    currentDestination: Destination,
-    navigateToDestination: (Direction) -> Unit,
+    currentDestination: Route,
+    navigateToDestination: (Route) -> Unit,
     actions: (@Composable () -> Unit)? = null,
     titleContent: (@Composable () -> Unit)? = null,
     minorNavigationItems: (@Composable () -> Unit)? = null,
@@ -246,9 +242,9 @@ private fun Rail(
         }
         minorNavigationItems?.invoke()
         NavigationRailItem(
-            selected = currentDestination is RozvrhDestination,
+            selected = currentDestination is Route.Rozvrh,
             onClick = {
-                navigateToDestination(RozvrhDestination())
+                navigateToDestination(Route.Rozvrh())
             },
             icon = {
                 Icon(Icons.Default.TableChart, null)
@@ -258,9 +254,9 @@ private fun Rail(
             }
         )
         NavigationRailItem(
-            selected = currentDestination == UkolyDestination,
+            selected = currentDestination == Route.Ukoly,
             onClick = {
-                navigateToDestination(UkolyDestination())
+                navigateToDestination(Route.Ukoly)
             },
             icon = {
                 Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null)
@@ -274,14 +270,14 @@ private fun Rail(
 
 @Composable
 private fun BottomBar(
-    currentDestination: Destination,
-    navigateToDestination: (Direction) -> Unit,
+    currentDestination: Route,
+    navigateToDestination: (Route) -> Unit,
 ) {
     NavigationBar {
         NavigationBarItem(
-            selected = currentDestination is RozvrhDestination,
+            selected = currentDestination is Route.Rozvrh,
             onClick = {
-                navigateToDestination(RozvrhDestination())
+                navigateToDestination(Route.Rozvrh())
             },
             icon = {
                 Icon(Icons.Default.TableChart, null)
@@ -291,9 +287,9 @@ private fun BottomBar(
             }
         )
         NavigationBarItem(
-            selected = currentDestination == UkolyDestination,
+            selected = currentDestination == Route.Ukoly,
             onClick = {
-                navigateToDestination(UkolyDestination())
+                navigateToDestination(Route.Ukoly)
             },
             icon = {
                 Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null)

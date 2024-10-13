@@ -1,5 +1,11 @@
 package cz.jaro.rozvrh
 
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -10,14 +16,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
-import com.ramcosta.composedestinations.DestinationsNavHost
 import cz.jaro.compose_dialog.dialogState
-import cz.jaro.rozvrh.destinations.RozvrhDestination
-import cz.jaro.rozvrh.destinations.UkolyDestination
+import cz.jaro.rozvrh.nastaveni.Nastaveni
+import cz.jaro.rozvrh.rozvrh.Rozvrh
+import cz.jaro.rozvrh.rozvrh.Stalost
+import cz.jaro.rozvrh.rozvrh.Vjec
+import cz.jaro.rozvrh.ukoly.SpravceUkolu
+import cz.jaro.rozvrh.ukoly.Ukoly
+import kotlin.reflect.KType
+
+inline fun <reified T : Route> typeMap() = when (T::class) {
+    Route.Rozvrh::class -> mapOf(
+        serializationTypePair<Int?>(),
+        serializationTypePair<Boolean?>(),
+        serializationTypePair<Vjec?>(),
+        nullableEnumTypePair<Stalost>(),
+    )
+    else -> emptyMap<KType, NavType<*>>()
+}
 
 @Composable
 fun MainContent(
@@ -62,24 +84,55 @@ fun MainContent(
     }
     Surface {
         val navController = rememberNavController()
-        val destination by navController.appCurrentDestinationAsState()
 
         LaunchedEffect(Unit) {
-            if (rozvrh) navController.navigateToDestination(RozvrhDestination())
-            if (ukoly) navController.navigateToDestination(UkolyDestination())
+            if (rozvrh) navController.navigate(Route.Rozvrh())
+            if (ukoly) navController.navigate(Route.Ukoly)
         }
 
         LaunchedEffect(Unit) {
-            val destinationFlow = navController.appCurrentDestinationFlow
+            val destinationFlow = navController.currentBackStackEntryFlow
 
             destinationFlow.collect { destination ->
                 Firebase.analytics.logEvent("navigation") {
-                    param("route", destination.route)
+                    param("route", destination.generateRouteWithArgs() ?: "")
                 }
             }
         }
 
         cz.jaro.compose_dialog.AlertDialog(dialogState)
-        DestinationsNavHost(navGraph = NavGraphs.root, navController = navController)
+        NavHost(
+            navController = navController,
+            startDestination = Route.Rozvrh(),
+            popEnterTransition = {
+                scaleIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                    initialScale = 1.1F,
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                )
+            },
+            popExitTransition = {
+                scaleOut(
+                    targetScale = 0.9F,
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 35,
+                        easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
+                    ),
+                )
+            },
+        ) {
+            route<Route.Rozvrh> { Rozvrh(args = it, navController = navController) }
+            route<Route.Ukoly> { Ukoly(args = it, navController = navController) }
+            route<Route.SpravceUkolu> { SpravceUkolu(args = it, navController = navController) }
+            route<Route.Nastaveni> { Nastaveni(args = it, navController = navController) }
+        }
     }
 }

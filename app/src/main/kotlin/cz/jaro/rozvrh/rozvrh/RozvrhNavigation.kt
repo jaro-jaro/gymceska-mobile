@@ -33,12 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.ActionScope
 import cz.jaro.rozvrh.Navigation
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.destinations.NastaveniDestination
-import cz.jaro.rozvrh.destinations.RozvrhDestination
+import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.ukoly.time
 import cz.jaro.rozvrh.ukoly.today
 import kotlinx.datetime.Clock.System
@@ -50,7 +48,7 @@ import kotlin.time.Duration.Companion.minutes
 @Composable
 fun RozvrhNavigation(
     stahnoutVse: () -> Unit,
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     najdiMiVolnouTridu: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.MistnostVjec>?) -> Unit) -> Unit,
     najdiMiVolnehoUcitele: (Stalost, Int, List<Int>, List<FiltrNajdiMi>, (String) -> Unit, (List<Vjec.VyucujiciVjec>?) -> Unit) -> Unit,
     tabulka: Tyden?,
@@ -70,12 +68,12 @@ fun RozvrhNavigation(
     actions = {
         Actions(stahnoutVse, tabulka, vybratRozvrh, najdiMiVolnouTridu, najdiMiVolnehoUcitele)
     },
-    currentDestination = RozvrhDestination,
+    currentDestination = Route.Rozvrh(),
     navigateToDestination = navigate,
     content = content,
     minorNavigationItems = {
         MinorNavigationItem(
-            destination = NastaveniDestination,
+            destination = Route.Nastaveni,
             title = stringResource(R.string.nastaveni),
             icon = Icons.Default.Settings,
         )

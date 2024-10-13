@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -20,20 +19,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.spec.Direction
+import androidx.navigation.NavController
 import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.Route
 import org.koin.androidx.compose.koinViewModel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-@Destination
 @Composable
 fun Ukoly(
-    navigator: DestinationsNavigator,
+    args: Route.Ukoly,
+    navController: NavController,
 ) {
     val viewModel = koinViewModel<UkolyViewModel>()
 
@@ -45,19 +43,19 @@ fun Ukoly(
         state = state,
         skrtnout = viewModel::skrtnout,
         odskrtnout = viewModel::odskrtnout,
-        navigate = navigator.navigate,
+        navigate = navController.navigate,
         jeOffline = !jeOnline,
         jeInteligentni = jeInteligentni,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun UkolyContent(
     state: UkolyState,
     skrtnout: (Uuid) -> Unit,
     odskrtnout: (Uuid) -> Unit,
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     jeOffline: Boolean,
     jeInteligentni: Boolean,
 ) = Surface {

@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.application)
     alias(libs.plugins.gms.google.services)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.compose.compiler)
 }
@@ -78,9 +77,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.bundles.koin)
     implementation(libs.androidx.adaptive.android)
-    ksp(libs.koin.ksp.compiler)
-    implementation(libs.compose.destinations.core)
-    ksp(libs.compose.destinations.ksp)
     implementation(libs.semver)
     implementation(libs.kotlinx.datetime)
 }
