@@ -476,7 +476,7 @@ fun <T1, T2, T3, R> combineStates(
 ): StateFlow<R> = combine(flow, flow2, flow3, transform)
     .stateIn(coroutineScope, sharingStarted, transform(flow.value, flow2.value, flow3.value))
 
-fun <T1, T2, T3, T4, R> combine(
+fun <T1, T2, T3, T4, R> combineStates(
     coroutineScope: CoroutineScope,
     sharingStarted: SharingStarted,
     flow: StateFlow<T1>,

@@ -93,7 +93,7 @@ fun Rozvrh(
             repo = repo,
             params = RozvrhViewModel.Parameters(
                 vjec = args.vjec,
-                stalost = args.stalost,
+                stalost = args.stalost?.let { Stalost.valueOf(it) },
                 mujRozvrh = args.mujRozvrh,
                 horScrollState = horScrollState,
                 verScrollState = verScrollState,

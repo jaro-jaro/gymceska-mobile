@@ -8,14 +8,12 @@ import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.Uspech
 import cz.jaro.rozvrh.combineStates
-import cz.jaro.rozvrh.filterNotNullState
 import cz.jaro.rozvrh.mapState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
@@ -25,7 +23,7 @@ class RozvrhViewModel(
     private val repo: Repository,
 ) : ViewModel() {
     data class Parameters(
-        val vjec: Vjec?,
+        val vjec: String?,
         val stalost: Stalost?,
         val mujRozvrh: Boolean?,
         val horScrollState: ScrollState,
@@ -41,9 +39,12 @@ class RozvrhViewModel(
     private val odemkleMistnosti = repo.odemkleMistnosti
     private val velkeMistnosti = repo.velkeMistnosti
 
-    val vjec = repo.nastaveni.map {
-        params.vjec ?: it.mojeTrida
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), params.vjec)
+    val vjec = combineStates(
+        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
+        repo.nastaveni, tridy, vyucujici, mistnosti
+    ) { nastaveni, tridy, vyucujici, mistnosti ->
+        params.vjec?.let { Vjec.fromString(it, tridy, mistnosti, vyucujici) } ?: nastaveni.mojeTrida
+    }
 
     val stalost = params.stalost ?: Stalost.dnesniEntries().first()
 
@@ -57,17 +58,16 @@ class RozvrhViewModel(
         viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
         _mujRozvrh, repo.nastaveni, vjec
     ) { mujRozvrh, nastaveni, vjec ->
-        if (vjec == null) null
-        else mujRozvrh && vjec == nastaveni.mojeTrida
-    }.filterNotNullState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+        mujRozvrh && vjec == nastaveni.mojeTrida
+    }
 
     fun vybratRozvrh(vjec: Vjec) {
         viewModelScope.launch {
             navigovat(
                 Route.Rozvrh(
-                    vjec = if (vjec.nazev == "HOME") repo.nastaveni.first().mojeTrida else vjec,
-                    mujRozvrh = _mujRozvrh.first(),
-                    stalost = stalost,
+                    vjec = (if (vjec.nazev == "HOME") repo.nastaveni.value.mojeTrida else vjec).toStringArgument(),
+                    mujRozvrh = _mujRozvrh.value,
+                    stalost = stalost.name,
                 )
             )
         }
@@ -77,9 +77,9 @@ class RozvrhViewModel(
         viewModelScope.launch {
             navigovat(
                 Route.Rozvrh(
-                    vjec = vjec.value,
-                    mujRozvrh = _mujRozvrh.first(),
-                    stalost = stalost,
+                    vjec = vjec.value.toStringArgument(),
+                    mujRozvrh = _mujRozvrh.value,
+                    stalost = stalost.name,
                     horScroll = params.horScrollState.value,
                     verScroll = params.verScrollState.value,
                 )
@@ -91,9 +91,9 @@ class RozvrhViewModel(
         viewModelScope.launch {
             navigovat(
                 Route.Rozvrh(
-                    vjec = vjec.value,
-                    mujRozvrh = !_mujRozvrh.first(),
-                    stalost = stalost,
+                    vjec = vjec.value.toStringArgument(),
+                    mujRozvrh = !_mujRozvrh.value,
+                    stalost = stalost.name,
                     horScroll = params.horScrollState.value,
                     verScroll = params.verScrollState.value,
                 )
@@ -115,8 +115,7 @@ class RozvrhViewModel(
     val alwaysTwoRowCells = repo.nastaveni.mapState(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), Nastaveni::alwaysTwoRowCells)
 
     val tabulka: StateFlow<Uspech?> = combine(vjec, mujRozvrh, repo.nastaveni, zobrazitMujRozvrh) { vjec, mujRozvrh, nastaveni, zobrazitMujRozvrh ->
-        if (vjec == null) null
-        else when (vjec) {
+        when (vjec) {
             is Vjec.TridaVjec -> repo.ziskatRozvrh(
                 trida = vjec,
                 stalost = stalost,

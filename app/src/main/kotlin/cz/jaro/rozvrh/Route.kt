@@ -1,7 +1,5 @@
 package cz.jaro.rozvrh
 
-import cz.jaro.rozvrh.rozvrh.Stalost
-import cz.jaro.rozvrh.rozvrh.Vjec
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -15,8 +13,8 @@ sealed interface Route {
     @Serializable
     @SerialName("rozvrh")
     data class Rozvrh(
-        val vjec: Vjec? = null,
-        val stalost: Stalost? = null,
+        val vjec: String? = null,
+        val stalost: String? = null,
         val mujRozvrh: Boolean? = null,
         val horScroll: Int? = null,
         val verScroll: Int? = null,

@@ -25,8 +25,6 @@ import com.google.firebase.ktx.Firebase
 import cz.jaro.compose_dialog.dialogState
 import cz.jaro.rozvrh.nastaveni.Nastaveni
 import cz.jaro.rozvrh.rozvrh.Rozvrh
-import cz.jaro.rozvrh.rozvrh.Stalost
-import cz.jaro.rozvrh.rozvrh.Vjec
 import cz.jaro.rozvrh.ukoly.SpravceUkolu
 import cz.jaro.rozvrh.ukoly.Ukoly
 import kotlin.reflect.KType
@@ -35,8 +33,6 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.Rozvrh::class -> mapOf(
         serializationTypePair<Int?>(),
         serializationTypePair<Boolean?>(),
-        serializationTypePair<Vjec?>(),
-        nullableEnumTypePair<Stalost>(),
     )
     else -> emptyMap<KType, NavType<*>>()
 }
