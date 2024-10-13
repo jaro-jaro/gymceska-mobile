@@ -11,31 +11,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.rozvrh.Navigation
 import cz.jaro.rozvrh.R
-import cz.jaro.rozvrh.destinations.NastaveniDestination
-import cz.jaro.rozvrh.destinations.SpravceUkoluDestination
-import cz.jaro.rozvrh.destinations.UkolyDestination
+import cz.jaro.rozvrh.Route
 
 @Composable
 fun UkolyNavigation(
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     smiSpravovat: Boolean,
     content: @Composable (PaddingValues) -> Unit,
 ) = Navigation(
     title = stringResource(R.string.domaci_ukoly),
-    currentDestination = UkolyDestination,
+    currentDestination = Route.Ukoly,
     navigateToDestination = navigate,
     content = content,
     minorNavigationItems = {
         if (smiSpravovat) MinorNavigationItem(
-            destination = SpravceUkoluDestination,
+            destination = Route.SpravceUkolu,
             title = "Spravovat úkoly",
             icon = Icons.Default.Edit,
         )
         MinorNavigationItem(
-            destination = NastaveniDestination,
+            destination = Route.Nastaveni,
             title = stringResource(R.string.nastaveni),
             icon = Icons.Default.Settings,
         )
@@ -44,13 +41,13 @@ fun UkolyNavigation(
 
 @Composable
 fun SpravceUkoluNavigation(
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
     navigateBack: () -> Unit,
     pridatUkol: () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
 ) = Navigation(
     title = "Spravovat úkoly",
-    currentDestination = SpravceUkoluDestination,
+    currentDestination = Route.SpravceUkolu,
     navigateToDestination = navigate,
     content = content,
     navigationIcon = {
@@ -71,12 +68,12 @@ fun SpravceUkoluNavigation(
     },
     minorNavigationItems = {
         MinorNavigationItem(
-            destination = SpravceUkoluDestination,
+            destination = Route.SpravceUkolu,
             title = "Spravovat úkoly",
             icon = Icons.Default.Edit,
         )
         MinorNavigationItem(
-            destination = NastaveniDestination,
+            destination = Route.Nastaveni,
             title = stringResource(R.string.nastaveni),
             icon = Icons.Default.Settings,
         )

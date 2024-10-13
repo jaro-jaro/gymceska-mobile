@@ -1,6 +1,5 @@
 package cz.jaro.rozvrh.ukoly
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -38,16 +37,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.spec.Direction
+import androidx.navigation.NavController
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.Route
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -57,10 +54,10 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-@Destination
 @Composable
 fun SpravceUkolu(
-    navigator: DestinationsNavigator
+    args: Route.SpravceUkolu,
+    navController: NavController,
 ) {
     val viewModel = koinViewModel<UkolyViewModel>()
 
@@ -71,12 +68,12 @@ fun SpravceUkolu(
         pridatUkol = viewModel::pridatUkol,
         odebratUkol = viewModel::odebratUkol,
         zmenitUkol = viewModel::upravitUkol,
-        navigateBack = navigator::navigateUp,
-        navigate = navigator.navigate,
+        navigateBack = navController::navigateUp,
+        navigate = navController.navigate,
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun SpravceUkoluContent(
     ukoly: List<Ukol>?,
@@ -84,7 +81,7 @@ fun SpravceUkoluContent(
     odebratUkol: (Uuid) -> Unit,
     zmenitUkol: (Ukol) -> Unit,
     navigateBack: () -> Unit,
-    navigate: (Direction) -> Unit,
+    navigate: (Route) -> Unit,
 ) = Surface {
     var upravovat by rememberSaveable { mutableStateOf(null as Uuid?) }
     var datum by rememberSaveable { mutableStateOf("") }

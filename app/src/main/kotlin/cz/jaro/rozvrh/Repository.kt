@@ -58,7 +58,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
-import org.koin.core.annotation.Single
 import java.io.IOException
 import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.days
@@ -68,7 +67,6 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-@Single
 class Repository(
     private val ctx: Context,
 ) {

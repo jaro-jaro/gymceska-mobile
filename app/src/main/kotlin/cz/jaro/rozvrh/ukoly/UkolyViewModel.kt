@@ -8,14 +8,12 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.koin.android.annotation.KoinViewModel
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.combine as kombajn
 
 @OptIn(ExperimentalUuidApi::class)
-@KoinViewModel
 class UkolyViewModel(
     private val repo: Repository
 ) : ViewModel() {
