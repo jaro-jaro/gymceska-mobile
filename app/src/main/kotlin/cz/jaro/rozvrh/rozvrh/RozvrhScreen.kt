@@ -67,16 +67,17 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowHeightSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import cz.jaro.compose_dialog.dialogState
 import cz.jaro.compose_dialog.show
 import cz.jaro.rozvrh.App.Companion.navigate
+import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.ZdrojRozvrhu
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import org.koin.compose.getKoin
 
 @Composable
 fun Rozvrh(
@@ -86,9 +87,11 @@ fun Rozvrh(
     val horScrollState = rememberScrollState(args.horScroll ?: Int.MAX_VALUE)
     val verScrollState = rememberScrollState(args.verScroll ?: Int.MAX_VALUE)
 
-    val viewModel = koinViewModel<RozvrhViewModel> {
-        parametersOf(
-            RozvrhViewModel.Parameters(
+    val repo = getKoin().get<Repository>()
+    val viewModel = viewModel<RozvrhViewModel> {
+        RozvrhViewModel(
+            repo = repo,
+            params = RozvrhViewModel.Parameters(
                 vjec = args.vjec,
                 stalost = args.stalost,
                 mujRozvrh = args.mujRozvrh,

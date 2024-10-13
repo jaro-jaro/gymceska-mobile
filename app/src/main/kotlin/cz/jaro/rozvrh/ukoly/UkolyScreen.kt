@@ -19,11 +19,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cz.jaro.rozvrh.App.Companion.navigate
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.getKoin
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -33,7 +35,12 @@ fun Ukoly(
     args: Route.Ukoly,
     navController: NavController,
 ) {
-    val viewModel = koinViewModel<UkolyViewModel>()
+    val repo = getKoin().get<Repository>()
+    val viewModel = viewModel<UkolyViewModel> {
+        UkolyViewModel(
+            repo = repo,
+        )
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()

@@ -65,7 +65,6 @@ firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-k
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
-koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin-androidx-compose" }
 # Jetpack Preferences DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
@@ -93,7 +92,6 @@ androidx-jetpack-glance = [
 ]
 koin = [
     "koin-core",
-    "koin-android",
     "koin-androidx-compose",
 ]
 

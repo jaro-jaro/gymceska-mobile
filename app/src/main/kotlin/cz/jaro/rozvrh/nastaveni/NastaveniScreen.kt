@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.remoteConfig
@@ -70,6 +71,7 @@ import cz.jaro.rozvrh.BuildConfig
 import cz.jaro.rozvrh.Nastaveni
 import cz.jaro.rozvrh.PrepnoutRozvrhWidget
 import cz.jaro.rozvrh.R
+import cz.jaro.rozvrh.Repository
 import cz.jaro.rozvrh.Route
 import cz.jaro.rozvrh.rozvrh.Stalost
 import cz.jaro.rozvrh.rozvrh.Vjec
@@ -80,8 +82,7 @@ import cz.jaro.rozvrh.ui.theme.Theme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.LocalTime
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import org.koin.compose.getKoin
 import java.time.format.DateTimeParseException
 
 private var callback: (Uri) -> Unit = {}
@@ -105,8 +106,13 @@ fun Nastaveni(
         return launcher
     }
 
-    val viewModel = koinViewModel<NastaveniViewModel> {
-        parametersOf(::getStartActivityForResult, ctx.contentResolver)
+    val repo = getKoin().get<Repository>()
+    val viewModel = viewModel<NastaveniViewModel> {
+        NastaveniViewModel(
+            repo = repo,
+            getStartActivityForResult = ::getStartActivityForResult,
+            contentResolver = ctx.contentResolver,
+        )
     }
 
     val tridy by viewModel.tridyFlow.collectAsStateWithLifecycle(emptyList())
