@@ -20,5 +20,4 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-
--keep class com.google.firebase.database.GenericTypeIndicator
+-dontwarn org.slf4j.impl.StaticLoggerBinder
